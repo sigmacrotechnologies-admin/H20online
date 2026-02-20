@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image } from "react-native";
+import { useRouter } from "expo-router";
 
 const roles = [
   { id: 1, title: "Customer", subtitle: "Home delivery & tracking", icon: "👤" },
@@ -11,6 +12,7 @@ const roles = [
 ];
 
 const RoleSelectionScreen = () => {
+  const router = useRouter();
   const [selectedRole, setSelectedRole] = useState("Customer");
 
   return (
@@ -68,7 +70,18 @@ const RoleSelectionScreen = () => {
       </View>
 
       {/* Continue Button */}
-      <TouchableOpacity style={styles.button} activeOpacity={0.9}>
+      <TouchableOpacity
+        style={styles.button}
+        activeOpacity={0.9}
+        onPress={() => {
+          if (selectedRole === "Customer") {
+            router.push("/create-profile");
+          } else {
+            // Handle other roles navigation here
+            console.log(`Continue as ${selectedRole}`);
+          }
+        }}
+      >
         <Text style={styles.buttonText}>
           Continue as {selectedRole} →
         </Text>
