@@ -23,10 +23,10 @@ try {
 }
 
 const plans = [
-  { id: 1, name: "Basic Plan", price: "$29.99/month" },
-  { id: 2, name: "Family Pack", price: "$49.99/month" },
-  { id: 3, name: "Active Plan", price: "$39.99/month" },
-  { id: 4, name: "Premium Plan", price: "$69.99/month" },
+  { id: 1, name: "Basic Plan" },
+  { id: 2, name: "Family Pack" },
+  { id: 3, name: "Active Plan" },
+  { id: 4, name: "Premium Plan" },
 ];
 
 const CreateProfileScreen = () => {
@@ -40,6 +40,7 @@ const CreateProfileScreen = () => {
   const [activityLevel, setActivityLevel] = useState("moderate");
   const [familyMembers, setFamilyMembers] = useState(3);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [registerWithPlan, setRegisterWithPlan] = useState(false);
   const [showPlanDropdown, setShowPlanDropdown] = useState(false);
   const [connectDevice, setConnectDevice] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
@@ -106,7 +107,9 @@ const CreateProfileScreen = () => {
   };
 
   const handleContinue = () => {
-    if (otp.join("").length === 4 && selectedPlan) router.push("/dashboard");
+    const otpValid = otp.join("").length === 4;
+    const planOk = !registerWithPlan || selectedPlan !== null;
+    if (otpValid && planOk) router.push("/dashboard");
   };
 
   const decreaseFamilyMembers = () => {
@@ -114,7 +117,7 @@ const CreateProfileScreen = () => {
   };
   const increaseFamilyMembers = () => setFamilyMembers(familyMembers + 1);
 
-  const isContinueEnabled = otp.join("").length === 4 && selectedPlan !== null;
+  const isContinueEnabled = otp.join("").length === 4 && (!registerWithPlan || selectedPlan !== null);
 
   const activityLevels = [
     { level: "low", icon: "bed-outline", label: "Low" },
@@ -261,16 +264,26 @@ const CreateProfileScreen = () => {
         </View>
 
         <View style={styles.inputSection}>
-          <Text style={styles.label}>Select Plan</Text>
-          <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowPlanDropdown(true)} activeOpacity={0.8}>
-            <View style={styles.dropdownButtonContent}>
-              <Ionicons name="card-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-              <Text style={[styles.dropdownButtonText, !selectedPlan && styles.dropdownButtonTextPlaceholder]}>
-                {selectedPlan ? selectedPlan.name : "Select a plan"}
-              </Text>
-            </View>
-            <Ionicons name="chevron-down" size={20} color="#6B7C85" />
-          </TouchableOpacity>
+          <View style={styles.planToggleRow}>
+            <Text style={styles.label}>Register with plan</Text>
+            <Switch value={registerWithPlan} onValueChange={setRegisterWithPlan} trackColor={{ false: "#D1D5DB", true: "#1EA7FD" }} thumbColor="#FFFFFF" />
+          </View>
+          {registerWithPlan && (
+            <>
+              <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowPlanDropdown(true)} activeOpacity={0.8}>
+                <View style={styles.dropdownButtonContent}>
+                  <Ionicons name="card-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
+                  <Text style={[styles.dropdownButtonText, !selectedPlan && styles.dropdownButtonTextPlaceholder]}>
+                    {selectedPlan ? selectedPlan.name : "Select a plan"}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-down" size={20} color="#6B7C85" />
+              </TouchableOpacity>
+            </>
+          )}
+          {!registerWithPlan && (
+            <Text style={styles.planLaterMessage}>You can select a plan later as well on your dashboard.</Text>
+          )}
         </View>
 
         <View style={styles.inputSection}>
@@ -337,10 +350,7 @@ const CreateProfileScreen = () => {
                 style={[styles.planOption, selectedPlan?.id === plan.id && styles.planOptionSelected]}
                 onPress={() => { setSelectedPlan(plan); setShowPlanDropdown(false); }}
               >
-                <View>
-                  <Text style={styles.planName}>{plan.name}</Text>
-                  <Text style={styles.planPrice}>{plan.price}</Text>
-                </View>
+                <Text style={styles.planName}>{plan.name}</Text>
                 {selectedPlan?.id === plan.id && <Ionicons name="checkmark-circle" size={24} color="#1EA7FD" />}
               </TouchableOpacity>
             ))}
@@ -416,8 +426,9 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
   planOption: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderRadius: 12, backgroundColor: "#f0f7fcd7", marginBottom: 12 },
   planOptionSelected: { backgroundColor: "#E0F2FE", borderWidth: 2, borderColor: "#8ED1FC" },
-  planName: { fontSize: 16, fontWeight: "600", color: "#1B2B34", marginBottom: 4 },
-  planPrice: { fontSize: 14, color: "#6B7C85" },
+  planName: { fontSize: 16, fontWeight: "600", color: "#1B2B34", flex: 1 },
+  planToggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  planLaterMessage: { fontSize: 13, color: "#6B7C85", fontStyle: "italic", marginTop: 6 },
   avatarOption: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 12, backgroundColor: "#f0f7fcd7", marginBottom: 12, gap: 12 },
   avatarOptionText: { fontSize: 16, fontWeight: "600", color: "#1B2B34" },
 });
