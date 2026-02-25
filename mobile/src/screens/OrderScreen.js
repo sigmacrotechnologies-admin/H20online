@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "@/src/context/CartContext";
+import { api } from "@/src/api/client";
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -20,18 +21,6 @@ const FILTERS = [
   { id: "delivery", label: "Delivery Time" },
   { id: "rating", label: "Rating" },
   { id: "distance", label: "Supplier Distance" },
-];
-
-// capacityL = main size in liters for filtering; categories: party, office, bulk, tanker
-const INITIAL_PRODUCTS = [
-  { id: "1", productName: "AquaPure Premium 20L Jar", supplierName: "AquaPure Water Co.", supplierId: "s1", badge: "subscription", rating: 4.8, reviewCount: "1.2k", price: 180, priceUnit: "20L Jar", delivery: "20-30 min", inStock: true, capacityL: 20, categories: ["party", "office"] },
-  { id: "2", productName: "BlueSprings Local 20L Jar", supplierName: "BlueSprings Hydration Hub", supplierId: "s2", rating: 4.2, reviewCount: "450", price: 120, priceUnit: "20L Jar", delivery: "45 min", inStock: true, capacityL: 20, categories: ["office"] },
-  { id: "3", productName: "Himalayan Mineral Pack (12x Bottles)", supplierName: "Himalayan Springs Pvt. Ltd.", supplierId: "s3", badge: "premium", rating: 4.9, reviewCount: "2.1k", price: 340, priceUnit: "Box (12x)", delivery: "Next Day", inStock: true, capacityL: 12, categories: ["party"] },
-  { id: "4", productName: "Crystal Clear 20L Jar", supplierName: "Crystal Hydration Services", supplierId: "s4", rating: 3.8, reviewCount: "120", price: 140, priceUnit: "20L Jar", delivery: "60 min", inStock: false, capacityL: 20, categories: [] },
-  { id: "5", productName: "PureDrop 20L Jar", supplierName: "AquaPure Water Co.", supplierId: "s1", rating: 4.5, reviewCount: "890", price: 165, priceUnit: "20L Jar", delivery: "25-35 min", inStock: true, capacityL: 20, categories: ["party", "office"] },
-  { id: "6", productName: "Mountain Fresh 1L Bottles (24x)", supplierName: "Himalayan Springs Pvt. Ltd.", supplierId: "s3", badge: "premium", rating: 4.7, reviewCount: "560", price: 399, priceUnit: "Case", delivery: "Next Day", inStock: true, capacityL: 1, categories: ["party"] },
-  { id: "7", productName: "Bulk Water 500L Tank", supplierName: "AquaPure Water Co.", supplierId: "s1", rating: 4.6, reviewCount: "89", price: 2500, priceUnit: "500L", delivery: "1-2 days", inStock: true, capacityL: 500, categories: ["bulk"] },
-  { id: "8", productName: "Water Tanker 2000L", supplierName: "Crystal Hydration Services", supplierId: "s4", rating: 4.4, reviewCount: "56", price: 8000, priceUnit: "2000L", delivery: "2-3 days", inStock: true, capacityL: 2000, categories: ["tanker"] },
 ];
 
 const SIZE_RANGES = [
@@ -56,7 +45,26 @@ const OrderScreen = () => {
   const [location, setLocation] = useState("Current location (tap to change)");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-  const [products, setProducts] = useState(INITIAL_PRODUCTS.map((p) => ({ ...p, compareSelected: false })));
+  const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState(null);
+
+  useEffect(() => {
+    setProductsError(null);
+    api.products
+      .list()
+      .then((raw) => {
+        setProductsError(null);
+        const list = Array.isArray(raw) ? raw : [];
+        setProducts(list.map((p) => ({ ...p, compareSelected: false })));
+      })
+      .catch((err) => {
+        setProductsError(err?.message || "Request failed");
+        setProducts([]);
+      })
+      .finally(() => setProductsLoading(false));
+  }, []);
+
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
   const [subscribeProduct, setSubscribeProduct] = useState(null);
@@ -97,10 +105,11 @@ const OrderScreen = () => {
   };
 
   const filteredAndSortedProducts = useMemo(() => {
+    const q = (searchQuery || "").toLowerCase().trim();
     let list = products.filter(
       (p) =>
-        p.productName.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
-        p.supplierName.toLowerCase().includes(searchQuery.toLowerCase().trim())
+        (p.productName || "").toLowerCase().includes(q) ||
+        (p.supplierName || "").toLowerCase().includes(q)
     );
     list = list.filter((p) => {
       const capacityL = p.capacityL ?? 20;
@@ -129,7 +138,7 @@ const OrderScreen = () => {
     if (activeFilter === "price") list = [...list].sort((a, b) => a.price - b.price);
     else if (activeFilter === "delivery") list = [...list].sort((a, b) => (a.delivery < b.delivery ? -1 : 1));
     else if (activeFilter === "rating") list = [...list].sort((a, b) => b.rating - a.rating);
-    else if (activeFilter === "distance") list = [...list].sort((a, b) => a.delivery.localeCompare(b.delivery));
+    else if (activeFilter === "distance") list = [...list].sort((a, b) => (a.delivery || "").localeCompare(b.delivery || ""));
     return list;
   }, [products, searchQuery, activeFilter, sizeRangeSelected, extraSelected, useCaseSelected, sizeSliderMin, sizeSliderMax]);
 
@@ -202,7 +211,29 @@ const OrderScreen = () => {
       <FlatList
         data={filteredAndSortedProducts}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, filteredAndSortedProducts.length === 0 && styles.listContentEmpty]}
+        ListEmptyComponent={
+          productsLoading ? (
+            <View style={styles.emptyWrap}><Text style={styles.emptyText}>Loading products…</Text></View>
+          ) : productsError ? (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyText}>Could not load products.</Text>
+              <Text style={styles.emptyTextSub}>Backend running? Same Wi‑Fi? In mobile/.env set EXPO_PUBLIC_API_URL=http://YOUR_PC_IP:5000 then restart Expo (npm start -c)</Text>
+              <Text style={[styles.emptyText, { marginTop: 8 }]}>{productsError}</Text>
+              <TouchableOpacity style={styles.retryBtn} onPress={() => { setProductsLoading(true); setProductsError(null); api.products.list().then((raw) => { const list = Array.isArray(raw) ? raw : []; setProducts(list.map((p) => ({ ...p, compareSelected: false }))); }).catch((e) => setProductsError(e?.message || "Request failed")).finally(() => setProductsLoading(false)); }} activeOpacity={0.8}>
+                <Text style={styles.retryBtnText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyText}>No products in database.</Text>
+              <Text style={styles.emptyTextSub}>In backend folder run: npm run seed</Text>
+              <TouchableOpacity style={styles.retryBtn} onPress={() => { setProductsLoading(true); api.products.list().then((raw) => { const list = Array.isArray(raw) ? raw : []; setProducts(list.map((p) => ({ ...p, compareSelected: false }))); }).catch((e) => setProductsError(e?.message || "Request failed")).finally(() => setProductsLoading(false)); }} activeOpacity={0.8}>
+                <Text style={styles.retryBtnText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )
+        }
         renderItem={({ item }) => (
           <View style={styles.card}>
             {item.badge && (
@@ -511,6 +542,12 @@ const styles = StyleSheet.create({
   filterApplyBtn: { flex: 1, backgroundColor: "#0EA5E9", paddingVertical: 14, borderRadius: 14, alignItems: "center" },
   filterApplyText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
   listContent: { paddingHorizontal: 20, paddingBottom: 100 },
+  listContentEmpty: { flexGrow: 1 },
+  emptyWrap: { paddingVertical: 40, paddingHorizontal: 24, alignItems: "center", justifyContent: "center" },
+  emptyText: { fontSize: 15, color: "#6B7C85", textAlign: "center" },
+  emptyTextSub: { fontSize: 13, color: "#9CA3AF", textAlign: "center", marginTop: 6 },
+  retryBtn: { marginTop: 16, backgroundColor: "#0EA5E9", paddingVertical: 12, paddingHorizontal: 24, borderRadius: 14 },
+  retryBtnText: { fontSize: 15, fontWeight: "600", color: "#FFFFFF" },
   card: { backgroundColor: "#f0f7fcd7", borderRadius: 20, padding: 18, marginBottom: 16, elevation: 2 },
   badge: { alignSelf: "flex-start", backgroundColor: "#0EA5E9", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 10 },
   badgePremium: { backgroundColor: "#8B5CF6" },

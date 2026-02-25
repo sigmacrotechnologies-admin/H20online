@@ -12,25 +12,70 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/src/context/AuthContext";
+import { useCart } from "@/src/context/CartContext";
+import { api } from "@/src/api/client";
 
 const ProfileScreen = () => {
   const router = useRouter();
+  const { user, isAuthenticated, logout, setUser } = useAuth();
+  const { orders } = useCart();
   const [showPersonalModal, setShowPersonalModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
-  const [editName, setEditName] = useState("Sofia Martinez");
-  const [editEmail, setEditEmail] = useState("sofia.m@example.com");
-  const [editPhone, setEditPhone] = useState("+1 555 123 4567");
+  const [editName, setEditName] = useState(user?.name || "");
+  const [editEmail, setEditEmail] = useState(user?.email || "");
+  const [editPhone, setEditPhone] = useState(user?.phone || "");
   const [editAddress, setEditAddress] = useState("123 Hydration St, City");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  // Sync edit fields when user loads or when opening modal
+  React.useEffect(() => {
+    if (user) {
+      setEditName(user.name || "");
+      setEditEmail(user.email || "");
+      setEditPhone(user.phone || "");
+    }
+  }, [user]);
 
   const handleLogout = () => {
+    logout();
     router.replace("/(tabs)");
   };
 
-  const handleSavePersonal = () => {
-    setShowPersonalModal(false);
+  const handleSavePersonal = async () => {
+    setSaveError("");
+    if (!isAuthenticated) {
+      setShowPersonalModal(false);
+      return;
+    }
+    const nameVal = editName.trim();
+    const emailVal = editEmail.trim();
+    if (!nameVal) {
+      setSaveError("Name is required");
+      return;
+    }
+    if (!emailVal) {
+      setSaveError("Email is required");
+      return;
+    }
+    setSaving(true);
+    try {
+      const updated = await api.users.update({
+        name: nameVal,
+        email: emailVal,
+        phone: editPhone.trim(),
+      });
+      setUser(updated);
+      setShowPersonalModal(false);
+    } catch (err) {
+      setSaveError(err.message || "Failed to update");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSavePassword = () => {
@@ -63,15 +108,21 @@ const ProfileScreen = () => {
               </View>
             </View>
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>Sofia Martinez</Text>
-              <Text style={styles.userEmail}>sofia.m@example.com</Text>
+              <Text style={styles.userName}>{user?.name || "Guest"}</Text>
+              <Text style={styles.userEmail}>{user?.email || "Login to sync"}</Text>
               <View style={styles.premiumBadge}>
                 <Text style={styles.premiumBadgeText}>Premium Member</Text>
               </View>
             </View>
             <TouchableOpacity
               style={styles.editIconWrap}
-              onPress={() => setShowPersonalModal(true)}
+              onPress={() => {
+                setEditName(user?.name || "");
+                setEditEmail(user?.email || "");
+                setEditPhone(user?.phone || "");
+                setSaveError("");
+                setShowPersonalModal(true);
+              }}
               activeOpacity={0.7}
             >
               <Ionicons name="pencil" size={20} color="#0EA5E9" />
@@ -79,10 +130,10 @@ const ProfileScreen = () => {
           </View>
         </View>
 
-        {/* Stats row */}
+        {/* Stats row - Orders from backend */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>42</Text>
+            <Text style={styles.statValue}>{orders.length}</Text>
             <Text style={styles.statLabel}>Orders</Text>
           </View>
           <View style={styles.statCard}>
@@ -90,7 +141,7 @@ const ProfileScreen = () => {
             <Text style={styles.statLabel}>Points</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>$45</Text>
+            <Text style={styles.statValue}>₹45</Text>
             <Text style={styles.statLabel}>Saved</Text>
           </View>
         </View>
@@ -100,7 +151,13 @@ const ProfileScreen = () => {
         <View style={styles.card}>
           <TouchableOpacity
             style={styles.menuRow}
-            onPress={() => setShowPersonalModal(true)}
+            onPress={() => {
+              setEditName(user?.name || "");
+              setEditEmail(user?.email || "");
+              setEditPhone(user?.phone || "");
+              setSaveError("");
+              setShowPersonalModal(true);
+            }}
             activeOpacity={0.7}
           >
             <View style={styles.menuIconCircleBlue}>
@@ -175,10 +232,15 @@ const ProfileScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Log Out */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
+        {isAuthenticated ? (
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
+            <Text style={styles.logoutText}>Log Out</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.logoutButton} onPress={() => router.push("/login")} activeOpacity={0.8}>
+            <Text style={styles.logoutText}>Login</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Personal Information popup */}
@@ -234,8 +296,9 @@ const ProfileScreen = () => {
                 placeholderTextColor="#9CA3AF"
               />
             </View>
-            <TouchableOpacity style={styles.modalSaveButton} onPress={handleSavePersonal} activeOpacity={0.8}>
-              <Text style={styles.modalSaveText}>Save</Text>
+            {saveError ? <Text style={styles.saveErrorText}>{saveError}</Text> : null}
+            <TouchableOpacity style={[styles.modalSaveButton, saving && styles.modalSaveButtonDisabled]} onPress={handleSavePersonal} activeOpacity={0.8} disabled={saving}>
+              <Text style={styles.modalSaveText}>{saving ? "Saving…" : "Save"}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -343,5 +406,7 @@ const styles = StyleSheet.create({
   modalFieldLabel: { fontSize: 14, fontWeight: "600", color: "#1B2B34", marginBottom: 8 },
   modalInput: { backgroundColor: "#f0f7fcd7", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: "#1B2B34", borderWidth: 1, borderColor: "rgba(255,255,255,0.8)" },
   modalSaveButton: { backgroundColor: "#1EA7FD", paddingVertical: 16, borderRadius: 20, alignItems: "center", marginTop: 8 },
+  modalSaveButtonDisabled: { opacity: 0.7 },
   modalSaveText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
+  saveErrorText: { fontSize: 14, color: "#DC2626", marginTop: 8, marginBottom: 4 },
 });

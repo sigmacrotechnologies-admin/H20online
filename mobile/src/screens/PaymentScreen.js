@@ -15,9 +15,13 @@ const PaymentScreen = () => {
   const { cartTotal, placeOrder } = useCart();
   const [selected, setSelected] = useState("card");
 
-  const handlePay = () => {
-    const order = placeOrder(selected);
-    if (order) router.replace({ pathname: "/order-confirmed", params: { orderId: order.id } });
+  const handlePay = async () => {
+    try {
+      const order = await placeOrder(selected);
+      if (order) router.replace({ pathname: "/order-confirmed", params: { orderId: order.id } });
+    } catch (err) {
+      alert(err.message || "Payment failed");
+    }
   };
 
   return (

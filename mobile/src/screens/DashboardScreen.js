@@ -13,6 +13,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "@/src/context/CartContext";
 import { useWallet } from "@/src/context/WalletContext";
+import { useAuth } from "@/src/context/AuthContext";
 import TrackOrderModal from "@/src/components/TrackOrderModal";
 import WalletModal from "@/src/components/WalletModal";
 
@@ -39,9 +40,10 @@ const DASHBOARD_PLANS = [
 
 const DashboardScreen = () => {
   const router = useRouter();
+  const { user } = useAuth();
   const { getLatestOrder } = useCart();
   const { balance } = useWallet();
-  const userName = "Sarah";
+  const userName = user?.name || "Guest";
   const weekData = useMemo(() => getRandomTrend(), []);
   const hydration = useMemo(() => getRandomHydration(), []);
   const [currentPlan, setCurrentPlan] = useState(null);

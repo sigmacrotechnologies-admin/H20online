@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { AuthProvider } from '@/src/context/AuthContext';
 import { CartProvider } from '@/src/context/CartContext';
 import { WalletProvider } from '@/src/context/WalletContext';
 
@@ -16,8 +17,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <WalletProvider>
-        <CartProvider>
+      <AuthProvider>
+        <WalletProvider>
+          <CartProvider>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="create-profile" options={{ headerShown: false }} />
@@ -29,11 +31,13 @@ export default function RootLayout() {
             <Stack.Screen name="payment" options={{ headerShown: false }} />
             <Stack.Screen name="order-confirmed" options={{ headerShown: false }} />
             <Stack.Screen name="order-history" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
           <StatusBar style="auto" />
         </CartProvider>
-      </WalletProvider>
+        </WalletProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

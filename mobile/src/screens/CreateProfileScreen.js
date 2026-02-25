@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,16 +10,18 @@ import {
   Switch,
   Modal,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useAuth } from "@/src/context/AuthContext";
 
 let ImagePicker;
 try {
   ImagePicker = require("expo-image-picker");
-} catch (e) {
-  console.log("expo-image-picker not installed");
+} catch (_) {
+  // expo-image-picker not installed
 }
 
 const plans = [
@@ -31,23 +33,24 @@ const plans = [
 
 const CreateProfileScreen = () => {
   const router = useRouter();
-  const [fullName, setFullName] = useState("Alex Morgan");
+  const { register } = useAuth();
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState(["", "", "", ""]);
-  const [age, setAge] = useState("28");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [age, setAge] = useState("");
   const [gender, setGender] = useState("male");
   const [activityLevel, setActivityLevel] = useState("moderate");
-  const [familyMembers, setFamilyMembers] = useState(3);
+  const [familyMembers, setFamilyMembers] = useState(1);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [registerWithPlan, setRegisterWithPlan] = useState(false);
   const [showPlanDropdown, setShowPlanDropdown] = useState(false);
   const [connectDevice, setConnectDevice] = useState(false);
-  const [showOtp, setShowOtp] = useState(false);
   const [avatarUri, setAvatarUri] = useState(null);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-
-  const otpRefs = [useRef(null), useRef(null), useRef(null), useRef(null)];
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const pickImage = async () => {
     if (!ImagePicker) return;
@@ -64,7 +67,7 @@ const CreateProfileScreen = () => {
         setAvatarUri(result.assets[0].uri);
         setShowAvatarPicker(false);
       }
-    } catch (error) {}
+    } catch (_) {}
   };
 
   const takePhoto = async () => {
@@ -81,35 +84,64 @@ const CreateProfileScreen = () => {
         setAvatarUri(result.assets[0].uri);
         setShowAvatarPicker(false);
       }
-    } catch (error) {}
+    } catch (_) {}
   };
 
   const handleBack = () => router.back();
-  const handlePhoneChange = (text) => {
-    setPhone(text);
-    if (text.length > 0) setShowOtp(true);
-    else {
-      setShowOtp(false);
-      setOtp(["", "", "", ""]);
+
+  const handleContinue = async () => {
+    setError("");
+    const name = fullName.trim();
+    const emailTrim = email.trim();
+    const phoneTrim = phone.trim();
+    const pwd = password.trim();
+    if (!name) {
+      setError("Please enter your full name");
+      return;
     }
-  };
-
-  const handleOtpChange = (index, value) => {
-    if (value.length > 1) return;
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-    if (value && index < 3) otpRefs[index + 1].current?.focus();
-  };
-
-  const handleOtpKeyPress = (index, key) => {
-    if (key === "Backspace" && !otp[index] && index > 0) otpRefs[index - 1].current?.focus();
-  };
-
-  const handleContinue = () => {
-    const otpValid = otp.join("").length === 4;
+    if (!emailTrim) {
+      setError("Please enter your email");
+      return;
+    }
+    if (!phoneTrim) {
+      setError("Please enter your phone number");
+      return;
+    }
+    if (!pwd) {
+      setError("Please enter a password");
+      return;
+    }
+    if (pwd.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+    if (pwd !== confirmPassword.trim()) {
+      setError("Passwords do not match");
+      return;
+    }
     const planOk = !registerWithPlan || selectedPlan !== null;
-    if (otpValid && planOk) router.push("/dashboard");
+    if (!planOk) {
+      setError("Please select a plan");
+      return;
+    }
+    setLoading(true);
+    try {
+      await register({
+        name,
+        email: emailTrim,
+        phone: phoneTrim,
+        password: pwd,
+        age: age ? parseInt(age, 10) : undefined,
+        gender: gender || undefined,
+        activityLevel: activityLevel || undefined,
+        familyMembers: familyMembers ?? undefined,
+      });
+      router.replace("/dashboard");
+    } catch (err) {
+      setError(err.message || "Sign up failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const decreaseFamilyMembers = () => {
@@ -117,7 +149,13 @@ const CreateProfileScreen = () => {
   };
   const increaseFamilyMembers = () => setFamilyMembers(familyMembers + 1);
 
-  const isContinueEnabled = otp.join("").length === 4 && (!registerWithPlan || selectedPlan !== null);
+  const isContinueEnabled =
+    fullName.trim().length > 0 &&
+    email.trim().length > 0 &&
+    phone.trim().length > 0 &&
+    password.trim().length >= 6 &&
+    password.trim() === confirmPassword.trim() &&
+    (!registerWithPlan || selectedPlan !== null);
 
   const activityLevels = [
     { level: "low", icon: "bed-outline", label: "Low" },
@@ -184,30 +222,46 @@ const CreateProfileScreen = () => {
           <Text style={styles.label}>Phone Number</Text>
           <View style={styles.inputContainer}>
             <Ionicons name="call-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-            <TextInput style={styles.input} value={phone} onChangeText={handlePhoneChange} placeholder="Enter your phone number" placeholderTextColor="#9CA3AF" keyboardType="phone-pad" />
+            <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Enter your phone number" placeholderTextColor="#9CA3AF" keyboardType="phone-pad" />
           </View>
         </View>
 
-        {showOtp && (
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>OTP</Text>
-            <View style={styles.otpContainer}>
-              {[0, 1, 2, 3].map((index) => (
-                <TextInput
-                  key={index}
-                  ref={otpRefs[index]}
-                  style={styles.otpBox}
-                  value={otp[index]}
-                  onChangeText={(v) => handleOtpChange(index, v)}
-                  onKeyPress={({ nativeEvent }) => handleOtpKeyPress(index, nativeEvent.key)}
-                  keyboardType="number-pad"
-                  maxLength={1}
-                  selectTextOnFocus
-                />
-              ))}
-            </View>
+        <View style={styles.inputSection}>
+          <Text style={styles.label}>Password (min 6 characters)</Text>
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Enter password"
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry
+              returnKeyType="done"
+              blurOnSubmit={true}
+            />
           </View>
-        )}
+        </View>
+
+        <View style={styles.inputSection}>
+          <Text style={styles.label}>Confirm Password</Text>
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Confirm password"
+              placeholderTextColor="#9CA3AF"
+              secureTextEntry
+              returnKeyType="done"
+              blurOnSubmit={true}
+              onSubmitEditing={handleContinue}
+            />
+          </View>
+        </View>
+
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <View style={styles.row}>
           <View style={styles.halfWidth}>
@@ -309,10 +363,9 @@ const CreateProfileScreen = () => {
           <Switch value={connectDevice} onValueChange={setConnectDevice} trackColor={{ false: "#D1D5DB", true: "#9333EA" }} thumbColor="#FFFFFF" />
         </View>
 
-        <TouchableOpacity style={[styles.continueButton, !isContinueEnabled && styles.continueButtonDisabled]} onPress={handleContinue} activeOpacity={isContinueEnabled ? 0.9 : 1} disabled={!isContinueEnabled}>
+        <TouchableOpacity style={[styles.continueButton, (!isContinueEnabled || loading) && styles.continueButtonDisabled]} onPress={handleContinue} activeOpacity={isContinueEnabled && !loading ? 0.9 : 1} disabled={!isContinueEnabled || loading}>
           <View style={styles.buttonContent}>
-            <Text style={isContinueEnabled ? styles.buttonText : styles.buttonTextDisabled}>Continue to Dashboard</Text>
-            <Text style={isContinueEnabled ? styles.buttonArrow : styles.buttonArrowDisabled}>→</Text>
+            {loading ? <ActivityIndicator color="#FFFFFF" size="small" /> : <><Text style={isContinueEnabled && !loading ? styles.buttonText : styles.buttonTextDisabled}>Sign up & Continue</Text><Text style={isContinueEnabled && !loading ? styles.buttonArrow : styles.buttonArrowDisabled}>→</Text></>}
           </View>
         </TouchableOpacity>
         </View>
@@ -429,6 +482,7 @@ const styles = StyleSheet.create({
   planName: { fontSize: 16, fontWeight: "600", color: "#1B2B34", flex: 1 },
   planToggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
   planLaterMessage: { fontSize: 13, color: "#6B7C85", fontStyle: "italic", marginTop: 6 },
+  errorText: { fontSize: 14, color: "#DC2626", marginBottom: 12, fontWeight: "500" },
   avatarOption: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 12, backgroundColor: "#f0f7fcd7", marginBottom: 12, gap: 12 },
   avatarOptionText: { fontSize: 16, fontWeight: "600", color: "#1B2B34" },
 });

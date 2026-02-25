@@ -1,10 +1,18 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useAuth } from "@/src/context/AuthContext";
+import { api } from "@/src/api/client";
 
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
+  const { isAuthenticated } = useAuth();
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    api.orders.list().then((list) => setOrders(list)).catch(() => {});
+  }, [isAuthenticated]);
 
   const addToCart = (item, qty = 1) => {
     setCart((prev) => {
@@ -33,8 +41,20 @@ export function CartProvider({ children }) {
   const cartCount = cart.reduce((sum, i) => sum + (i.qty || 1), 0);
   const cartTotal = cart.reduce((sum, i) => sum + (i.price || 0) * (i.qty || 1), 0);
 
-  const placeOrder = (paymentMethod) => {
+  const placeOrder = async (paymentMethod, address) => {
     if (cart.length === 0) return null;
+    if (isAuthenticated) {
+      try {
+        const payload = { items: cart, total: cartTotal, paymentMethod: paymentMethod || "card", address: address || "" };
+        const order = await api.orders.create(payload);
+        const list = await api.orders.list().catch(() => []);
+        setOrders(list.length > 0 ? list : (prev) => [order, ...prev]);
+        setCart([]);
+        return order;
+      } catch (err) {
+        throw err;
+      }
+    }
     const order = {
       id: `ord_${Date.now()}`,
       items: [...cart],
@@ -42,15 +62,23 @@ export function CartProvider({ children }) {
       paymentMethod: paymentMethod || "Card",
       status: "in_progress",
       date: new Date().toISOString(),
-      address: "Current location (tap to change)",
+      address: address || "Current location (tap to change)",
     };
     setOrders((prev) => [order, ...prev]);
-    clearCart();
+    setCart([]);
     return order;
   };
 
   const getLatestOrder = () => orders[0] || null;
-  const cancelOrder = (orderId) => {
+
+  const cancelOrder = async (orderId) => {
+    if (isAuthenticated) {
+      try {
+        await api.orders.cancel(orderId);
+        setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: "cancelled" } : o)));
+      } catch (_) {}
+      return;
+    }
     setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: "cancelled" } : o)));
   };
 
