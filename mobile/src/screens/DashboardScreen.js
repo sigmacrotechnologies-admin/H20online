@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -6,10 +6,16 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
+  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useCart } from "@/src/context/CartContext";
+import { useWallet } from "@/src/context/WalletContext";
+import { useAuth } from "@/src/context/AuthContext";
+import TrackOrderModal from "@/src/components/TrackOrderModal";
+import WalletModal from "@/src/components/WalletModal";
 
 const HEADER_HEIGHT = 220;
 
@@ -25,17 +31,38 @@ const getRandomHydration = () => {
   return { pct, current, goal };
 };
 
+const DASHBOARD_PLANS = [
+  { id: 1, name: "Basic Plan" },
+  { id: 2, name: "Family Pack" },
+  { id: 3, name: "Active Plan" },
+  { id: 4, name: "Premium Plan" },
+];
+
 const DashboardScreen = () => {
   const router = useRouter();
-  const userName = "Sarah";
+  const { user } = useAuth();
+  const { getLatestOrder } = useCart();
+  const { balance } = useWallet();
+  const userName = user?.name || "Guest";
   const weekData = useMemo(() => getRandomTrend(), []);
   const hydration = useMemo(() => getRandomHydration(), []);
+  const [currentPlan, setCurrentPlan] = useState(null);
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showTrackModal, setShowTrackModal] = useState(false);
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [subscriptions, setSubscriptions] = useState([
+    { id: "sub1", productName: "AquaPure Premium 20L", supplierName: "AquaPure Water Co.", frequency: "Monthly", deliveryDates: "1st, 15th" },
+    { id: "sub2", productName: "BlueSprings Local 20L", supplierName: "BlueSprings Hydration Hub", frequency: "Monthly", deliveryDates: "10th, 25th" },
+  ]);
+  const [selectedSubscription, setSelectedSubscription] = useState(null);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [subscriptionDropdownOpen, setSubscriptionDropdownOpen] = useState(false);
 
   const quickActions = [
-    { id: 1, title: "Order Jar", subtitle: "Repeat last order", icon: "water-outline" },
-    { id: 2, title: "My Plan", subtitle: "Family Pack + Active", icon: "document-text-outline" },
-    { id: 3, title: "Track", subtitle: "Arriving 2:30 PM", icon: "car-outline" },
-    { id: 4, title: "$45.50", subtitle: "Auto-pay on", icon: "pricetag-outline" },
+    { id: 1, title: "Order Jar", subtitle: "Repeat last order", icon: "water-outline", onPress: () => router.push("/order") },
+    { id: 2, title: "My Plan", subtitle: currentPlan ? currentPlan.name : "Add or update plan", icon: "document-text-outline", onPress: () => setShowPlanModal(true) },
+    { id: 3, title: "Track", subtitle: "Arriving 2:30 PM", icon: "car-outline", onPress: () => setShowTrackModal(true) },
+    { id: 4, title: `₹${balance}`, subtitle: "Wallet", icon: "wallet-outline", onPress: () => setShowWalletModal(true) },
   ];
 
   const devices = [
@@ -69,9 +96,13 @@ const DashboardScreen = () => {
             </View>
 
             <View style={styles.profileInPanel}>
-              <View style={styles.avatarSmall}>
+              <TouchableOpacity
+                style={styles.avatarSmall}
+                onPress={() => router.push("/profile")}
+                activeOpacity={0.8}
+              >
                 <Ionicons name="person" size={32} color="#60A5FA" />
-              </View>
+              </TouchableOpacity>
               <Text style={styles.helloText}>Hello, {userName}</Text>
               <Text style={styles.welcomeText}></Text>
               <View style={styles.welcomePadding} />
@@ -118,7 +149,12 @@ const DashboardScreen = () => {
           {/* Quick Action Grid - 2x2 with icon, title, subtitle */}
           <View style={styles.quickActionsGrid}>
             {quickActions.map((action) => (
-              <TouchableOpacity key={action.id} style={styles.quickActionCard} activeOpacity={0.8}>
+              <TouchableOpacity
+                key={action.id}
+                style={styles.quickActionCard}
+                activeOpacity={0.8}
+                onPress={action.onPress}
+              >
                 <View style={styles.quickActionIconCircle}>
                   <Ionicons name={action.icon} size={24} color="#0EA5E9" />
                 </View>
@@ -145,6 +181,33 @@ const DashboardScreen = () => {
             <TouchableOpacity style={styles.viewDetailsButton} activeOpacity={0.8}>
               <Text style={styles.viewDetailsText}>View Details</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* Water / Jar subscriptions */}
+          <Text style={styles.sectionHeader}>Water / Jar subscriptions</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.subscriptionDropdown}
+              onPress={() => setSubscriptionDropdownOpen(!subscriptionDropdownOpen)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="water-outline" size={22} color="#0EA5E9" style={{ marginRight: 10 }} />
+              <Text style={styles.subscriptionDropdownText} numberOfLines={1}>
+                {subscriptions.length === 0 ? "No subscriptions" : `${subscriptions.length} subscription${subscriptions.length > 1 ? "s" : ""} (tap to view)`}
+              </Text>
+              <Ionicons name={subscriptionDropdownOpen ? "chevron-up" : "chevron-down"} size={20} color="#6B7C85" />
+            </TouchableOpacity>
+            {subscriptionDropdownOpen && subscriptions.map((sub) => (
+              <TouchableOpacity
+                key={sub.id}
+                style={styles.subscriptionItem}
+                onPress={() => { setSelectedSubscription(sub); setShowSubscriptionModal(true); setSubscriptionDropdownOpen(false); }}
+              >
+                <Text style={styles.subscriptionItemName}>{sub.productName}</Text>
+                <Text style={styles.subscriptionItemSupplier}>{sub.supplierName}</Text>
+                <Ionicons name="chevron-forward" size={18} color="#6B7C85" style={{ position: "absolute", right: 12, top: 18 }} />
+              </TouchableOpacity>
+            ))}
           </View>
 
           {/* My Devices - header + horizontal separate boxes */}
@@ -199,6 +262,80 @@ const DashboardScreen = () => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Add / Update Plan modal */}
+      <Modal visible={showPlanModal} transparent animationType="slide">
+        <TouchableOpacity
+          style={styles.planModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowPlanModal(false)}
+        >
+          <View style={styles.planModalContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.planModalHeader}>
+              <Text style={styles.planModalTitle}>Add or update plan</Text>
+              <TouchableOpacity onPress={() => setShowPlanModal(false)}>
+                <Text style={styles.planModalClose}>Close</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.planModalHint}>Plans are name only at the moment. Select a plan:</Text>
+            {DASHBOARD_PLANS.map((plan) => (
+              <TouchableOpacity
+                key={plan.id}
+                style={[styles.planModalOption, currentPlan?.id === plan.id && styles.planModalOptionSelected]}
+                onPress={() => {
+                  setCurrentPlan(plan);
+                  setShowPlanModal(false);
+                }}
+              >
+                <Text style={styles.planModalOptionName}>{plan.name}</Text>
+                {currentPlan?.id === plan.id && <Ionicons name="checkmark-circle" size={24} color="#1EA7FD" />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Subscription detail modal - Edit / Cancel */}
+      <Modal visible={showSubscriptionModal} transparent animationType="slide">
+        <TouchableOpacity style={styles.planModalOverlay} activeOpacity={1} onPress={() => setShowSubscriptionModal(false)}>
+          <View style={styles.planModalContent} onStartShouldSetResponder={() => true}>
+              <View style={styles.planModalHeader}>
+                <Text style={styles.planModalTitle}>Subscription</Text>
+                <TouchableOpacity onPress={() => setShowSubscriptionModal(false)}>
+                  <Ionicons name="close" size={24} color="#1B2B34" />
+                </TouchableOpacity>
+              </View>
+              {selectedSubscription && (
+                <>
+                  <Text style={styles.subscriptionDetailName}>{selectedSubscription.productName}</Text>
+                  <Text style={styles.subscriptionDetailSupplier}>{selectedSubscription.supplierName}</Text>
+                  <Text style={styles.subscriptionDetailMeta}>{selectedSubscription.frequency} • Delivery: {selectedSubscription.deliveryDates}</Text>
+                  <TouchableOpacity style={styles.subscriptionEditBtn} onPress={() => setShowSubscriptionModal(false)} activeOpacity={0.8}>
+                    <Text style={styles.subscriptionEditBtnText}>Edit</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.subscriptionCancelBtn}
+                    onPress={() => {
+                      setSubscriptions((prev) => prev.filter((s) => s.id !== selectedSubscription.id));
+                      setShowSubscriptionModal(false);
+                      setSelectedSubscription(null);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.subscriptionCancelBtnText}>Cancel subscription</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <TrackOrderModal
+        visible={showTrackModal}
+        onClose={() => setShowTrackModal(false)}
+        order={getLatestOrder()}
+      />
+      <WalletModal visible={showWalletModal} onClose={() => setShowWalletModal(false)} />
     </SafeAreaView>
   );
 };
@@ -282,4 +419,27 @@ const styles = StyleSheet.create({
   inviteSubtitle: { fontSize: 13, color: "#6B7C85", marginTop: 4 },
   inviteButton: { backgroundColor: "#1E40AF", paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12 },
   inviteButtonText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
+
+  planModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  planModalContent: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: "70%" },
+  planModalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  planModalTitle: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
+  planModalClose: { fontSize: 16, fontWeight: "600", color: "#1EA7FD" },
+  planModalHint: { fontSize: 13, color: "#6B7C85", marginBottom: 16 },
+  planModalOption: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 12, backgroundColor: "#f0f7fcd7", marginBottom: 12 },
+  planModalOptionSelected: { backgroundColor: "#E0F2FE", borderWidth: 2, borderColor: "#8ED1FC" },
+  planModalOptionName: { flex: 1, fontSize: 16, fontWeight: "600", color: "#1B2B34" },
+
+  subscriptionDropdown: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 4 },
+  subscriptionDropdownText: { flex: 1, fontSize: 15, fontWeight: "600", color: "#1B2B34" },
+  subscriptionItem: { borderTopWidth: 1, borderTopColor: "#E5E7EB", paddingVertical: 14, paddingHorizontal: 4, paddingRight: 36 },
+  subscriptionItemName: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
+  subscriptionItemSupplier: { fontSize: 13, color: "#6B7C85", marginTop: 4 },
+  subscriptionDetailName: { fontSize: 17, fontWeight: "700", color: "#1B2B34", marginBottom: 6 },
+  subscriptionDetailSupplier: { fontSize: 14, color: "#6B7C85", marginBottom: 4 },
+  subscriptionDetailMeta: { fontSize: 14, color: "#1B2B34", marginBottom: 20 },
+  subscriptionEditBtn: { backgroundColor: "#0EA5E9", paddingVertical: 14, borderRadius: 14, alignItems: "center", marginBottom: 10 },
+  subscriptionEditBtnText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
+  subscriptionCancelBtn: { paddingVertical: 14, alignItems: "center" },
+  subscriptionCancelBtnText: { fontSize: 15, fontWeight: "600", color: "#EF4444" },
 });

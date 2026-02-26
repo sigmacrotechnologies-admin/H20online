@@ -1,0 +1,110 @@
+import React, { createContext, useContext, useState, useEffect } from "react";
+import { useAuth } from "@/src/context/AuthContext";
+import { api } from "@/src/api/client";
+
+const CartContext = createContext(null);
+
+export function CartProvider({ children }) {
+  const { isAuthenticated } = useAuth();
+  const [cart, setCart] = useState([]);
+  const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    api.orders.list().then((list) => setOrders(list)).catch(() => {});
+  }, [isAuthenticated]);
+
+  const addToCart = (item, qty = 1) => {
+    setCart((prev) => {
+      const existing = prev.find((i) => i.id === item.id);
+      if (existing) {
+        return prev.map((i) => (i.id === item.id ? { ...i, qty: i.qty + qty } : i));
+      }
+      return [...prev, { ...item, qty }];
+    });
+  };
+
+  const removeFromCart = (id) => {
+    setCart((prev) => prev.filter((i) => i.id !== id));
+  };
+
+  const updateCartQty = (id, qty) => {
+    if (qty < 1) {
+      removeFromCart(id);
+      return;
+    }
+    setCart((prev) => prev.map((i) => (i.id === id ? { ...i, qty } : i)));
+  };
+
+  const clearCart = () => setCart([]);
+
+  const cartCount = cart.reduce((sum, i) => sum + (i.qty || 1), 0);
+  const cartTotal = cart.reduce((sum, i) => sum + (i.price || 0) * (i.qty || 1), 0);
+
+  const placeOrder = async (paymentMethod, address) => {
+    if (cart.length === 0) return null;
+    if (isAuthenticated) {
+      try {
+        const payload = { items: cart, total: cartTotal, paymentMethod: paymentMethod || "card", address: address || "" };
+        const order = await api.orders.create(payload);
+        const list = await api.orders.list().catch(() => []);
+        setOrders(list.length > 0 ? list : (prev) => [order, ...prev]);
+        setCart([]);
+        return order;
+      } catch (err) {
+        throw err;
+      }
+    }
+    const order = {
+      id: `ord_${Date.now()}`,
+      items: [...cart],
+      total: cartTotal,
+      paymentMethod: paymentMethod || "Card",
+      status: "in_progress",
+      date: new Date().toISOString(),
+      address: address || "Current location (tap to change)",
+    };
+    setOrders((prev) => [order, ...prev]);
+    setCart([]);
+    return order;
+  };
+
+  const getLatestOrder = () => orders[0] || null;
+
+  const cancelOrder = async (orderId) => {
+    if (isAuthenticated) {
+      try {
+        await api.orders.cancel(orderId);
+        setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: "cancelled" } : o)));
+      } catch (_) {}
+      return;
+    }
+    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: "cancelled" } : o)));
+  };
+
+  return (
+    <CartContext.Provider
+      value={{
+        cart,
+        cartCount,
+        cartTotal,
+        orders,
+        addToCart,
+        removeFromCart,
+        updateCartQty,
+        clearCart,
+        placeOrder,
+        getLatestOrder,
+        cancelOrder,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
+}
+
+export function useCart() {
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error("useCart must be used within CartProvider");
+  return ctx;
+}
