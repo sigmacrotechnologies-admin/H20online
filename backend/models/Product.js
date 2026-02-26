@@ -1,0 +1,23 @@
+const mongoose = require("mongoose");
+
+const productSchema = new mongoose.Schema(
+  {
+    productName: { type: String, required: true, trim: true },
+    supplierId: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier", required: true },
+    price: { type: Number, required: true },
+    priceUnit: { type: String, default: "20L Jar" },
+    delivery: { type: String, default: "20-30 min" },
+    inStock: { type: Boolean, default: true },
+    capacityL: { type: Number, default: 20 },
+    categories: [{ type: String }],
+    badge: { type: String, enum: ["subscription", "premium", ""], default: "" },
+    rating: { type: Number, default: 4 },
+    reviewCount: { type: String, default: "0" },
+  },
+  { timestamps: true }
+);
+
+productSchema.index({ productName: "text" });
+productSchema.index({ capacityL: 1, categories: 1 });
+
+module.exports = mongoose.model("Product", productSchema);

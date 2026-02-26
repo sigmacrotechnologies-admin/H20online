@@ -13,18 +13,30 @@ const roles = [
 
 const RoleSelectionScreen = () => {
   const router = useRouter();
-  const [selectedRole, setSelectedRole] = useState("Customer");
+  const [selectedRole, setSelectedRole] = useState(roles[0]);
+
+  const handleContinue = () => {
+    if (selectedRole.title === "Customer") {
+      router.push("/create-profile");
+    } else if (selectedRole.title === "Corporate") {
+      router.push("/corporate-profile");
+    } else if (selectedRole.title === "Supplier") {
+      router.push("/supplier-onboarding");
+    } else {
+      console.log(`Continue as ${selectedRole.title}`);
+    }
+  };
+
+  const handleEmailLogin = () => {
+    router.push({ pathname: "/login", params: { role: selectedRole.title } });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       {/* Top Icon */}
       <View style={styles.iconContainer}>
-  <Image
-    source={require("../../assets/images/H2-Logo.png")}
-    style={styles.logo}
-    resizeMode="contain"
-  />
-</View>
+        <Image source={require("../../assets/images/H2-Logo.png")} style={styles.logo} resizeMode="contain" />
+      </View>
 
       {/* Header */}
       <Text style={styles.title}>Welcome to H2Online</Text>
@@ -32,26 +44,22 @@ const RoleSelectionScreen = () => {
         Select your role to access the ecosystem
       </Text>
 
-      {/* Role Grid */}
+      {/* Role Grid (tiles) */}
       <View style={styles.grid}>
         {roles.map((role) => {
-          const isSelected = selectedRole === role.title;
+          const isSelected = selectedRole.title === role.title;
           return (
             <TouchableOpacity
               key={role.id}
               style={[styles.card, isSelected && styles.selectedCard]}
-              onPress={() => setSelectedRole(role.title)}
+              onPress={() => setSelectedRole(role)}
               activeOpacity={0.8}
             >
-              {/* Icon Circle (UPDATED: role-specific icon) */}
               <View style={styles.cardIconCircle}>
                 <Text style={styles.cardIcon}>{role.icon}</Text>
               </View>
-
               <Text style={styles.cardTitle}>{role.title}</Text>
               <Text style={styles.cardSubtitle}>{role.subtitle}</Text>
-
-              {/* Selected Tick */}
               {isSelected && <View style={styles.tick} />}
             </TouchableOpacity>
           );
@@ -60,11 +68,19 @@ const RoleSelectionScreen = () => {
 
       {/* Auth Options */}
       <View style={styles.authRow}>
-        <TouchableOpacity style={styles.authButton}>
+        <TouchableOpacity
+          style={styles.authButton}
+          onPress={handleEmailLogin}
+          activeOpacity={0.8}
+        >
           <Text style={styles.authText}>✉️ Email</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.authButton}>
+        <TouchableOpacity
+          style={styles.authButton}
+          onPress={() => router.push("/login-otp")}
+          activeOpacity={0.8}
+        >
           <Text style={styles.authText}>📱 OTP</Text>
         </TouchableOpacity>
       </View>
@@ -73,17 +89,10 @@ const RoleSelectionScreen = () => {
       <TouchableOpacity
         style={styles.button}
         activeOpacity={0.9}
-        onPress={() => {
-          if (selectedRole === "Customer") {
-            router.push("/create-profile");
-          } else {
-            // Handle other roles navigation here
-            console.log(`Continue as ${selectedRole}`);
-          }
-        }}
+        onPress={handleContinue}
       >
         <Text style={styles.buttonText}>
-          Continue as {selectedRole} →
+          Continue as {selectedRole.title} →
         </Text>
       </TouchableOpacity>
 
@@ -105,8 +114,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#c6e2fa",
     paddingHorizontal: 20,
   },
-
- iconContainer: {
+  iconContainer: {
   alignSelf: "center",
   marginTop: 10,
   marginBottom: 10,
