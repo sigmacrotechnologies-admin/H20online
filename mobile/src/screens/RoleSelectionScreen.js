@@ -1,14 +1,14 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 
 const roles = [
   { id: 1, title: "Customer", subtitle: "Home delivery & tracking", icon: "👤" },
   { id: 2, title: "Supplier", subtitle: "Manage orders & logistics", icon: "🚚" },
-  { id: 3, title: "Corporate", subtitle: "Office supply analytics", icon: "🏢" },
-  { id: 4, title: "Restaurant", subtitle: "Hospitality solutions", icon: "🍽️" },
-  { id: 5, title: "Event Org", subtitle: "Large volume planning", icon: "📅" },
-  { id: 6, title: "Institute", subtitle: "Campus monitoring", icon: "🎓" },
+  { id: 4, title: "Corporate", subtitle: "Office supply analytics", icon: "🏢" },
+  { id: 5, title: "Restaurant", subtitle: "Hospitality solutions", icon: "🍽️" },
+  { id: 6, title: "Event Org", subtitle: "Large volume planning", icon: "📅" },
+  { id: 7, title: "Institute", subtitle: "Campus monitoring", icon: "🎓" },
 ];
 
 const RoleSelectionScreen = () => {
@@ -18,12 +18,12 @@ const RoleSelectionScreen = () => {
   const handleContinue = () => {
     if (selectedRole.title === "Customer") {
       router.push("/create-profile");
-    } else if (selectedRole.title === "Corporate") {
-      router.push("/corporate-profile");
     } else if (selectedRole.title === "Supplier") {
       router.push("/supplier-onboarding");
+    } else if (selectedRole.title === "Corporate") {
+      router.push("/corporate-profile");
     } else {
-      console.log(`Continue as ${selectedRole.title}`);
+      router.push({ pathname: "/login", params: { role: selectedRole.title } });
     }
   };
 
@@ -33,75 +33,82 @@ const RoleSelectionScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Top Icon */}
-      <View style={styles.iconContainer}>
-        <Image source={require("../../assets/images/H2-Logo.png")} style={styles.logo} resizeMode="contain" />
-      </View>
-
-      {/* Header */}
-      <Text style={styles.title}>Welcome to H2Online</Text>
-      <Text style={styles.subtitle}>
-        Select your role to access the ecosystem
-      </Text>
-
-      {/* Role Grid (tiles) */}
-      <View style={styles.grid}>
-        {roles.map((role) => {
-          const isSelected = selectedRole.title === role.title;
-          return (
-            <TouchableOpacity
-              key={role.id}
-              style={[styles.card, isSelected && styles.selectedCard]}
-              onPress={() => setSelectedRole(role)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.cardIconCircle}>
-                <Text style={styles.cardIcon}>{role.icon}</Text>
-              </View>
-              <Text style={styles.cardTitle}>{role.title}</Text>
-              <Text style={styles.cardSubtitle}>{role.subtitle}</Text>
-              {isSelected && <View style={styles.tick} />}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Auth Options */}
-      <View style={styles.authRow}>
-        <TouchableOpacity
-          style={styles.authButton}
-          onPress={handleEmailLogin}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.authText}>✉️ Email</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.authButton}
-          onPress={() => router.push("/login-otp")}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.authText}>📱 OTP</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Continue Button */}
-      <TouchableOpacity
-        style={styles.button}
-        activeOpacity={0.9}
-        onPress={handleContinue}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.buttonText}>
-          Continue as {selectedRole.title} →
-        </Text>
-      </TouchableOpacity>
+        {/* Top Icon */}
+        <View style={styles.iconContainer}>
+          <Image source={require("../../assets/images/H2-Logo.png")} style={styles.logo} resizeMode="contain" />
+        </View>
 
-      {/* Footer */}
-      <Text style={styles.footer}>
-        By continuing, you agree to our{" "}
-        <Text style={styles.link}>Terms</Text> &{" "}
-        <Text style={styles.link}>Privacy Policy</Text>
-      </Text>
+        {/* Header */}
+        <Text style={styles.title}>Welcome to H2Online</Text>
+        <Text style={styles.subtitle}>
+          Select your role to access the ecosystem
+        </Text>
+
+        {/* Role Grid (tiles) */}
+        <View style={styles.grid}>
+          {roles.map((role) => {
+            const isSelected = selectedRole.title === role.title;
+            return (
+              <TouchableOpacity
+                key={role.id}
+                style={[styles.card, isSelected && styles.selectedCard]}
+                onPress={() => setSelectedRole(role)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.cardIconCircle}>
+                  <Text style={styles.cardIcon}>{role.icon}</Text>
+                </View>
+                <Text style={styles.cardTitle}>{role.title}</Text>
+                <Text style={styles.cardSubtitle}>{role.subtitle}</Text>
+                {isSelected && <View style={styles.tick} />}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Auth Options - Email & OTP login */}
+        <View style={styles.authRow}>
+          <TouchableOpacity
+            style={styles.authButton}
+            onPress={handleEmailLogin}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.authText}>✉️ Email</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.authButton}
+            onPress={() => router.push({ pathname: "/login-otp", params: { role: selectedRole.title } })}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.authText}>📱 OTP</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Continue Button */}
+        <TouchableOpacity
+          style={styles.button}
+          activeOpacity={0.9}
+          onPress={handleContinue}
+        >
+          <Text style={styles.buttonText}>
+            Continue as {selectedRole.title} →
+          </Text>
+        </TouchableOpacity>
+
+        {/* Footer */}
+        <Text style={styles.footer}>
+          By continuing, you agree to our{" "}
+          <Text style={styles.link}>Terms</Text> &{" "}
+          <Text style={styles.link}>Privacy Policy</Text>
+        </Text>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -112,7 +119,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#c6e2fa",
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   iconContainer: {
   alignSelf: "center",

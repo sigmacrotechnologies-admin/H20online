@@ -23,6 +23,7 @@ router.get("/", async (req, res) => {
       status: o.status,
       date: o.createdAt,
       address: o.address,
+      supplierResponses: o.supplierResponses || [],
     }));
     res.json(list);
   } catch (err) {
@@ -34,7 +35,17 @@ router.get("/:id", async (req, res) => {
   try {
     const o = await Order.findOne({ _id: req.params.id, userId: req.user._id }).lean();
     if (!o) return res.status(404).json({ error: "Order not found" });
-    res.json({ id: o._id.toString(), items: o.items, total: o.total, status: o.status, date: o.createdAt, address: o.address });
+    res.json({
+      id: o._id.toString(),
+      items: o.items,
+      total: o.total,
+      status: o.status,
+      date: o.createdAt,
+      address: o.address,
+      receiverName: o.receiverName,
+      receiverPhone: o.receiverPhone,
+      supplierResponses: o.supplierResponses || [],
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -54,6 +65,8 @@ router.post("/", async (req, res) => {
       qty: Number(i.qty) || 1,
     }));
     const orderTotal = typeof body.total === "number" ? body.total : orderItems.reduce((s, i) => s + (i.price || 0) * (i.qty || 1), 0);
+    const uniqueSupplierIds = [...new Set(orderItems.map((i) => i.supplierId).filter(Boolean))];
+    const supplierResponses = uniqueSupplierIds.map((sid) => ({ supplierId: sid, status: "pending" }));
     const order = await Order.create({
       userId: req.user._id,
       items: orderItems,
@@ -62,6 +75,7 @@ router.post("/", async (req, res) => {
       address: body.address || "",
       receiverName: body.receiverName || null,
       receiverPhone: body.receiverPhone || null,
+      supplierResponses,
     });
     const out = order.toObject();
     res.status(201).json({ id: out._id.toString(), items: out.items, total: out.total, status: out.status, date: out.createdAt, address: out.address });

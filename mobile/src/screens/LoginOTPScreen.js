@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import BackButton from "@/src/components/BackButton";
 
@@ -17,6 +17,8 @@ const OTP_LENGTH = 6;
 
 const LoginOTPScreen = () => {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const roleFromParams = (params?.role && typeof params.role === "string") ? params.role : "Customer";
   const [phone, setPhone] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
@@ -47,7 +49,11 @@ const LoginOTPScreen = () => {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      router.replace("/dashboard");
+      if (roleFromParams === "Supplier") {
+        router.replace("/supplier-verification-pending");
+      } else {
+        router.replace("/dashboard");
+      }
     }, 600);
   };
 

@@ -138,4 +138,17 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+router.delete("/:id", auth, async (req, res) => {
+  try {
+    const supplier = await Supplier.findOne({ userId: req.user._id });
+    if (!supplier) return res.status(403).json({ error: "Supplier profile required" });
+    const p = await Product.findOne({ _id: req.params.id, supplierId: supplier._id });
+    if (!p) return res.status(404).json({ error: "Product not found" });
+    await Product.findByIdAndDelete(p._id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

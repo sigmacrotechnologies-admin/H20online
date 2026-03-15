@@ -34,13 +34,6 @@ const getRandomHydration = () => {
   return { pct, current, goal };
 };
 
-const DASHBOARD_PLANS = [
-  { id: 1, name: "Basic Plan" },
-  { id: 2, name: "Family Pack" },
-  { id: 3, name: "Active Plan" },
-  { id: 4, name: "Premium Plan" },
-];
-
 const DashboardScreen = () => {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
@@ -67,14 +60,9 @@ const DashboardScreen = () => {
     }
     return getRandomHydration();
   }, [hydrationSummary]);
-  const [currentPlan, setCurrentPlan] = useState(null);
-  const [showPlanModal, setShowPlanModal] = useState(false);
   const [showTrackModal, setShowTrackModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
-  const [subscriptions, setSubscriptions] = useState([
-    { id: "sub1", productName: "AquaPure Premium 20L", supplierName: "AquaPure Water Co.", frequency: "Monthly", deliveryDates: "1st, 15th" },
-    { id: "sub2", productName: "BlueSprings Local 20L", supplierName: "BlueSprings Hydration Hub", frequency: "Monthly", deliveryDates: "10th, 25th" },
-  ]);
+  const [subscriptions, setSubscriptions] = useState([]);
   const [selectedSubscription, setSelectedSubscription] = useState(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [subscriptionDropdownOpen, setSubscriptionDropdownOpen] = useState(false);
@@ -96,9 +84,25 @@ const DashboardScreen = () => {
     }, [fetchHydrationSummary])
   );
 
+  const fetchSubscriptions = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const list = await api.subscriptions.list();
+      setSubscriptions(list);
+    } catch (_) {
+      setSubscriptions([]);
+    }
+  }, [isAuthenticated]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchSubscriptions();
+    }, [fetchSubscriptions])
+  );
+
   const quickActions = [
     { id: 1, title: "Order Jar", subtitle: "Repeat last order", icon: "water-outline", onPress: () => router.push("/order") },
-    { id: 2, title: "My Plan", subtitle: currentPlan ? currentPlan.name : "Add or update plan", icon: "document-text-outline", onPress: () => setShowPlanModal(true) },
+    { id: 2, title: "My Plan", subtitle: subscriptions.length ? `${subscriptions.length} plan(s)` : "Add or update plan", icon: "document-text-outline", onPress: () => router.push("/plan-subscription") },
     { id: 3, title: "Track", subtitle: "Arriving 2:30 PM", icon: "car-outline", onPress: () => setShowTrackModal(true) },
     { id: 4, title: `₹${balance}`, subtitle: "Wallet", icon: "wallet-outline", onPress: () => setShowWalletModal(true) },
     { id: 5, title: "Water Intake", subtitle: "Log today's intake", icon: "water", onPress: () => router.push("/water-intake") },
@@ -214,17 +218,17 @@ const DashboardScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Water / Jar subscriptions */}
-          <Text style={styles.sectionHeader}>Water / Jar subscriptions</Text>
+          {/* Subscribed plans */}
+          <Text style={styles.sectionHeader}>Subscribed plans</Text>
           <View style={styles.card}>
             <TouchableOpacity
               style={styles.subscriptionDropdown}
               onPress={() => setSubscriptionDropdownOpen(!subscriptionDropdownOpen)}
               activeOpacity={0.8}
             >
-              <Ionicons name="water-outline" size={22} color="#0EA5E9" style={{ marginRight: 10 }} />
+              <Ionicons name="document-text-outline" size={22} color="#0EA5E9" style={{ marginRight: 10 }} />
               <Text style={styles.subscriptionDropdownText} numberOfLines={1}>
-                {subscriptions.length === 0 ? "No subscriptions" : `${subscriptions.length} subscription${subscriptions.length > 1 ? "s" : ""} (tap to view)`}
+                {subscriptions.length === 0 ? "No subscriptions yet" : `${subscriptions.length} plan${subscriptions.length > 1 ? "s" : ""} (tap to view)`}
               </Text>
               <Ionicons name={subscriptionDropdownOpen ? "chevron-up" : "chevron-down"} size={20} color="#6B7C85" />
             </TouchableOpacity>
@@ -234,8 +238,8 @@ const DashboardScreen = () => {
                 style={styles.subscriptionItem}
                 onPress={() => { setSelectedSubscription(sub); setShowSubscriptionModal(true); setSubscriptionDropdownOpen(false); }}
               >
-                <Text style={styles.subscriptionItemName}>{sub.productName}</Text>
-                <Text style={styles.subscriptionItemSupplier}>{sub.supplierName}</Text>
+                <Text style={styles.subscriptionItemName}>{sub.planName} – {sub.productLabel}</Text>
+                <Text style={styles.subscriptionItemSupplier}>{sub.frequency} • ₹{sub.totalPrice} • {sub.selectedDates?.length || 0} dates</Text>
                 <Ionicons name="chevron-forward" size={18} color="#6B7C85" style={{ position: "absolute", right: 12, top: 18 }} />
               </TouchableOpacity>
             ))}
@@ -294,38 +298,6 @@ const DashboardScreen = () => {
         </View>
       </ScrollView>
 
-      {/* Add / Update Plan modal */}
-      <Modal visible={showPlanModal} transparent animationType="slide">
-        <TouchableOpacity
-          style={styles.planModalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowPlanModal(false)}
-        >
-          <View style={styles.planModalContent} onStartShouldSetResponder={() => true}>
-            <View style={styles.planModalHeader}>
-              <Text style={styles.planModalTitle}>Add or update plan</Text>
-              <TouchableOpacity onPress={() => setShowPlanModal(false)}>
-                <Text style={styles.planModalClose}>Close</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.planModalHint}>Plans are name only at the moment. Select a plan:</Text>
-            {DASHBOARD_PLANS.map((plan) => (
-              <TouchableOpacity
-                key={plan.id}
-                style={[styles.planModalOption, currentPlan?.id === plan.id && styles.planModalOptionSelected]}
-                onPress={() => {
-                  setCurrentPlan(plan);
-                  setShowPlanModal(false);
-                }}
-              >
-                <Text style={styles.planModalOptionName}>{plan.name}</Text>
-                {currentPlan?.id === plan.id && <Ionicons name="checkmark-circle" size={24} color="#1EA7FD" />}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
       {/* Subscription detail modal - Edit / Cancel */}
       <Modal visible={showSubscriptionModal} transparent animationType="slide">
         <TouchableOpacity style={styles.planModalOverlay} activeOpacity={1} onPress={() => setShowSubscriptionModal(false)}>
@@ -338,18 +310,21 @@ const DashboardScreen = () => {
               </View>
               {selectedSubscription && (
                 <>
-                  <Text style={styles.subscriptionDetailName}>{selectedSubscription.productName}</Text>
-                  <Text style={styles.subscriptionDetailSupplier}>{selectedSubscription.supplierName}</Text>
-                  <Text style={styles.subscriptionDetailMeta}>{selectedSubscription.frequency} • Delivery: {selectedSubscription.deliveryDates}</Text>
+                  <Text style={styles.subscriptionDetailName}>{selectedSubscription.planName} – {selectedSubscription.productLabel}</Text>
+                  <Text style={styles.subscriptionDetailSupplier}>{selectedSubscription.frequency} • ₹{selectedSubscription.totalPrice}</Text>
+                  <Text style={styles.subscriptionDetailMeta}>Delivery dates: {selectedSubscription.selectedDates?.length || 0} scheduled</Text>
                   <TouchableOpacity style={styles.subscriptionEditBtn} onPress={() => setShowSubscriptionModal(false)} activeOpacity={0.8}>
                     <Text style={styles.subscriptionEditBtnText}>Edit</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.subscriptionCancelBtn}
-                    onPress={() => {
-                      setSubscriptions((prev) => prev.filter((s) => s.id !== selectedSubscription.id));
-                      setShowSubscriptionModal(false);
-                      setSelectedSubscription(null);
+                    onPress={async () => {
+                      try {
+                        await api.subscriptions.cancel(selectedSubscription.id);
+                        setSubscriptions((prev) => prev.filter((s) => s.id !== selectedSubscription.id));
+                        setShowSubscriptionModal(false);
+                        setSelectedSubscription(null);
+                      } catch (_) {}
                     }}
                     activeOpacity={0.8}
                   >

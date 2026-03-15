@@ -1,0 +1,25 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, sans-serif;
+  background: #c6e2fa;
+  color: #1B2B34;
+}
+#root {
+  min-height: 100vh;
+}
+a {
+  color: #1EA7FD;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+input, select, button, textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}

@@ -40,6 +40,23 @@ export default function OrderDetailsModal({ visible, onClose, order }) {
               <Text style={styles.totalLabel}>Total</Text>
               <Text style={styles.totalValue}>₹{order.total}</Text>
             </View>
+            {(order.supplierResponses || []).filter((r) => r.status === "accepted").length > 0 && (
+              <>
+                <Text style={styles.sectionLabel}>Supplier & delivery</Text>
+                {(order.supplierResponses || []).map((r, idx) => (
+                  r.status === "accepted" && (
+                    <View key={idx} style={styles.trackBlock}>
+                      <Text style={styles.trackLabel}>Accepted</Text>
+                      {r.eta ? <Text style={styles.trackText}>ETA: {r.eta}</Text> : null}
+                      {r.remarks ? <Text style={styles.trackText}>Remarks: {r.remarks}</Text> : null}
+                      {r.deliveryPartnerName ? (
+                        <Text style={styles.trackText}>Delivery partner: {r.deliveryPartnerName}{r.deliveryPartnerPhone ? " • " + r.deliveryPartnerPhone : ""}</Text>
+                      ) : null}
+                    </View>
+                  )
+                ))}
+              </>
+            )}
             <Text style={styles.addressLabel}>Delivery address</Text>
             <Text style={styles.address}>{order.address || "Current location"}</Text>
           </ScrollView>
@@ -71,6 +88,9 @@ const styles = StyleSheet.create({
   totalRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#E5E7EB" },
   totalLabel: { fontSize: 16, fontWeight: "700", color: "#1B2B34" },
   totalValue: { fontSize: 16, fontWeight: "700", color: "#0EA5E9" },
+  trackBlock: { backgroundColor: "#f0f7fc", borderRadius: 12, padding: 12, marginBottom: 12 },
+  trackLabel: { fontSize: 14, fontWeight: "700", color: "#059669", marginBottom: 4 },
+  trackText: { fontSize: 14, color: "#1B2B34", marginTop: 2 },
   addressLabel: { fontSize: 14, fontWeight: "600", color: "#6B7C85", marginTop: 16 },
   address: { fontSize: 14, color: "#1B2B34", marginTop: 4 },
   cancelBtn: { marginTop: 20, paddingVertical: 14, alignItems: "center" },
