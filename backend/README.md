@@ -2,6 +2,14 @@
 
 Node.js + Express + MongoDB API for the H20 mobile app.
 
+## Get signup working (app on phone)
+
+1. **Start MongoDB** (service or `mongod`). Check: `npm run check-mongo`
+2. **Start backend:** `npm run dev` (in the `backend` folder). You’ll see a line like `EXPO_PUBLIC_API_URL=http://192.168.x.x:5000`
+3. **In `mobile/.env`** set that URL: `EXPO_PUBLIC_API_URL=http://YOUR_PC_IP:5000` (use the IP from step 2)
+4. **Restart the app:** in `mobile` run `npx expo start -c`, then reopen the app on your phone
+5. Phone and PC must be on the **same Wi‑Fi**. If it still fails, allow port 5000 in Windows Firewall (see below).
+
 ## Prerequisites
 
 - **MongoDB** must be running locally (or use a cloud URI).
@@ -34,6 +42,12 @@ Node.js + Express + MongoDB API for the H20 mobile app.
    ```
    After this, you should see the `h20online` database and collections in Compass.
 
+   **Plans and subscription products** (Basic Plan, Family Pack, etc. with product prices):
+   ```bash
+   npm run seed-plans
+   ```
+   Run this after `npm run seed` (or on an existing DB) to upsert plans and plan products.
+
 5. **Start the server**
    ```bash
    npm run dev
@@ -42,6 +56,7 @@ Node.js + Express + MongoDB API for the H20 mobile app.
 
 6. **Health check**
    - Open http://localhost:5000/api/health — should return `{ "ok": true, "db": "connected" }`.
+   - Or run: `node scripts/check-backend.js` (checks health + register with a test user).
 
 ## Mobile app – avoid "network request timeout"
 
@@ -53,7 +68,8 @@ Node.js + Express + MongoDB API for the H20 mobile app.
     EXPO_PUBLIC_API_URL=http://YOUR_COMPUTER_IP:5000
     ```
   - Replace `YOUR_COMPUTER_IP` with your PC’s LAN IP (e.g. `192.168.1.5`). Find it: `ipconfig` (Windows) or `ifconfig` (Mac/Linux).
-  - Restart the Expo app after changing `.env`.
+  - Restart Expo after changing `.env`: run `npx expo start -c` in the mobile folder (the `-c` clears cache so the new URL is used).
+  - **Windows Firewall:** if the phone still can't connect, allow port 5000. In PowerShell as Administrator: `New-NetFirewallRule -DisplayName "Node 5000" -Direction Inbound -LocalPort 5000 -Protocol TCP -Action Allow`
 
 ## API Endpoints
 

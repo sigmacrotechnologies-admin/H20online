@@ -13,18 +13,28 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
+import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
 
 const LOGIN_ROLES = [
   { id: 1, title: "Customer", icon: "person-outline" },
   { id: 2, title: "Supplier", icon: "cube-outline" },
-  { id: 3, title: "Corporate", icon: "business-outline" },
-  { id: 4, title: "Restaurant", icon: "restaurant-outline" },
-  { id: 5, title: "Event Org", icon: "calendar-outline" },
-  { id: 6, title: "Institute", icon: "school-outline" },
+  { id: 3, title: "Delivery partner", icon: "bicycle-outline" },
+  { id: 4, title: "Corporate", icon: "business-outline" },
+  { id: 5, title: "Restaurant", icon: "restaurant-outline" },
+  { id: 6, title: "Event Org", icon: "calendar-outline" },
+  { id: 7, title: "Institute", icon: "school-outline" },
 ];
 
-const ROLE_TO_DB = { Customer: "customer", Supplier: "supplier" };
+const ROLE_TO_DB = {
+  Customer: "customer",
+  Supplier: "supplier",
+  "Delivery partner": "deliveryPartner",
+  Corporate: "corporate",
+  Restaurant: "restaurant",
+  "Event Org": "eventOrg",
+  Institute: "institute",
+};
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -38,7 +48,7 @@ const LoginScreen = () => {
   const [error, setError] = useState("");
 
   const initialRole =
-    LOGIN_ROLES.find((r) => r.title === roleFromParams) || LOGIN_ROLES[0];
+    (roleFromParams && LOGIN_ROLES.find((r) => r.title === roleFromParams)) || LOGIN_ROLES[0];
   const [selectedRole, setSelectedRole] = useState(initialRole);
 
   const handleLogin = async () => {
@@ -61,19 +71,37 @@ const LoginScreen = () => {
     try {
       const loggedInUser = await login(emailTrim, pwd);
       const requiredRole = ROLE_TO_DB[selectedRole.title];
-      if (requiredRole) {
-        if (loggedInUser?.role !== requiredRole) {
-          logout();
-          if (requiredRole === "supplier") {
-            setError("This account is registered as Customer. Please select Customer to sign in.");
-          } else {
-            setError("This account is registered as Supplier. Please select Supplier to sign in.");
-          }
-          return;
+      if (requiredRole && loggedInUser?.role !== requiredRole) {
+        logout();
+        if (requiredRole === "supplier" && loggedInUser?.role === "deliveryPartner") {
+          setError("This is a delivery partner account. Please select the Delivery partner tab and use your delivery email and password.");
+        } else if (requiredRole === "supplier") {
+          setError("This is a customer email ID. You are signing in as Supplier — please use your supplier email and password.");
+        } else if (requiredRole === "deliveryPartner" && loggedInUser?.role === "supplier") {
+          setError("This is a supplier account. Please select the Supplier tab to sign in.");
+        } else if (requiredRole === "deliveryPartner") {
+          setError("This is a customer email ID. You are signing in as Delivery partner — please use your delivery partner email and password.");
+        } else if (requiredRole === "customer") {
+          setError("This is a supplier or delivery partner email ID. You are signing in as Customer — please use your customer email and password.");
+        } else {
+          setError(`This account does not match the selected role (${selectedRole.title}). Please use the correct email and password for this profile type.`);
         }
+        return;
       }
       if (loggedInUser?.role === "supplier") {
-        router.replace("/supplier-dashboard");
+        const supplierData = await api.suppliers.me().catch(() => null);
+        if (supplierData?.onboardingStatus === "approved") {
+          router.replace("/supplier-dashboard");
+        } else {
+          router.replace("/supplier-verification-pending");
+        }
+      } else if (loggedInUser?.role === "deliveryPartner") {
+        const dpData = await api.deliveryPartners.me().catch(() => null);
+        if (dpData?.onboardingStatus === "approved") {
+          router.replace("/delivery-dashboard");
+        } else {
+          router.replace("/delivery-verification-pending");
+        }
       } else {
         router.replace("/dashboard");
       }
@@ -148,7 +176,7 @@ const LoginScreen = () => {
             );
           })}
         </ScrollView>
-        <Text style={styles.subtitle}>Use your email and password to log in.</Text>
+        <Text style={styles.subtitle}>Use your email and password to log in. Enter the email and password for the selected profile type.</Text>
 
         <View style={styles.inputSection}>
           <Text style={styles.label}>Email ID</Text>
@@ -228,7 +256,11 @@ const LoginScreen = () => {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.signUpLink} onPress={() => router.replace("/create-profile")} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.signUpLink}
+          onPress={() => router.replace(selectedRole.title === "Supplier" ? "/supplier-onboarding" : "/create-profile")}
+          activeOpacity={0.8}
+        >
           <Text style={styles.signUpLinkText}>{"Don't have an account? Sign up"}</Text>
         </TouchableOpacity>
       </View>

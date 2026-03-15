@@ -27,10 +27,14 @@ export async function request(path, options = {}) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === "AbortError") {
-      throw new Error("Request timed out. Check that the backend is running and reachable.");
+      const hint =
+        "Backend running? Same Wi‑Fi? In mobile/.env set EXPO_PUBLIC_API_URL=http://YOUR_PC_IP:5000 (ipconfig for IP). Then: npx expo start -c";
+      throw new Error("Request timed out. " + hint);
     }
     if (err.message && (err.message.includes("Network request failed") || err.message.includes("Failed to fetch"))) {
-      throw new Error("Cannot reach server. On a device/emulator set EXPO_PUBLIC_API_URL to your computer IP (e.g. http://192.168.1.x:5000) in mobile/.env");
+      throw new Error(
+        "Cannot reach server at " + API_BASE + ". See mobile/CONNECTION_HELP.md for simple steps."
+      );
     }
     throw err;
   }
@@ -41,17 +45,40 @@ export const api = {
     login: (email, password) => request("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
     register: (body) => request("/api/auth/register", { method: "POST", body: JSON.stringify(body) }),
     registerSupplier: (body) => request("/api/auth/register-supplier", { method: "POST", body: JSON.stringify(body) }),
+    registerDelivery: (body) => request("/api/auth/register-delivery", { method: "POST", body: JSON.stringify(body) }),
   },
   suppliers: {
     me: () => request("/api/suppliers/me"),
   },
+  supplier: {
+    ordersIncoming: () => request("/api/supplier/orders/incoming"),
+    ordersAccepted: () => request("/api/supplier/orders/accepted"),
+    ordersHistory: (params) => request("/api/supplier/orders/history?" + new URLSearchParams(params || {}).toString()),
+    acceptOrder: (orderId, body) => request("/api/supplier/orders/" + orderId + "/accept", { method: "PATCH", body: JSON.stringify(body) }),
+    assignRider: (orderId, body) => request("/api/supplier/orders/" + orderId + "/assign-rider", { method: "PATCH", body: JSON.stringify(body) }),
+    financials: () => request("/api/supplier/financials"),
+    products: () => request("/api/supplier/products"),
+  },
+  deliveryPartners: {
+    me: () => request("/api/delivery-partners/me"),
+    list: (vehicleType) => request("/api/delivery-partners" + (vehicleType ? "?vehicleType=" + encodeURIComponent(vehicleType) : "")),
+    ordersIncoming: () => request("/api/delivery-partners/orders/incoming"),
+    ordersSummary: () => request("/api/delivery-partners/orders/summary"),
+    financials: () => request("/api/delivery-partners/financials"),
+    updateProfile: (body) => request("/api/delivery-partners/me", { method: "PATCH", body: JSON.stringify(body) }),
+  },
+  supplierSupport: {
+    getThread: () => request("/api/supplier-support/thread"),
+    sendMessage: (text) => request("/api/supplier-support/message", { method: "POST", body: JSON.stringify({ text }) }),
+  },
   products: {
     list: (params) => {
-      const q = new URLSearchParams(params).toString();
+      const q = new URLSearchParams(params || {}).toString();
       return request("/api/products" + (q ? "?" + q : ""));
     },
     get: (id) => request("/api/products/" + id),
     create: (body) => request("/api/products", { method: "POST", body: JSON.stringify(body) }),
+    delete: (id) => request("/api/products/" + id, { method: "DELETE" }),
   },
   orders: {
     list: () => request("/api/orders"),
@@ -79,5 +106,14 @@ export const api = {
       if (params.length) path += "?" + params.join("&");
       return request(path);
     },
+  },
+  plans: {
+    list: () => request("/api/plans"),
+    products: (slug) => request("/api/plans/" + encodeURIComponent(slug) + "/products"),
+  },
+  subscriptions: {
+    list: () => request("/api/subscriptions"),
+    create: (body) => request("/api/subscriptions", { method: "POST", body: JSON.stringify(body) }),
+    cancel: (id) => request("/api/subscriptions/" + id + "/cancel", { method: "PATCH" }),
   },
 };

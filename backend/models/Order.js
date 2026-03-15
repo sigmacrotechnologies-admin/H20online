@@ -9,6 +9,20 @@ const orderItemSchema = new mongoose.Schema({
   qty: { type: Number, default: 1 },
 });
 
+const supplierResponseSchema = new mongoose.Schema(
+  {
+    supplierId: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier", required: true },
+    status: { type: String, enum: ["pending", "accepted", "rejected"], default: "pending" },
+    eta: { type: String, default: "" },
+    remarks: { type: String, default: "" },
+    deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: "DeliveryPartner", default: null },
+    deliveryPartnerName: { type: String, default: "" },
+    deliveryPartnerPhone: { type: String, default: "" },
+    requestedFleetType: { type: String, default: "" },
+  },
+  { _id: false }
+);
+
 const orderSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -20,6 +34,7 @@ const orderSchema = new mongoose.Schema(
     scheduledAt: Date,
     receiverName: String,
     receiverPhone: String,
+    supplierResponses: [supplierResponseSchema],
   },
   { timestamps: true }
 );

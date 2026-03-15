@@ -24,6 +24,10 @@ const supplierSchema = new mongoose.Schema(
     onboardingStatus: { type: String, default: "pending", enum: ["pending", "approved"] },
     verificationCode: { type: String, default: "" },
     rating: { type: Number, default: 0 },
+    documentIdProofVerified: { type: Boolean, default: false },
+    documentAddressProofVerified: { type: Boolean, default: false },
+    documentBusinessLicenseVerified: { type: Boolean, default: false },
+    tentativeVerificationTime: { type: String, default: "24-48 hours" },
   },
   { timestamps: true }
 );

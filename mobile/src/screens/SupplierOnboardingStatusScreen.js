@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { api } from "@/src/api/client";
 
 const SupplierOnboardingStatusScreen = () => {
   const router = useRouter();
@@ -20,7 +21,7 @@ const SupplierOnboardingStatusScreen = () => {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     setError("");
     const entered = code.trim().replace(/\D/g, "").slice(0, 6);
     if (entered.length !== 6) {
@@ -32,7 +33,16 @@ const SupplierOnboardingStatusScreen = () => {
       setError("Invalid code. Use the code shown below.");
       return;
     }
-    router.replace("/supplier-dashboard");
+    try {
+      const supplierData = await api.suppliers.me();
+      if (supplierData?.onboardingStatus === "approved") {
+        router.replace("/supplier-dashboard");
+      } else {
+        router.replace("/supplier-verification-pending");
+      }
+    } catch {
+      router.replace("/supplier-verification-pending");
+    }
   };
 
   return (

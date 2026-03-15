@@ -1,0 +1,25 @@
+---
+description: H2O Admin Portal - separate front-end app, same backend; roles and permissions
+globs: admin/**/*
+alwaysApply: false
+---
+
+# Admin Portal
+
+- **Location**: `admin/` is a separate Vite + React SPA. It shares the same backend (`backend/`) and database.
+- **API base**: All admin API calls go to `VITE_API_URL` (e.g. `http://localhost:5000`). Routes are under `/api/admin/*`.
+- **Auth**: Master login is static: email `H2O admin`, password `admin@H2O`. Other admins are User documents with `role: "admin"` or `"sub-admin"` created via POST `/api/admin/admins`.
+
+## Roles and permissions
+
+- **Master**: Full access; fixed credentials, not stored in DB.
+- **Admin**: Same as master except cannot change master; can see financials, delete users, remove suppliers, create admin users.
+- **Sub-admin**: Can view/edit users (no delete), view orders, add suppliers (no remove), edit plans & rates. Cannot see financials, create admin users, or delete users/remove suppliers.
+
+When adding features:
+- Hide Financials and Admin users nav/routes for sub-admin (use `canSeeFinancials` and `canCreateAdmin` from `useAuth()`).
+- Backend enforces permissions via `requireCanDeleteUser`, `requireCanRemoveSupplier`, `requireCanSeeFinancials`, `requireCanCreateAdmin` in `backend/middleware/adminAuth.js`.
+
+## Theming
+
+Match the mobile app: primary blue `#1EA7FD`, `#0EA5E9`, gradient header `#1E40AF` → `#3B82F6`, background `#c6e2fa`, card `#f0f7fcd7`, text `#1B2B34`, muted `#6B7C85`.
