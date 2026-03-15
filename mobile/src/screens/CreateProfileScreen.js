@@ -16,6 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
+import BackButton from "@/src/components/BackButton";
 
 let ImagePicker;
 try {
@@ -175,9 +176,7 @@ const CreateProfileScreen = () => {
             style={styles.gradientBackground}
           >
             <View style={styles.headerOverlay}>
-              <TouchableOpacity onPress={handleBack} style={styles.backButton} activeOpacity={0.7}>
-                <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
+              <BackButton onPress={handleBack} />
             </View>
 
             <View style={styles.avatarContainer}>
@@ -422,7 +421,6 @@ const styles = StyleSheet.create({
   avatarSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 220, overflow: "hidden", position: "relative" },
   gradientBackground: { flex: 1, position: "relative", paddingTop: 50, paddingBottom: 24 },
   headerOverlay: { position: "absolute", top: 14, left: 28, right: 28, flexDirection: "row", alignItems: "center", zIndex: 10 },
-  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255, 255, 255, 0.2)", justifyContent: "center", alignItems: "center" },
   avatarContainer: { alignItems: "center", justifyContent: "center", marginTop: 20 },
   contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20, overflow: "hidden" },
   avatarButton: { width: 120, height: 120 },

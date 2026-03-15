@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,17 +9,20 @@ import {
   Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import BackButton from "@/src/components/BackButton";
 import { useCart } from "@/src/context/CartContext";
 import { useWallet } from "@/src/context/WalletContext";
 import { useAuth } from "@/src/context/AuthContext";
 import TrackOrderModal from "@/src/components/TrackOrderModal";
 import WalletModal from "@/src/components/WalletModal";
+import WaterDroplet from "@/src/components/WaterDroplet";
+import { api } from "@/src/api/client";
 
 const HEADER_HEIGHT = 220;
-
 const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
+const MAX_GRAPH_LITERS = 5;
 
 const getRandomTrend = () =>
   Array.from({ length: 7 }, () => 0.15 + Math.random() * 0.85);
@@ -40,12 +43,30 @@ const DASHBOARD_PLANS = [
 
 const DashboardScreen = () => {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { getLatestOrder } = useCart();
   const { balance } = useWallet();
   const userName = user?.name || "Guest";
-  const weekData = useMemo(() => getRandomTrend(), []);
-  const hydration = useMemo(() => getRandomHydration(), []);
+  const [hydrationSummary, setHydrationSummary] = useState(null);
+  const weekData = useMemo(() => {
+    if (hydrationSummary?.summary?.length) {
+      return hydrationSummary.summary.map((d) =>
+        Math.min(1, (d.totalLiters || 0) / MAX_GRAPH_LITERS)
+      );
+    }
+    return getRandomTrend();
+  }, [hydrationSummary]);
+  const hydration = useMemo(() => {
+    if (hydrationSummary?.today) {
+      const t = hydrationSummary.today;
+      return {
+        pct: t.percentage ?? 0,
+        current: t.totalLiters ?? 0,
+        goal: t.goalLiters ?? 2.4,
+      };
+    }
+    return getRandomHydration();
+  }, [hydrationSummary]);
   const [currentPlan, setCurrentPlan] = useState(null);
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showTrackModal, setShowTrackModal] = useState(false);
@@ -57,12 +78,30 @@ const DashboardScreen = () => {
   const [selectedSubscription, setSelectedSubscription] = useState(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [subscriptionDropdownOpen, setSubscriptionDropdownOpen] = useState(false);
+  const [showMenuModal, setShowMenuModal] = useState(false);
+
+  const fetchHydrationSummary = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const data = await api.waterIntake.summary();
+      setHydrationSummary(data);
+    } catch (_) {
+      setHydrationSummary(null);
+    }
+  }, [isAuthenticated]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchHydrationSummary();
+    }, [fetchHydrationSummary])
+  );
 
   const quickActions = [
     { id: 1, title: "Order Jar", subtitle: "Repeat last order", icon: "water-outline", onPress: () => router.push("/order") },
     { id: 2, title: "My Plan", subtitle: currentPlan ? currentPlan.name : "Add or update plan", icon: "document-text-outline", onPress: () => setShowPlanModal(true) },
     { id: 3, title: "Track", subtitle: "Arriving 2:30 PM", icon: "car-outline", onPress: () => setShowTrackModal(true) },
     { id: 4, title: `₹${balance}`, subtitle: "Wallet", icon: "wallet-outline", onPress: () => setShowWalletModal(true) },
+    { id: 5, title: "Water Intake", subtitle: "Log today's intake", icon: "water", onPress: () => router.push("/water-intake") },
   ];
 
   const devices = [
@@ -87,22 +126,20 @@ const DashboardScreen = () => {
             <View style={styles.decorCircle3} />
 
             <View style={styles.headerNav}>
-              <TouchableOpacity onPress={() => router.back()} style={styles.headerButton} activeOpacity={0.7}>
-                <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.headerButton} activeOpacity={0.7}>
+              <BackButton onPress={() => router.back()} />
+              <TouchableOpacity
+                style={styles.headerButton}
+                activeOpacity={0.7}
+                onPress={() => setShowMenuModal(true)}
+              >
                 <Ionicons name="menu" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.profileInPanel}>
-              <TouchableOpacity
-                style={styles.avatarSmall}
-                onPress={() => router.push("/profile")}
-                activeOpacity={0.8}
-              >
+              <View style={styles.avatarSmall}>
                 <Ionicons name="person" size={32} color="#60A5FA" />
-              </TouchableOpacity>
+              </View>
               <Text style={styles.helloText}>Hello, {userName}</Text>
               <Text style={styles.welcomeText}></Text>
               <View style={styles.welcomePadding} />
@@ -118,20 +155,14 @@ const DashboardScreen = () => {
 
         {/* Content panel with curved top radius */}
         <View style={styles.contentSection}>
-          {/* Hydration Progress Card - pie chart with % and consumption centered, 7-day trend random */}
+          {/* Hydration Progress Card - water droplet with % and consumption, 7-day trend */}
           <View style={styles.card}>
             <View style={styles.hydrationCenterWrap}>
-              <View style={styles.pieChartOuter}>
-                <View style={[styles.pieChartFillWrap, { transform: [{ rotate: `${(hydration.pct / 100) * 360}deg` }] }]}>
-                  <View style={styles.pieChartHalf} />
-                  <View style={styles.pieChartHalfHole} />
-                </View>
-                <View style={styles.pieChartInner}>
-                  <Text style={styles.hydrationPercent}>{hydration.pct}%</Text>
-                  <Text style={styles.hydrationVolume}>{hydration.current}L / {hydration.goal}L</Text>
-                  <Text style={styles.hydrationLabel}>Daily Goal</Text>
-                </View>
-              </View>
+              <WaterDroplet
+                percentage={hydration.pct}
+                volumeText={`${hydration.current}L / ${hydration.goal}L`}
+                goalText="Daily Goal"
+              />
             </View>
             <Text style={styles.trendLabel}>Last 7 days hydration trend</Text>
             <View style={styles.barChartRow}>
@@ -330,6 +361,45 @@ const DashboardScreen = () => {
         </TouchableOpacity>
       </Modal>
 
+      {/* Hamburger menu modal - Profile, Order History, etc. */}
+      <Modal visible={showMenuModal} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.menuModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMenuModal(false)}
+        >
+          <View style={styles.menuModalContent} onStartShouldSetResponder={() => true}>
+            <TouchableOpacity
+              style={styles.menuModalItem}
+              onPress={() => { setShowMenuModal(false); router.push("/profile"); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="person-outline" size={22} color="#1B2B34" />
+              <Text style={styles.menuModalItemText}>Profile</Text>
+              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuModalItem}
+              onPress={() => { setShowMenuModal(false); router.push("/order-history"); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="receipt-outline" size={22} color="#1B2B34" />
+              <Text style={styles.menuModalItemText}>Order History</Text>
+              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuModalItem}
+              onPress={() => { setShowMenuModal(false); router.push("/water-intake"); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="water-outline" size={22} color="#1B2B34" />
+              <Text style={styles.menuModalItemText}>Water Intake</Text>
+              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <TrackOrderModal
         visible={showTrackModal}
         onClose={() => setShowTrackModal(false)}
@@ -367,14 +437,6 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 17, fontWeight: "700", color: "#1B2B34", marginBottom: 4 },
 
   hydrationCenterWrap: { alignItems: "center", justifyContent: "center", marginBottom: 20 },
-  pieChartOuter: { width: 140, height: 140, borderRadius: 70, borderWidth: 10, borderColor: "#A5D6FA", alignItems: "center", justifyContent: "center" },
-  pieChartFillWrap: { position: "absolute", width: 140, height: 140, borderRadius: 70, overflow: "hidden" },
-  pieChartHalf: { position: "absolute", left: 0, top: 0, width: 70, height: 140, borderTopLeftRadius: 70, borderBottomLeftRadius: 70, backgroundColor: "#0EA5E9" },
-  pieChartHalfHole: { position: "absolute", left: 10, top: 10, width: 60, height: 120, borderTopLeftRadius: 60, borderBottomLeftRadius: 60, backgroundColor: "#f0f7fcd7" },
-  pieChartInner: { alignItems: "center", justifyContent: "center", zIndex: 1 },
-  hydrationPercent: { fontSize: 28, fontWeight: "800", color: "#0EA5E9", marginBottom: 2 },
-  hydrationVolume: { fontSize: 14, color: "#1B2B34", marginBottom: 2 },
-  hydrationLabel: { fontSize: 12, color: "#6B7C85" },
   trendLabel: { fontSize: 13, color: "#1B2B34", marginBottom: 12, fontWeight: "600" },
   barChartRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 56 },
   barChartItem: { flex: 1, alignItems: "center", marginHorizontal: 2 },
@@ -442,4 +504,9 @@ const styles = StyleSheet.create({
   subscriptionEditBtnText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
   subscriptionCancelBtn: { paddingVertical: 14, alignItems: "center" },
   subscriptionCancelBtnText: { fontSize: 15, fontWeight: "600", color: "#EF4444" },
+
+  menuModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-start", paddingTop: 60, paddingRight: 20, alignItems: "flex-end" },
+  menuModalContent: { backgroundColor: "#FFFFFF", borderRadius: 16, paddingVertical: 8, minWidth: 220, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8 },
+  menuModalItem: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 18 },
+  menuModalItemText: { flex: 1, fontSize: 16, fontWeight: "600", color: "#1B2B34", marginLeft: 12 },
 });

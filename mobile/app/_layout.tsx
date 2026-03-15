@@ -31,7 +31,17 @@ export default function RootLayout() {
             <Stack.Screen name="payment" options={{ headerShown: false }} />
             <Stack.Screen name="order-confirmed" options={{ headerShown: false }} />
             <Stack.Screen name="order-history" options={{ headerShown: false }} />
+            <Stack.Screen name="water-intake" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="login-otp" options={{ headerShown: false }} />
+            <Stack.Screen name="corporate-profile" options={{ headerShown: false }} />
+            <Stack.Screen name="corporate-validation" options={{ headerShown: false }} />
+            <Stack.Screen name="corporate-dashboard" options={{ headerShown: false }} />
+            <Stack.Screen name="corporate-invoices" options={{ headerShown: false }} />
+            <Stack.Screen name="corporate-order-history" options={{ headerShown: false }} />
+            <Stack.Screen name="supplier-onboarding" options={{ headerShown: false }} />
+            <Stack.Screen name="supplier-onboarding-status" options={{ headerShown: false }} />
+            <Stack.Screen name="supplier-dashboard" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
           <StatusBar style="auto" />

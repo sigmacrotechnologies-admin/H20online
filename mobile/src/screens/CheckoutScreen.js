@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import BackButton from "@/src/components/BackButton";
 import { useCart } from "@/src/context/CartContext";
 import { useWallet } from "@/src/context/WalletContext";
 import WalletModal from "@/src/components/WalletModal";
@@ -42,9 +43,7 @@ const CheckoutScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color="#1B2B34" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} iconColor="#1B2B34" style={styles.headerBackBtn} />
         <Text style={styles.headerTitle}>Select address</Text>
         <TouchableOpacity style={styles.cartIconBtn} onPress={() => router.push("/cart")} activeOpacity={0.7}>
           <Ionicons name="cart-outline" size={24} color="#1B2B34" />
@@ -175,7 +174,7 @@ export default CheckoutScreen;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#c6e2fa" },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#f0f7fcd7", justifyContent: "center", alignItems: "center", marginRight: 12 },
+  headerBackBtn: { backgroundColor: "#f0f7fcd7", marginRight: 12 },
   headerTitle: { flex: 1, fontSize: 22, fontWeight: "700", color: "#1B2B34" },
   cartIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#f0f7fcd7", justifyContent: "center", alignItems: "center", position: "relative" },
   cartBadge: { position: "absolute", top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: "#0EA5E9", justifyContent: "center", alignItems: "center", paddingHorizontal: 4 },

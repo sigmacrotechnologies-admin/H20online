@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { useCart } from "@/src/context/CartContext";
 import { api } from "@/src/api/client";
+import BackButton from "@/src/components/BackButton";
 
 const ProfileScreen = () => {
   const router = useRouter();
@@ -90,9 +91,7 @@ const ProfileScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
-            <Ionicons name="chevron-back" size={24} color="#1B2B34" />
-          </TouchableOpacity>
+          <BackButton onPress={() => router.back()} iconColor="#1B2B34" style={styles.headerBackButton} />
           <Text style={styles.headerTitle}>Profile</Text>
           <TouchableOpacity style={styles.settingsButton} activeOpacity={0.7}>
             <Ionicons name="settings-outline" size={24} color="#1B2B34" />
@@ -367,8 +366,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#c6e2fa" },
   scrollContent: { paddingBottom: 40, paddingHorizontal: 20, marginLeft: 11, marginRight: 11 },
   header: { flexDirection: "row", alignItems: "center", marginTop: 14, marginBottom: 20, paddingHorizontal: 8 },
-  backButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#f0f7fcd7", justifyContent: "center", alignItems: "center", marginRight: 12, elevation: 2 },
-  headerTitle: { flex: 1, fontSize: 26, fontWeight: "700", color: "#1B2B34" },
+  headerBackButton: { backgroundColor: "#f0f7fcd7", marginRight: 12, elevation: 2 },
+  headerTitle: { flex: 1, fontSize: 26, fontWeight: "700", color: "#1B2B34", marginLeft: 0 },
   settingsButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#f0f7fcd7", justifyContent: "center", alignItems: "center", elevation: 2 },
 
   card: { backgroundColor: "#f0f7fcd7", borderRadius: 20, padding: 20, marginBottom: 16, elevation: 2 },

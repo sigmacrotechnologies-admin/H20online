@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "@/src/context/CartContext";
 import OrderDetailsModal from "@/src/components/OrderDetailsModal";
+import BackButton from "@/src/components/BackButton";
 
 const OrderHistoryScreen = () => {
   const router = useRouter();
@@ -21,9 +22,7 @@ const OrderHistoryScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color="#1B2B34" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} iconColor="#1B2B34" style={styles.headerBackBtn} />
         <Text style={styles.headerTitle}>Order history</Text>
       </View>
       {orders.length === 0 ? (
@@ -63,7 +62,7 @@ export default OrderHistoryScreen;
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#c6e2fa" },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#f0f7fcd7", justifyContent: "center", alignItems: "center", marginRight: 12 },
+  headerBackBtn: { backgroundColor: "#f0f7fcd7", marginRight: 12 },
   headerTitle: { fontSize: 22, fontWeight: "700", color: "#1B2B34" },
   listContent: { paddingHorizontal: 20, paddingBottom: 24, marginLeft: 11, marginRight: 11 },
   emptyWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
