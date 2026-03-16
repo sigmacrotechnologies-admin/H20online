@@ -56,6 +56,7 @@ export const api = {
     ordersHistory: (params) => request("/api/supplier/orders/history?" + new URLSearchParams(params || {}).toString()),
     acceptOrder: (orderId, body) => request("/api/supplier/orders/" + orderId + "/accept", { method: "PATCH", body: JSON.stringify(body) }),
     assignRider: (orderId, body) => request("/api/supplier/orders/" + orderId + "/assign-rider", { method: "PATCH", body: JSON.stringify(body) }),
+    cancelOrder: (orderId) => request("/api/supplier/orders/" + orderId + "/cancel", { method: "PATCH" }),
     financials: () => request("/api/supplier/financials"),
     products: () => request("/api/supplier/products"),
   },
@@ -63,9 +64,23 @@ export const api = {
     me: () => request("/api/delivery-partners/me"),
     list: (vehicleType) => request("/api/delivery-partners" + (vehicleType ? "?vehicleType=" + encodeURIComponent(vehicleType) : "")),
     ordersIncoming: () => request("/api/delivery-partners/orders/incoming"),
+    ordersHistory: (params) => request("/api/delivery-partners/orders/history" + (params?.status ? "?status=" + encodeURIComponent(params.status) : "")),
     ordersSummary: () => request("/api/delivery-partners/orders/summary"),
+    subscriptions: (params) => {
+      const q = new URLSearchParams();
+      if (params?.scheduleFilter) q.set("scheduleFilter", params.scheduleFilter);
+      if (params?.timeRangeStart) q.set("timeRangeStart", params.timeRangeStart);
+      if (params?.timeRangeEnd) q.set("timeRangeEnd", params.timeRangeEnd);
+      return request("/api/delivery-partners/subscriptions" + (q.toString() ? "?" + q.toString() : ""));
+    },
     financials: () => request("/api/delivery-partners/financials"),
     updateProfile: (body) => request("/api/delivery-partners/me", { method: "PATCH", body: JSON.stringify(body) }),
+    markPickedUp: (orderId) => request("/api/delivery-partners/orders/" + orderId + "/picked-up", { method: "PATCH" }),
+    markDelivered: (orderId) => request("/api/delivery-partners/orders/" + orderId + "/delivered", { method: "PATCH" }),
+  },
+  deliverySupport: {
+    getThread: () => request("/api/delivery-support/thread"),
+    sendMessage: (text) => request("/api/delivery-support/message", { method: "POST", body: JSON.stringify({ text }) }),
   },
   supplierSupport: {
     getThread: () => request("/api/supplier-support/thread"),
@@ -95,6 +110,12 @@ export const api = {
     me: () => request("/api/users/me"),
     update: (body) => request("/api/users/me", { method: "PUT", body: JSON.stringify(body) }),
   },
+  addresses: {
+    list: () => request("/api/addresses"),
+    create: (body) => request("/api/addresses", { method: "POST", body: JSON.stringify(body) }),
+    update: (id, body) => request("/api/addresses/" + id, { method: "PUT", body: JSON.stringify(body) }),
+    delete: (id) => request("/api/addresses/" + id, { method: "DELETE" }),
+  },
   waterIntake: {
     get: (date) => request("/api/water-intake" + (date ? "?date=" + encodeURIComponent(date) : "")),
     add: (body) => request("/api/water-intake", { method: "POST", body: JSON.stringify(body) }),
@@ -115,5 +136,9 @@ export const api = {
     list: () => request("/api/subscriptions"),
     create: (body) => request("/api/subscriptions", { method: "POST", body: JSON.stringify(body) }),
     cancel: (id) => request("/api/subscriptions/" + id + "/cancel", { method: "PATCH" }),
+  },
+  bills: {
+    list: () => request("/api/bills"),
+    pay: (id) => request("/api/bills/" + id + "/pay", { method: "POST" }),
   },
 };

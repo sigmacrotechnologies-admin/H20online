@@ -34,8 +34,10 @@ export default function Layout() {
           <NavLink to="/orders" style={({ isActive }) => linkStyle(isActive)}>Orders</NavLink>
           <NavLink to="/suppliers" style={({ isActive }) => linkStyle(isActive)}>Suppliers</NavLink>
           <NavLink to="/plans" style={({ isActive }) => linkStyle(isActive)}>Plans & rates</NavLink>
+          <NavLink to="/subscriptions" style={({ isActive }) => linkStyle(isActive)}>Subscription orders</NavLink>
           <NavLink to="/delivery-partners" style={({ isActive }) => linkStyle(isActive)}>Delivery partners</NavLink>
           <NavLink to="/supplier-support" style={({ isActive }) => linkStyle(isActive)}>Supplier support</NavLink>
+          <NavLink to="/delivery-support" style={({ isActive }) => linkStyle(isActive)}>Delivery partner support</NavLink>
           {canSeeFinancials && (
             <NavLink to="/financials" style={({ isActive }) => linkStyle(isActive)}>Financials</NavLink>
           )}

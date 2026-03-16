@@ -16,7 +16,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
-import BackButton from "@/src/components/BackButton";
+import BackButton, { backButtonContainerStyle } from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 
 let ImagePicker;
 try {
@@ -170,12 +171,12 @@ const CreateProfileScreen = () => {
         {/* Avatar Section with Gradient */}
         <View style={styles.avatarSection}>
           <LinearGradient
-            colors={["#7DD3FC", "#38BDF8", "#0EA5E9", "#06B6D4"]}
+            colors={theme.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.gradientBackground}
           >
-            <View style={styles.headerOverlay}>
+            <View style={[styles.headerOverlay, backButtonContainerStyle]}>
               <BackButton onPress={handleBack} />
             </View>
 
@@ -319,7 +320,7 @@ const CreateProfileScreen = () => {
         <View style={styles.inputSection}>
           <View style={styles.planToggleRow}>
             <Text style={styles.label}>Register with plan</Text>
-            <Switch value={registerWithPlan} onValueChange={setRegisterWithPlan} trackColor={{ false: "#D1D5DB", true: "#1EA7FD" }} thumbColor="#FFFFFF" />
+            <Switch value={registerWithPlan} onValueChange={setRegisterWithPlan} trackColor={{ false: "#D1D5DB", true: theme.primary }} thumbColor="#FFFFFF" />
           </View>
           {registerWithPlan && (
             <>
@@ -378,11 +379,11 @@ const CreateProfileScreen = () => {
               <TouchableOpacity onPress={() => setShowAvatarPicker(false)}><Ionicons name="close" size={24} color="#1B2B34" /></TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.avatarOption} onPress={pickImage}>
-              <Ionicons name="image-outline" size={24} color="#1EA7FD" />
+              <Ionicons name="image-outline" size={24} color={theme.primary} />
               <Text style={styles.avatarOptionText}>Choose from Gallery</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.avatarOption} onPress={takePhoto}>
-              <Ionicons name="camera-outline" size={24} color="#1EA7FD" />
+              <Ionicons name="camera-outline" size={24} color={theme.primary} />
               <Text style={styles.avatarOptionText}>Take Photo</Text>
             </TouchableOpacity>
           </View>
@@ -403,7 +404,7 @@ const CreateProfileScreen = () => {
                 onPress={() => { setSelectedPlan(plan); setShowPlanDropdown(false); }}
               >
                 <Text style={styles.planName}>{plan.name}</Text>
-                {selectedPlan?.id === plan.id && <Ionicons name="checkmark-circle" size={24} color="#1EA7FD" />}
+                {selectedPlan?.id === plan.id && <Ionicons name="checkmark-circle" size={24} color={theme.primary} />}
               </TouchableOpacity>
             ))}
           </View>
@@ -416,13 +417,13 @@ const CreateProfileScreen = () => {
 export default CreateProfileScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   scrollContent: { paddingBottom: 30 },
   avatarSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 220, overflow: "hidden", position: "relative" },
   gradientBackground: { flex: 1, position: "relative", paddingTop: 50, paddingBottom: 24 },
-  headerOverlay: { position: "absolute", top: 14, left: 28, right: 28, flexDirection: "row", alignItems: "center", zIndex: 10 },
+  headerOverlay: { flexDirection: "row", alignItems: "center" },
   avatarContainer: { alignItems: "center", justifyContent: "center", marginTop: 20 },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20, overflow: "hidden" },
+  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20, overflow: "hidden" },
   avatarButton: { width: 120, height: 120 },
   avatarImage: { width: "100%", height: "100%", borderRadius: 20, backgroundColor: "rgba(255, 255, 255, 0.9)", borderWidth: 3, borderColor: "rgba(255, 255, 255, 0.9)", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 5 },
   avatarPlaceholder: { width: "90%", height: "90%", borderRadius: 100, backgroundColor: "rgba(255, 255, 255, 0.9)", 
@@ -464,7 +465,7 @@ const styles = StyleSheet.create({
   deviceTextContainer: { flex: 1, marginLeft: 16 },
   deviceTitle: { fontSize: 17, fontWeight: "700", color: "#1B2B34", marginBottom: 4 },
   deviceSubtitle: { fontSize: 13, color: "#6B7C85" },
-  continueButton: { marginTop: 20, backgroundColor: "#1EA7FD", paddingVertical: 16, borderRadius: 30, alignItems: "center", elevation: 3 },
+  continueButton: { marginTop: 20, backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 30, alignItems: "center", elevation: 3 },
   continueButtonDisabled: { backgroundColor: "#EEF3F7", elevation: 1 },
   buttonContent: { flexDirection: "row", alignItems: "center", gap: 8 },
   buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
@@ -476,7 +477,7 @@ const styles = StyleSheet.create({
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
   modalTitle: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
   planOption: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderRadius: 12, backgroundColor: "#f0f7fcd7", marginBottom: 12 },
-  planOptionSelected: { backgroundColor: "#E0F2FE", borderWidth: 2, borderColor: "#8ED1FC" },
+  planOptionSelected: { backgroundColor: theme.selectedTint, borderWidth: 2, borderColor: theme.primaryLight },
   planName: { fontSize: 16, fontWeight: "600", color: "#1B2B34", flex: 1 },
   planToggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
   planLaterMessage: { fontSize: 13, color: "#6B7C85", fontStyle: "italic", marginTop: 6 },

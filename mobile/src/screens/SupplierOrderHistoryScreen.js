@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Tex
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 import { api } from "@/src/api/client";
 
 export default function SupplierOrderHistoryScreen() {
@@ -43,7 +44,7 @@ export default function SupplierOrderHistoryScreen() {
           ))}
         </View>
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {loading ? <ActivityIndicator size="large" color="#1EA7FD" style={{ marginTop: 24 }} /> : (
+        {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24 }} /> : (
           data.orders.length === 0 ? <Text style={styles.empty}>No orders</Text> : (
             data.orders.map((o) => (
               <View key={o.id} style={styles.card}>
@@ -70,17 +71,17 @@ export default function SupplierOrderHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   headerPanel: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 140, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 50, paddingHorizontal: 20 },
+  gradientBackground: { flex: 1, paddingTop: 14, paddingBottom: 16, paddingHorizontal: 20 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF" },
-  contentPanel: { marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20, flex: 1 },
+  contentPanel: { marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20, flex: 1 },
   searchInput: { backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 12, padding: 12, fontSize: 15, marginBottom: 12 },
   statusRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 12 },
   statusChip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.8)", marginRight: 8, marginBottom: 8 },
-  statusChipSelected: { backgroundColor: "#1EA7FD" },
+  statusChipSelected: { backgroundColor: theme.primary },
   statusChipText: { fontSize: 13, color: "#1B2B34" },
   statusChipTextSelected: { color: "#FFF" },
   scroll: { flex: 1 },
@@ -88,11 +89,11 @@ const styles = StyleSheet.create({
   card: { backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 16, padding: 16, marginBottom: 12 },
   cardId: { fontSize: 12, color: "#6B7C85" },
   cardCustomer: { fontSize: 16, fontWeight: "700", color: "#1B2B34", marginTop: 4 },
-  cardTotal: { fontSize: 15, color: "#0EA5E9", marginTop: 4 },
+  cardTotal: { fontSize: 15, color: theme.primary, marginTop: 4 },
   cardStatus: { fontSize: 13, color: "#6B7C85", marginTop: 2 },
   cardDate: { fontSize: 12, color: "#6B7C85", marginTop: 2 },
   pagination: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16, marginVertical: 20 },
-  pageBtn: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: "#1EA7FD", borderRadius: 8 },
+  pageBtn: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: theme.primary, borderRadius: 8 },
   pageBtnText: { color: "#FFF", fontWeight: "600" },
   pageInfo: { color: "#1B2B34" },
 });

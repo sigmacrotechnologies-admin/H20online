@@ -28,6 +28,7 @@ router.get("/:slug/products", async (req, res) => {
       plan: { id: plan._id.toString(), name: plan.name, slug: plan.slug, maxQuantityPerProduct: plan.maxQuantityPerProduct, comingSoon: plan.comingSoon },
       products: products.map((p) => ({
         id: p._id.toString(),
+        productId: p.productId || null,
         productKey: p.productKey,
         productLabel: p.productLabel,
         priceDaily: p.priceDaily,

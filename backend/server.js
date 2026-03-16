@@ -25,10 +25,12 @@ const walletRoutes = require("./routes/wallet");
 const suppliersRoutes = require("./routes/suppliers");
 const supplierRoutes = require("./routes/supplier");
 const deliveryPartnersRoutes = require("./routes/deliveryPartners");
+const deliverySupportRoutes = require("./routes/deliverySupport");
 const supplierSupportRoutes = require("./routes/supplierSupport");
 const waterIntakeRoutes = require("./routes/waterIntake");
 const plansRoutes = require("./routes/plans");
 const subscriptionsRoutes = require("./routes/subscriptions");
+const addressesRoutes = require("./routes/addresses");
 
 const app = express();
 app.use(cors());
@@ -58,6 +60,7 @@ app.use("/api/users", usersRoutes);
 app.use("/api/suppliers", suppliersRoutes);
 app.use("/api/supplier", supplierRoutes);
 app.use("/api/delivery-partners", deliveryPartnersRoutes);
+app.use("/api/delivery-support", deliverySupportRoutes);
 app.use("/api/supplier-support", supplierSupportRoutes);
 app.use("/api/products", productsRoutes);
 app.use("/api/orders", ordersRoutes);
@@ -65,6 +68,8 @@ app.use("/api/wallet", walletRoutes);
 app.use("/api/water-intake", waterIntakeRoutes);
 app.use("/api/plans", plansRoutes);
 app.use("/api/subscriptions", subscriptionsRoutes);
+app.use("/api/bills", require("./routes/bills"));
+app.use("/api/addresses", addressesRoutes);
 
 const PORT = process.env.PORT || 5000;
 

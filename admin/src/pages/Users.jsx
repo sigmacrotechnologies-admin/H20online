@@ -113,6 +113,7 @@ export default function Users() {
             <table style={table}>
               <thead>
                 <tr>
+                  <th style={th}>User ID</th>
                   <th style={th}>Name</th>
                   <th style={th}>Email</th>
                   <th style={th}>Phone</th>
@@ -125,6 +126,7 @@ export default function Users() {
                   <tr key={u.id}>
                     {editing?.id === u.id ? (
                       <>
+                        <td style={td}>{u.userCode || u.id}</td>
                         <td style={td}>
                           <input
                             value={editing.name}
@@ -154,6 +156,7 @@ export default function Users() {
                       </>
                     ) : (
                       <>
+                        <td style={td}>{u.userCode || u.id}</td>
                         <td style={td}>{u.name}</td>
                         <td style={td}>{u.email}</td>
                         <td style={td}>{u.phone || "—"}</td>

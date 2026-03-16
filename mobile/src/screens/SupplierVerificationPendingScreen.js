@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ScrollView,
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -12,6 +13,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api/client";
+import { theme } from "@/src/theme";
 
 const VERIFICATION_LABELS = {
   documentIdProofVerified: "ID proof",
@@ -53,7 +55,7 @@ const SupplierVerificationPendingScreen = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color="#0EA5E9" />
+          <ActivityIndicator size="large" color={theme.primary} />
           <Text style={styles.loadingText}>Loading verification status...</Text>
         </View>
       </SafeAreaView>
@@ -77,7 +79,7 @@ const SupplierVerificationPendingScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerSection}>
         <LinearGradient
-          colors={["#7DD3FC", "#38BDF8", "#0EA5E9", "#06B6D4"]}
+          colors={theme.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientBackground}
@@ -94,46 +96,52 @@ const SupplierVerificationPendingScreen = () => {
       </View>
 
       <View style={styles.contentPanel}>
-        <Text style={styles.title}>Your account is under verification</Text>
-        <Text style={styles.subtitle}>
-          Our team is verifying your documents. You will get access to the supplier dashboard once all checks are complete.
-        </Text>
-
-        <Text style={styles.estimateLabel}>Estimated time</Text>
-        <Text style={styles.estimateValue}>{tentativeTime}</Text>
-
-        <Text style={styles.checksLabel}>Verification checks</Text>
-        <View style={styles.checksList}>
-          {Object.entries(VERIFICATION_LABELS).map(([key, label]) => (
-            <View key={key} style={styles.checkRow}>
-              <Ionicons
-                name={supplier?.[key] ? "checkmark-circle" : "ellipse-outline"}
-                size={22}
-                color={supplier?.[key] ? "#10B981" : "#9CA3AF"}
-              />
-              <Text style={[styles.checkText, supplier?.[key] && styles.checkTextDone]}>{label}</Text>
-              <Text style={styles.checkStatus}>{supplier?.[key] ? "Verified" : "Pending"}</Text>
-            </View>
-          ))}
-        </View>
-
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={() => {
-            setLoading(true);
-            api.suppliers.me().then((data) => {
-              setSupplier(data);
-              if (data.onboardingStatus === "approved") router.replace("/supplier-dashboard");
-              setLoading(false);
-            }).catch(() => setLoading(false));
-          }}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.secondaryButtonText}>Refresh status</Text>
-        </TouchableOpacity>
+          <Text style={styles.title}>Your account is under verification</Text>
+          <Text style={styles.subtitle}>
+            Our team is verifying your documents. You will get access to the supplier dashboard once all checks are complete.
+          </Text>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={() => { logout(); router.replace("/login"); }}>
-          <Text style={styles.logoutButtonText}>Sign out</Text>
-        </TouchableOpacity>
+          <Text style={styles.estimateLabel}>Estimated time</Text>
+          <Text style={styles.estimateValue}>{tentativeTime}</Text>
+
+          <Text style={styles.checksLabel}>Verification checks</Text>
+          <View style={styles.checksList}>
+            {Object.entries(VERIFICATION_LABELS).map(([key, label]) => (
+              <View key={key} style={styles.checkRow}>
+                <Ionicons
+                  name={supplier?.[key] ? "checkmark-circle" : "ellipse-outline"}
+                  size={22}
+                  color={supplier?.[key] ? "#10B981" : "#9CA3AF"}
+                />
+                <Text style={[styles.checkText, supplier?.[key] && styles.checkTextDone]}>{label}</Text>
+                <Text style={styles.checkStatus}>{supplier?.[key] ? "Verified" : "Pending"}</Text>
+              </View>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={styles.secondaryButton}
+            onPress={() => {
+              setLoading(true);
+              api.suppliers.me().then((data) => {
+                setSupplier(data);
+                if (data.onboardingStatus === "approved") router.replace("/supplier-dashboard");
+                setLoading(false);
+              }).catch(() => setLoading(false));
+            }}
+          >
+            <Text style={styles.secondaryButtonText}>Refresh status</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.logoutButton} onPress={() => { logout(); router.replace("/login"); }}>
+            <Text style={styles.logoutButtonText}>Sign out</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -142,7 +150,7 @@ const SupplierVerificationPendingScreen = () => {
 export default SupplierVerificationPendingScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { fontSize: 15, color: "#6B7C85", marginTop: 12 },
   headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 180, overflow: "hidden" },
@@ -153,19 +161,23 @@ const styles = StyleSheet.create({
   statusLabel: { fontSize: 12, color: "rgba(255,255,255,0.9)", marginTop: 4 },
   statusValue: { fontSize: 18, fontWeight: "700", color: "#FFFFFF", marginTop: 2 },
   contentPanel: {
+    flex: 1,
     marginTop: -20,
     marginLeft: 11,
     marginRight: 11,
-    backgroundColor: "#c6e2fa",
+    backgroundColor: theme.screenBackground,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingTop: 28,
     paddingHorizontal: 20,
+    overflow: "hidden",
   },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingBottom: 32 },
   title: { fontSize: 22, fontWeight: "700", color: "#1B2B34", marginBottom: 8 },
   subtitle: { fontSize: 14, color: "#6B7C85", marginBottom: 24 },
   estimateLabel: { fontSize: 14, color: "#6B7C85", marginBottom: 4 },
-  estimateValue: { fontSize: 18, fontWeight: "700", color: "#0EA5E9", marginBottom: 24 },
+  estimateValue: { fontSize: 18, fontWeight: "700", color: theme.primary, marginBottom: 24 },
   checksLabel: { fontSize: 16, fontWeight: "600", color: "#1B2B34", marginBottom: 12 },
   checksList: { marginBottom: 24 },
   checkRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
@@ -174,7 +186,7 @@ const styles = StyleSheet.create({
   checkStatus: { fontSize: 13, color: "#6B7C85" },
   errorText: { fontSize: 15, color: "#DC2626", marginBottom: 16 },
   primaryButton: {
-    backgroundColor: "#1EA7FD",
+    backgroundColor: theme.primary,
     paddingVertical: 16,
     borderRadius: 30,
     alignItems: "center",
@@ -190,7 +202,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
-  secondaryButtonText: { color: "#1EA7FD", fontSize: 16, fontWeight: "600" },
+  secondaryButtonText: { color: theme.primary, fontSize: 16, fontWeight: "600" },
   logoutButton: { alignItems: "center", paddingVertical: 12 },
   logoutButtonText: { fontSize: 15, color: "#6B7C85", fontWeight: "500" },
 });

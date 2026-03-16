@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const { auth } = require("../middleware/auth");
+const { getOrCreateWallet, getOrCreatePlatformWallet } = require("./wallet");
 
 const router = express.Router();
 router.use(auth);
@@ -15,8 +16,16 @@ function toObjectId(v) {
 router.get("/", async (req, res) => {
   try {
     const orders = await Order.find({ userId: req.user._id }).sort({ createdAt: -1 }).lean();
+    for (const o of orders) {
+      if (!o.orderId) {
+        const orderId = await Order.generateUniqueOrderId();
+        await Order.updateOne({ _id: o._id }, { $set: { orderId } });
+        o.orderId = orderId;
+      }
+    }
     const list = orders.map((o) => ({
       id: o._id.toString(),
+      orderId: o.orderId || o._id.toString(),
       items: o.items,
       total: o.total,
       paymentMethod: o.paymentMethod,
@@ -33,10 +42,16 @@ router.get("/", async (req, res) => {
 
 router.get("/:id", async (req, res) => {
   try {
-    const o = await Order.findOne({ _id: req.params.id, userId: req.user._id }).lean();
+    let o = await Order.findOne({ _id: req.params.id, userId: req.user._id }).lean();
     if (!o) return res.status(404).json({ error: "Order not found" });
+    if (!o.orderId) {
+      const orderId = await Order.generateUniqueOrderId();
+      await Order.updateOne({ _id: o._id }, { $set: { orderId } });
+      o = { ...o, orderId };
+    }
     res.json({
       id: o._id.toString(),
+      orderId: o.orderId,
       items: o.items,
       total: o.total,
       status: o.status,
@@ -65,20 +80,61 @@ router.post("/", async (req, res) => {
       qty: Number(i.qty) || 1,
     }));
     const orderTotal = typeof body.total === "number" ? body.total : orderItems.reduce((s, i) => s + (i.price || 0) * (i.qty || 1), 0);
+    const paymentMethod = body.paymentMethod || "card";
+    let didWalletDebit = false;
+    if (paymentMethod === "wallet") {
+      const userWallet = await getOrCreateWallet(req.user._id);
+      if (userWallet.balance < orderTotal) return res.status(400).json({ error: "Insufficient wallet balance" });
+      const platformWallet = await getOrCreatePlatformWallet();
+      userWallet.balance -= orderTotal;
+      userWallet.transactions = userWallet.transactions || [];
+      userWallet.transactions.push({ amount: orderTotal, type: "debit", ref: "order" });
+      await userWallet.save();
+      platformWallet.balance += orderTotal;
+      platformWallet.transactions = platformWallet.transactions || [];
+      platformWallet.transactions.push({ amount: orderTotal, type: "credit", ref: "order" });
+      await platformWallet.save();
+      didWalletDebit = true;
+    }
     const uniqueSupplierIds = [...new Set(orderItems.map((i) => i.supplierId).filter(Boolean))];
     const supplierResponses = uniqueSupplierIds.map((sid) => ({ supplierId: sid, status: "pending" }));
-    const order = await Order.create({
-      userId: req.user._id,
-      items: orderItems,
-      total: orderTotal,
-      paymentMethod: body.paymentMethod || "card",
-      address: body.address || "",
-      receiverName: body.receiverName || null,
-      receiverPhone: body.receiverPhone || null,
-      supplierResponses,
-    });
+    const scheduledAt = body.scheduledAt ? new Date(body.scheduledAt) : null;
+    let order;
+    try {
+      order = await Order.create({
+        userId: req.user._id,
+        items: orderItems,
+        total: orderTotal,
+        paymentMethod,
+        address: body.address || "",
+        receiverName: body.receiverName || null,
+        receiverPhone: body.receiverPhone || null,
+        scheduledAt,
+        supplierResponses,
+      });
+    } catch (createErr) {
+      if (didWalletDebit) {
+        const userWallet = await getOrCreateWallet(req.user._id);
+        const platformWallet = await getOrCreatePlatformWallet();
+        userWallet.balance += orderTotal;
+        userWallet.transactions.push({ amount: orderTotal, type: "credit", ref: "order_refund" });
+        await userWallet.save();
+        platformWallet.balance -= orderTotal;
+        platformWallet.transactions.push({ amount: orderTotal, type: "debit", ref: "order_refund" });
+        await platformWallet.save();
+      }
+      throw createErr;
+    }
     const out = order.toObject();
-    res.status(201).json({ id: out._id.toString(), items: out.items, total: out.total, status: out.status, date: out.createdAt, address: out.address });
+    res.status(201).json({
+      id: out._id.toString(),
+      orderId: out.orderId || out._id.toString(),
+      items: out.items,
+      total: out.total,
+      status: out.status,
+      date: out.createdAt,
+      address: out.address,
+    });
     console.log("Order created:", out._id.toString());
   } catch (err) {
     console.error("Order error:", err.message);

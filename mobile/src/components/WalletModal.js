@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useWallet } from "@/src/context/WalletContext";
+import { theme } from "@/src/theme";
 
 export default function WalletModal({ visible, onClose }) {
   const { balance, addAmount, deductAmount } = useWallet();
@@ -75,21 +76,53 @@ export default function WalletModal({ visible, onClose }) {
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  sheet: { backgroundColor: "#c6e2fa", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 32 },
+  sheet: {
+    backgroundColor: theme.screenBackground,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 32,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 16,
+  },
   header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
   title: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
-  balanceCard: { backgroundColor: "#f0f7fcd7", borderRadius: 20, padding: 20, marginBottom: 24 },
+  balanceCard: {
+    backgroundColor: "#f0f7fcd7",
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
   balanceLabel: { fontSize: 14, color: "#6B7C85", marginBottom: 4 },
-  balanceValue: { fontSize: 28, fontWeight: "800", color: "#0EA5E9" },
+  balanceValue: { fontSize: 28, fontWeight: "800", color: theme.primary },
   section: { marginBottom: 20 },
   sectionLabel: { fontSize: 14, fontWeight: "600", color: "#1B2B34", marginBottom: 10 },
-  inputRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#f0f7fcd7", borderRadius: 14, paddingHorizontal: 14 },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0f7fcd7",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   rupeePrefix: { fontSize: 16, fontWeight: "600", color: "#1B2B34", marginRight: 8 },
   input: { flex: 1, paddingVertical: 14, fontSize: 16, color: "#1B2B34" },
   primaryBtn: { backgroundColor: "#10B981", paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, marginLeft: 8 },
   primaryBtnText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
-  outlineBtn: { borderWidth: 2, borderColor: "#0EA5E9", paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, marginLeft: 8 },
-  outlineBtnText: { fontSize: 14, fontWeight: "600", color: "#0EA5E9" },
-  doneBtn: { backgroundColor: "#0EA5E9", paddingVertical: 14, borderRadius: 14, alignItems: "center", marginTop: 8 },
+  outlineBtn: { borderWidth: 2, borderColor: theme.primary, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, marginLeft: 8 },
+  outlineBtnText: { fontSize: 14, fontWeight: "600", color: theme.primary },
+  doneBtn: { backgroundColor: theme.primary, paddingVertical: 14, borderRadius: 14, alignItems: "center", marginTop: 8 },
   doneBtnText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
 });

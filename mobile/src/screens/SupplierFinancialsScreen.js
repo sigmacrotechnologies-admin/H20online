@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } f
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 import { api } from "@/src/api/client";
 
 export default function SupplierFinancialsScreen() {
@@ -26,7 +27,7 @@ export default function SupplierFinancialsScreen() {
         </LinearGradient>
       </View>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentWrap}>
-        {loading ? <ActivityIndicator size="large" color="#1EA7FD" style={{ marginTop: 24 }} /> : data ? (
+        {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24 }} /> : data ? (
           <>
             <View style={styles.card}>
               <Text style={styles.cardLabel}>Total revenue</Text>
@@ -51,14 +52,14 @@ export default function SupplierFinancialsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   headerPanel: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 140, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 50, paddingHorizontal: 20 },
+  gradientBackground: { flex: 1, paddingTop: 14, paddingBottom: 16, paddingHorizontal: 20 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF" },
   content: { flex: 1 },
-  contentWrap: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24, marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  contentWrap: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24, marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   card: { backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 16, padding: 20, marginBottom: 12 },
   cardLabel: { fontSize: 14, color: "#6B7C85", marginBottom: 4 },
   cardValue: { fontSize: 24, fontWeight: "700", color: "#1B2B34" },

@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "@/src/context/CartContext";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -42,7 +43,7 @@ const USE_CASE_OPTIONS = [
 
 const OrderScreen = () => {
   const router = useRouter();
-  const { cartCount, addToCart } = useCart();
+  const { cartCount, addToCart, setCartForBuyNow } = useCart();
   const [location, setLocation] = useState("Current location (tap to change)");
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -67,8 +68,6 @@ const OrderScreen = () => {
   }, []);
 
   const [showCompareModal, setShowCompareModal] = useState(false);
-  const [showSubscribeModal, setShowSubscribeModal] = useState(false);
-  const [subscribeProduct, setSubscribeProduct] = useState(null);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [sizeRangeSelected, setSizeRangeSelected] = useState([]);
   const [extraSelected, setExtraSelected] = useState([]);
@@ -143,14 +142,10 @@ const OrderScreen = () => {
     return list;
   }, [products, searchQuery, activeFilter, sizeRangeSelected, extraSelected, useCaseSelected, sizeSliderMin, sizeSliderMax]);
 
-  const openSubscribe = (product) => {
-    setSubscribeProduct(product);
-    setShowSubscribeModal(true);
-  };
-
-  const handleSubscribeSave = () => {
-    setShowSubscribeModal(false);
-    setSubscribeProduct(null);
+  const handleBuyNow = (item) => {
+    if (!item.inStock) return;
+    setCartForBuyNow(item, 1);
+    router.push("/checkout");
   };
 
   return (
@@ -169,7 +164,7 @@ const OrderScreen = () => {
       </View>
 
       <TouchableOpacity style={styles.locationRow} onPress={() => {}} activeOpacity={0.8}>
-        <Ionicons name="location-outline" size={22} color="#0EA5E9" />
+        <Ionicons name="location-outline" size={22} color={theme.primary} />
         <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
         <Ionicons name="chevron-down" size={20} color="#6B7C85" />
       </TouchableOpacity>
@@ -246,7 +241,7 @@ const OrderScreen = () => {
                 <Text style={styles.supplierName}>{item.supplierName}</Text>
               </View>
               <View style={styles.cardIconWrap}>
-                <Ionicons name={item.badge === "premium" ? "sparkles" : "water"} size={28} color="#0EA5E9" />
+                <Ionicons name={item.badge === "premium" ? "sparkles" : "water"} size={28} color={theme.primary} />
               </View>
             </View>
             <View style={styles.cardMeta}>
@@ -264,9 +259,8 @@ const OrderScreen = () => {
                   <TouchableOpacity style={styles.addCartBtn} onPress={() => addToCart(item)} activeOpacity={0.8}>
                     <Text style={styles.addCartText}>Add to Cart</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.subscribeBtn} onPress={() => openSubscribe(item)} activeOpacity={0.8}>
-                    <Text style={styles.subscribeBtnText}>Subscribe</Text>
-                    <Ionicons name="chevron-down" size={18} color="#FFFFFF" />
+                  <TouchableOpacity style={styles.buyNowBtn} onPress={() => handleBuyNow(item)} activeOpacity={0.8}>
+                    <Text style={styles.buyNowBtnText}>Buy Now</Text>
                   </TouchableOpacity>
                 </>
               ) : (
@@ -309,7 +303,7 @@ const OrderScreen = () => {
               <View style={styles.compareCardsRow}>
                 {comparedSuppliers.map((p) => (
                   <View key={p.id} style={styles.compareCard}>
-                    <View style={styles.compareCardIcon}><Ionicons name="water" size={28} color="#0EA5E9" /></View>
+                    <View style={styles.compareCardIcon}><Ionicons name="water" size={28} color={theme.primary} /></View>
                     <Text style={styles.compareCardName} numberOfLines={2}>{p.supplierName}</Text>
                     <Text style={styles.compareCardProduct} numberOfLines={2}>{p.productName}</Text>
                   </View>
@@ -351,27 +345,6 @@ const OrderScreen = () => {
             </ScrollView>
           </View>
         </View>
-      </Modal>
-
-      {/* Subscribe Modal - calendar / dates placeholder */}
-      <Modal visible={showSubscribeModal} transparent animationType="slide">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowSubscribeModal(false)}>
-          <View style={styles.subscribeModalContent} onStartShouldSetResponder={() => true}>
-            <View style={styles.subscribeModalHeader}>
-              <Text style={styles.subscribeModalTitle}>Subscribe</Text>
-              <TouchableOpacity onPress={() => setShowSubscribeModal(false)}><Ionicons name="close" size={24} color="#1B2B34" /></TouchableOpacity>
-            </View>
-            {subscribeProduct && (
-              <>
-                <Text style={styles.subscribeProductName}>{subscribeProduct.productName}</Text>
-                <Text style={styles.subscribeHint}>Monthly subscription. Select delivery dates (e.g. 1st, 15th). Calendar integration can be added later.</Text>
-                <TouchableOpacity style={styles.subscribeSaveBtn} onPress={handleSubscribeSave} activeOpacity={0.8}>
-                  <Text style={styles.subscribeSaveText}>Save subscription</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </TouchableOpacity>
       </Modal>
 
       {/* Filter sheet - from bottom */}
@@ -492,34 +465,74 @@ const OrderScreen = () => {
 export default OrderScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa" },
+  container: { flex: 1, backgroundColor: theme.screenBackground },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12 },
   headerBackBtn: { backgroundColor: "#f0f7fcd7", marginRight: 12 },
   headerTitle: { flex: 1, fontSize: 22, fontWeight: "700", color: "#1B2B34" },
   cartIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#f0f7fcd7", justifyContent: "center", alignItems: "center", position: "relative" },
-  cartBadge: { position: "absolute", top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: "#0EA5E9", justifyContent: "center", alignItems: "center", paddingHorizontal: 4 },
+  cartBadge: { position: "absolute", top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: theme.primary, justifyContent: "center", alignItems: "center", paddingHorizontal: 4 },
   cartBadgeText: { fontSize: 11, fontWeight: "700", color: "#FFFFFF" },
-  locationRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#f0f7fcd7", marginHorizontal: 20, marginBottom: 12, padding: 14, borderRadius: 16, gap: 10 },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f0f7fcd7",
+    marginHorizontal: 20,
+    marginBottom: 12,
+    padding: 14,
+    borderRadius: 16,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
   locationText: { flex: 1, fontSize: 15, color: "#1B2B34" },
   searchRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, marginBottom: 8, gap: 10 },
-  searchBox: { flex: 1, flexDirection: "row", alignItems: "center", backgroundColor: "#FFFFFF", borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
+  searchBox: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   searchInput: { flex: 1, fontSize: 15, color: "#1B2B34", padding: 0 },
   filterIconBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#f0f7fcd7", justifyContent: "center", alignItems: "center" },
   filterScroll: { marginBottom: 16, flexGrow: 0, paddingTop: 4, paddingBottom: 4 },
   filterScrollContent: { paddingHorizontal: 20, flexDirection: "row", alignItems: "center", paddingVertical: 10 },
   filterChip: { borderRadius: 20, backgroundColor: "#f0f7fcd7", marginRight: 10, flexShrink: 0, minHeight: 44, justifyContent: "center", overflow: "hidden" },
-  filterChipActive: { backgroundColor: "#0EA5E9" },
+  filterChipActive: { backgroundColor: theme.primary },
   filterChipInner: { paddingHorizontal: 18, paddingVertical: 12, justifyContent: "center", minHeight: 44 },
   filterChipText: { fontSize: 15, fontWeight: "600", color: "#1B2B34", includeFontPadding: false },
   filterChipTextActive: { color: "#FFFFFF" },
-  filterSheetContent: { backgroundColor: "#c6e2fa", borderTopLeftRadius: 24, borderTopRightRadius: 24, marginTop: "25%", maxHeight: "75%", paddingBottom: 24 },
+  filterSheetContent: {
+    backgroundColor: theme.screenBackground,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: "25%",
+    maxHeight: "75%",
+    paddingBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 16,
+  },
   filterSheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingBottom: 12 },
   filterSheetTitle: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
   filterSheetScroll: { maxHeight: 400, paddingHorizontal: 20 },
   filterSectionLabel: { fontSize: 14, fontWeight: "700", color: "#6B7C85", marginTop: 16, marginBottom: 10 },
   filterChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   filterSheetChip: { flexDirection: "row", alignItems: "center", backgroundColor: "#f0f7fcd7", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14 },
-  filterSheetChipActive: { backgroundColor: "#0EA5E9" },
+  filterSheetChipActive: { backgroundColor: theme.primary },
   filterSheetChipText: { fontSize: 14, fontWeight: "600", color: "#1B2B34" },
   filterSheetChipTextActive: { color: "#FFFFFF" },
   filterSliderRow: { marginTop: 8, marginBottom: 8 },
@@ -533,22 +546,32 @@ const styles = StyleSheet.create({
   filterOptionsRow: { gap: 4 },
   filterOptionRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 4 },
   filterCheckbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: "#9CA3AF", marginRight: 12, justifyContent: "center", alignItems: "center" },
-  filterCheckboxChecked: { backgroundColor: "#0EA5E9", borderColor: "#0EA5E9" },
+  filterCheckboxChecked: { backgroundColor: theme.primary, borderColor: theme.primary },
   filterOptionLabel: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
   filterSheetFooter: { flexDirection: "row", paddingHorizontal: 20, paddingTop: 16, gap: 12 },
   filterClearBtn: { flex: 1, backgroundColor: "#f0f7fcd7", paddingVertical: 14, borderRadius: 14, alignItems: "center" },
   filterClearText: { fontSize: 16, fontWeight: "600", color: "#1B2B34" },
-  filterApplyBtn: { flex: 1, backgroundColor: "#0EA5E9", paddingVertical: 14, borderRadius: 14, alignItems: "center" },
+  filterApplyBtn: { flex: 1, backgroundColor: theme.primary, paddingVertical: 14, borderRadius: 14, alignItems: "center" },
   filterApplyText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
   listContent: { paddingHorizontal: 20, paddingBottom: 100 },
   listContentEmpty: { flexGrow: 1 },
   emptyWrap: { paddingVertical: 40, paddingHorizontal: 24, alignItems: "center", justifyContent: "center" },
   emptyText: { fontSize: 15, color: "#6B7C85", textAlign: "center" },
   emptyTextSub: { fontSize: 13, color: "#9CA3AF", textAlign: "center", marginTop: 6 },
-  retryBtn: { marginTop: 16, backgroundColor: "#0EA5E9", paddingVertical: 12, paddingHorizontal: 24, borderRadius: 14 },
+  retryBtn: { marginTop: 16, backgroundColor: theme.primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 14 },
   retryBtnText: { fontSize: 15, fontWeight: "600", color: "#FFFFFF" },
-  card: { backgroundColor: "#f0f7fcd7", borderRadius: 20, padding: 18, marginBottom: 16, elevation: 2 },
-  badge: { alignSelf: "flex-start", backgroundColor: "#0EA5E9", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 10 },
+  card: {
+    backgroundColor: "#f0f7fcd7",
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  badge: { alignSelf: "flex-start", backgroundColor: theme.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 10 },
   badgePremium: { backgroundColor: "#8B5CF6" },
   badgeText: { fontSize: 11, fontWeight: "600", color: "#FFFFFF" },
   cardTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
@@ -565,15 +588,15 @@ const styles = StyleSheet.create({
   cardActions: { flexDirection: "row", gap: 10, marginTop: 14 },
   addCartBtn: { flex: 1, backgroundColor: "#10B981", paddingVertical: 12, borderRadius: 12, alignItems: "center" },
   addCartText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
-  subscribeBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, backgroundColor: "#0EA5E9", paddingVertical: 12, borderRadius: 12 },
-  subscribeBtnText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
+  buyNowBtn: { flex: 1, backgroundColor: theme.primary, paddingVertical: 12, borderRadius: 12, alignItems: "center" },
+  buyNowBtnText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
   unavailableBtn: { flex: 1, backgroundColor: "#E5E7EB", paddingVertical: 12, borderRadius: 12, alignItems: "center" },
   unavailableText: { fontSize: 14, color: "#6B7C85" },
   notifyBtn: { flex: 1, backgroundColor: "#10B981", paddingVertical: 12, borderRadius: 12, alignItems: "center" },
   notifyText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
   compareRow: { flexDirection: "row", alignItems: "center", marginTop: 12, gap: 8 },
   checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: "#9CA3AF", justifyContent: "center", alignItems: "center" },
-  checkboxChecked: { backgroundColor: "#0EA5E9", borderColor: "#0EA5E9" },
+  checkboxChecked: { backgroundColor: theme.primary, borderColor: theme.primary },
   compareLabel: { fontSize: 13, color: "#6B7C85" },
   stickyFooter: { position: "absolute", bottom: 0, left: 0, right: 0, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28, backgroundColor: "#1E40AF", marginHorizontal: 11 },
   footerLabel: { fontSize: 14, color: "#FFFFFF", fontWeight: "600" },
@@ -581,31 +604,56 @@ const styles = StyleSheet.create({
   compareFooterBtnText: { fontSize: 14, fontWeight: "700", color: "#1E40AF" },
   footerHint: { position: "absolute", bottom: 4, left: 0, right: 0, textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.9)" },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  compareModal: { backgroundColor: "#E0F2F7", borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "85%", paddingBottom: 24 },
+  compareModal: {
+    backgroundColor: "#E0F2F7",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "85%",
+    paddingBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 16,
+  },
   compareModalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 20, paddingBottom: 12 },
   compareModalTitle: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
   compareScroll: { flexGrow: 0 },
   compareScrollContent: { paddingHorizontal: 20, paddingBottom: 24 },
   compareCardsRow: { flexDirection: "row", gap: 12, marginBottom: 20 },
-  compareCard: { flex: 1, backgroundColor: "#f0f7fcd7", borderRadius: 16, padding: 16, alignItems: "center" },
+  compareCard: {
+    flex: 1,
+    backgroundColor: "#f0f7fcd7",
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
   compareCardIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center", marginBottom: 10 },
   compareCardName: { fontSize: 14, fontWeight: "700", color: "#1B2B34", textAlign: "center" },
   compareCardProduct: { fontSize: 12, color: "#6B7C85", marginTop: 4, textAlign: "center" },
   compareCardPlaceholder: { fontSize: 13, color: "#6B7C85", textAlign: "center" },
-  compareSection: { backgroundColor: "#f0f7fcd7", borderRadius: 12, padding: 16, marginBottom: 12 },
+  compareSection: {
+    backgroundColor: "#f0f7fcd7",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   compareSectionTitle: { fontSize: 12, fontWeight: "700", color: "#6B7C85", marginBottom: 10, letterSpacing: 0.5 },
   compareSectionRow: { flexDirection: "row", justifyContent: "space-between" },
   compareLeft: { fontSize: 14, color: "#1B2B34", flex: 1 },
   compareRight: { fontSize: 14, color: "#10B981", fontWeight: "600", flex: 1, textAlign: "right" },
   inStockGreen: { fontSize: 13, color: "#10B981", fontWeight: "600" },
   lowStock: { fontSize: 13, color: "#F59E0B", fontWeight: "600" },
-  subBtnSmall: { marginTop: 6, alignSelf: "flex-start", backgroundColor: "#0EA5E9", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+  subBtnSmall: { marginTop: 6, alignSelf: "flex-start", backgroundColor: theme.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   subBtnSmallText: { fontSize: 12, fontWeight: "600", color: "#FFFFFF" },
-  subscribeModalContent: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, marginTop: "40%" },
-  subscribeModalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  subscribeModalTitle: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
-  subscribeProductName: { fontSize: 16, color: "#1B2B34", marginBottom: 12 },
-  subscribeHint: { fontSize: 13, color: "#6B7C85", marginBottom: 20 },
-  subscribeSaveBtn: { backgroundColor: "#0EA5E9", paddingVertical: 14, borderRadius: 14, alignItems: "center" },
-  subscribeSaveText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
 });

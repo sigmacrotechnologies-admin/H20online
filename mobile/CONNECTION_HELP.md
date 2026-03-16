@@ -1,5 +1,56 @@
 # "Cannot reach server" – what to do
 
+The app is trying to reach the backend but the connection is failing. Use the section that matches your setup.
+
+---
+
+## Still showing the same error? (APK + server)
+
+If you already opened port 5000 and the error persists:
+
+1. **Rebuild and reinstall the APK**  
+   Any change to `app.json` (e.g. `usesCleartextTraffic`) or `eas.json` only applies to **new** builds. Uninstall the old APK, run `eas build --profile preview --platform android`, then install the **new** APK.
+
+2. **Test in your phone’s browser**  
+   On the same phone (Wi‑Fi or mobile data), open:  
+   `http://YOUR_PUBLIC_IP:5000`  
+   (e.g. `http://13.62.57.255:5000`).  
+   - If this **fails**, the problem is network/server (Security Group, backend not running, or wrong IP).  
+   - If this **loads**, the server is reachable; then a **new** APK build (with cleartext enabled) should work in the app.
+
+3. **Confirm backend is running on the server**  
+   SSH into Ubuntu and run: `pm2 list` or `pm2 restart backend`. Backend must be listening on `0.0.0.0:5000`.
+
+4. **Confirm the APK’s URL**  
+   The URL is set in `eas.json` under `preview.env.EXPO_PUBLIC_API_URL`. If your server’s public IP changed (e.g. new EC2 instance), update that value and rebuild the APK.
+
+---
+
+## When using the APK with your server (AWS / public IP)
+
+**Error:** "Cannot reach server at http://13.62.57.255:5000" (or your server’s public IP).
+
+**Cause:** The server’s firewall (AWS Security Group) is blocking port 5000 from the internet.
+
+**Fix – open port 5000 on AWS:**
+
+1. In **AWS Console** go to **EC2** → **Instances** → select your Ubuntu instance.
+2. Open the **Security** tab and click the **Security group** (e.g. sg-xxxxx).
+3. Click **Edit inbound rules** → **Add rule**:
+   - **Type:** Custom TCP
+   - **Port range:** 5000
+   - **Source:** Anywhere-IPv4 (0.0.0.0/0) for testing; restrict later if you want.
+4. **Save rules.**
+
+**Also check:**
+
+- Backend is running on the server: `pm2 list` or `pm2 restart backend` (or whatever your process name is).
+- You can open **http://YOUR_PUBLIC_IP:5000** in your phone’s browser – if that loads, the app should work too.
+
+---
+
+## When running locally (Expo + PC backend)
+
 Your phone is trying to talk to the app’s backend on your PC at **http://192.168.1.4:5000** but the connection is failing. Do these in order.
 
 ---

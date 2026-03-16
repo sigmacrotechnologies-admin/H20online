@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Modal, TextInput, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 import { api } from "@/src/api/client";
 
 const FLEET_OPTIONS = [{ key: "bicycle", label: "Bicycle" }, { key: "bike", label: "Bike" }, { key: "minivan", label: "Minivan" }, { key: "truck", label: "Truck" }, { key: "cycle", label: "Cycle" }, { key: "camper", label: "Camper" }];
@@ -20,11 +21,12 @@ export default function SupplierIncomingOrdersScreen() {
   const [selectedPartnerId, setSelectedPartnerId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
     api.supplier.ordersIncoming().then(setOrders).catch(() => setOrders([])).finally(() => setLoading(false));
-  };
-  useEffect(() => { load(); }, []);
+  }, []);
+  useEffect(() => { load(); }, [load]);
+  useFocusEffect(load);
 
   const openModal = (order) => {
     setModalOrder(order);
@@ -77,7 +79,7 @@ export default function SupplierIncomingOrdersScreen() {
         </LinearGradient>
       </View>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentWrap}>
-        {loading ? <ActivityIndicator size="large" color="#1EA7FD" style={{ marginTop: 24 }} /> : (
+        {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24 }} /> : (
           orders.length === 0 ? (
             <Text style={styles.empty}>No pending orders</Text>
           ) : (
@@ -139,19 +141,19 @@ export default function SupplierIncomingOrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   headerPanel: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 140, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 50, paddingHorizontal: 20 },
+  gradientBackground: { flex: 1, paddingTop: 14, paddingBottom: 16, paddingHorizontal: 20 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF" },
   content: { flex: 1 },
-  contentWrap: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24, marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  contentWrap: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24, marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   empty: { textAlign: "center", color: "#6B7C85", marginTop: 24 },
   card: { backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 16, padding: 16, marginBottom: 12 },
   cardId: { fontSize: 12, color: "#6B7C85" },
   cardCustomer: { fontSize: 16, fontWeight: "700", color: "#1B2B34", marginTop: 4 },
-  cardTotal: { fontSize: 15, color: "#0EA5E9", marginTop: 4 },
+  cardTotal: { fontSize: 15, color: theme.primary, marginTop: 4 },
   cardItems: { fontSize: 13, color: "#6B7C85", marginTop: 2 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
   modalBox: { backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: "85%" },
@@ -160,15 +162,15 @@ const styles = StyleSheet.create({
   modalLabel: { fontSize: 14, fontWeight: "600", color: "#1B2B34", marginBottom: 8 },
   input: { backgroundColor: "#f0f7fc", borderRadius: 12, padding: 14, fontSize: 16, marginBottom: 16 },
   fleetRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  fleetChip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: "#E0F2FE" },
-  fleetChipSelected: { backgroundColor: "#1EA7FD" },
+  fleetChip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: theme.selectedTint },
+  fleetChipSelected: { backgroundColor: theme.primary },
   fleetChipText: { fontSize: 13, color: "#1B2B34" },
   fleetChipTextSelected: { color: "#FFF" },
   partnerRow: { padding: 12, backgroundColor: "#f0f7fc", borderRadius: 12, marginBottom: 8 },
-  partnerRowSelected: { backgroundColor: "#E0F2FE", borderWidth: 2, borderColor: "#1EA7FD" },
+  partnerRowSelected: { backgroundColor: theme.selectedTint, borderWidth: 2, borderColor: theme.primary },
   partnerName: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
   partnerPhone: { fontSize: 13, color: "#6B7C85" },
-  acceptBtn: { backgroundColor: "#1EA7FD", paddingVertical: 16, borderRadius: 30, alignItems: "center", marginTop: 16 },
+  acceptBtn: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 30, alignItems: "center", marginTop: 16 },
   acceptBtnDisabled: { opacity: 0.7 },
   acceptBtnText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
 });

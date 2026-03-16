@@ -13,7 +13,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import BackButton from "@/src/components/BackButton";
+import BackButton, { backButtonContainerStyle } from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 
 let Slider;
 try {
@@ -102,12 +103,12 @@ const CorporateProfileScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerSection}>
           <LinearGradient
-            colors={["#7DD3FC", "#38BDF8", "#0EA5E9", "#06B6D4"]}
+            colors={theme.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.gradientBackground}
           >
-            <View style={styles.headerOverlay}>
+            <View style={[styles.headerOverlay, backButtonContainerStyle]}>
               <BackButton onPress={handleBack} />
               <Text style={styles.stepLabel}>Step {step} of {TOTAL_STEPS}: {step === 1 ? "Company Details" : "Locations & Verification"}</Text>
             </View>
@@ -201,9 +202,9 @@ const CorporateProfileScreen = () => {
                       step={100}
                       value={numberOfEmployees}
                       onValueChange={(v) => setNumberOfEmployees(Math.round(v))}
-                      minimumTrackTintColor="#1EA7FD"
+                      minimumTrackTintColor={theme.primary}
                       maximumTrackTintColor="#E5E7EB"
-                      thumbTintColor="#1EA7FD"
+                      thumbTintColor={theme.primary}
                     />
                   </View>
                 ) : (
@@ -234,7 +235,7 @@ const CorporateProfileScreen = () => {
                     <Image source={{ uri: incorporationDocUri }} style={styles.uploadPreview} />
                   ) : (
                     <>
-                      <Ionicons name="cloud-upload-outline" size={40} color="#1EA7FD" />
+                      <Ionicons name="cloud-upload-outline" size={40} color={theme.primary} />
                       <Text style={styles.uploadText}>Tap to upload PDF or JPG</Text>
                       <Text style={styles.uploadHint}>Max file size 5MB</Text>
                     </>
@@ -284,7 +285,7 @@ const CorporateProfileScreen = () => {
                       <Image source={{ uri: gstDocUri }} style={styles.uploadSmallPreview} />
                     ) : (
                       <>
-                        <Ionicons name="document-outline" size={28} color="#1EA7FD" />
+                        <Ionicons name="document-outline" size={28} color={theme.primary} />
                         <Text style={styles.uploadSmallText}>Upload</Text>
                       </>
                     )}
@@ -298,7 +299,7 @@ const CorporateProfileScreen = () => {
                       <Image source={{ uri: levelPhotoUri }} style={styles.uploadSmallPreview} />
                     ) : (
                       <>
-                        <Ionicons name="layers-outline" size={28} color="#1EA7FD" />
+                        <Ionicons name="layers-outline" size={28} color={theme.primary} />
                         <Text style={styles.uploadSmallText}>Upload</Text>
                       </>
                     )}
@@ -314,7 +315,7 @@ const CorporateProfileScreen = () => {
                       <Image source={{ uri: officePhotoUri }} style={styles.uploadSmallPreview} />
                     ) : (
                       <>
-                        <Ionicons name="business-outline" size={28} color="#1EA7FD" />
+                        <Ionicons name="business-outline" size={28} color={theme.primary} />
                         <Text style={styles.uploadSmallText}>Upload</Text>
                       </>
                     )}
@@ -328,7 +329,7 @@ const CorporateProfileScreen = () => {
                       <Image source={{ uri: addressProofUri }} style={styles.uploadSmallPreview} />
                     ) : (
                       <>
-                        <Ionicons name="location-outline" size={28} color="#1EA7FD" />
+                        <Ionicons name="location-outline" size={28} color={theme.primary} />
                         <Text style={styles.uploadSmallText}>Upload</Text>
                       </>
                     )}
@@ -368,16 +369,16 @@ const CorporateProfileScreen = () => {
 export default CorporateProfileScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   scrollContent: { paddingBottom: 30 },
   headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 140, overflow: "hidden" },
   gradientBackground: { flex: 1, paddingTop: 50, paddingHorizontal: 20, paddingBottom: 12 },
-  headerOverlay: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
+  headerOverlay: { flexDirection: "row", alignItems: "center", right: 20 },
   stepLabel: { flex: 1, fontSize: 13, color: "#FFFFFF", fontWeight: "600", marginLeft: 12 },
   progressBarContainer: { marginTop: 4 },
   progressBarBg: { height: 6, backgroundColor: "rgba(255,255,255,0.4)", borderRadius: 3, overflow: "hidden" },
   progressBarFill: { height: "100%", backgroundColor: "#FFFFFF", borderRadius: 3 },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20, overflow: "hidden" },
+  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20, overflow: "hidden" },
   title: { fontSize: 26, fontWeight: "700", textAlign: "center", color: "#1B2B34", marginBottom: 8 },
   subtitle: { textAlign: "center", color: "#6B7C85", marginBottom: 25, fontSize: 14 },
   inputSection: { marginBottom: 20 },
@@ -404,10 +405,10 @@ const styles = StyleSheet.create({
   uploadItemLabel: { fontSize: 13, fontWeight: "600", color: "#1B2B34", marginBottom: 8 },
   uploadSmall: { width: "100%", minHeight: 100, backgroundColor: "rgba(255,255,255,0.7)", borderRadius: 12, borderWidth: 2, borderStyle: "dashed", borderColor: "#8ED1FC", alignItems: "center", justifyContent: "center", padding: 12 },
   uploadSmallPreview: { width: "100%", height: 80, borderRadius: 8, backgroundColor: "#f0f0f0" },
-  uploadSmallText: { fontSize: 12, color: "#1EA7FD", fontWeight: "600", marginTop: 6 },
-  changePhotoText: { fontSize: 12, color: "#1EA7FD", fontWeight: "600", marginTop: 6 },
+  uploadSmallText: { fontSize: 12, color: theme.primary, fontWeight: "600", marginTop: 6 },
+  changePhotoText: { fontSize: 12, color: theme.primary, fontWeight: "600", marginTop: 6 },
   errorText: { fontSize: 14, color: "#DC2626", marginBottom: 12, fontWeight: "500" },
-  continueButton: { marginTop: 20, marginBottom: 24, backgroundColor: "#1EA7FD", paddingVertical: 16, borderRadius: 30, alignItems: "center", elevation: 3 },
+  continueButton: { marginTop: 20, marginBottom: 24, backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 30, alignItems: "center", elevation: 3 },
   continueButtonDisabled: { backgroundColor: "#EEF3F7", elevation: 1 },
   buttonContent: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
   buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },

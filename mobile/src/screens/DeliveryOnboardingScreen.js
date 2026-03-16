@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 import { api } from "@/src/api/client";
 
 const VEHICLE_OPTIONS = [
@@ -100,24 +101,24 @@ export default function DeliveryOnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   headerPanel: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 140, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 50, paddingHorizontal: 20 },
+  gradientBackground: { flex: 1, paddingTop: 14, paddingBottom: 16, paddingHorizontal: 20 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF" },
   scroll: { paddingBottom: 40 },
-  content: { marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20 },
+  content: { marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20 },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1B2B34", marginBottom: 12 },
   vehicleRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 20 },
   vehicleChip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.8)", marginRight: 10, marginBottom: 10 },
-  vehicleChipSelected: { backgroundColor: "#1EA7FD" },
+  vehicleChipSelected: { backgroundColor: theme.primary },
   vehicleChipText: { fontSize: 14, color: "#1B2B34" },
   vehicleChipTextSelected: { color: "#FFF" },
   label: { fontSize: 15, fontWeight: "600", color: "#1B2B34", marginBottom: 8 },
   input: { backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 14, padding: 14, fontSize: 16, marginBottom: 16 },
   errorText: { fontSize: 14, color: "#DC2626", marginBottom: 12 },
-  submitBtn: { backgroundColor: "#1EA7FD", paddingVertical: 16, borderRadius: 30, alignItems: "center", marginTop: 8 },
+  submitBtn: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 30, alignItems: "center", marginTop: 8 },
   submitBtnDisabled: { opacity: 0.7 },
   submitBtnText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
 });

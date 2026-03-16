@@ -11,7 +11,8 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import BackButton from "@/src/components/BackButton";
+import BackButton, { backButtonContainerStyle } from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 
 const STATIC_VALIDATION_CODE = "CORP2024";
 
@@ -39,12 +40,12 @@ const CorporateValidationScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerSection}>
         <LinearGradient
-          colors={["#7DD3FC", "#38BDF8", "#0EA5E9", "#06B6D4"]}
+          colors={theme.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientBackground}
         >
-          <View style={styles.headerOverlay}>
+          <View style={[styles.headerOverlay, backButtonContainerStyle]}>
             <BackButton onPress={() => router.back()} />
           </View>
         </LinearGradient>
@@ -52,7 +53,7 @@ const CorporateValidationScreen = () => {
 
       <View style={styles.contentPanel}>
         <View style={styles.iconWrap}>
-          <Ionicons name="shield-checkmark" size={56} color="#1EA7FD" />
+          <Ionicons name="shield-checkmark" size={56} color={theme.primary} />
         </View>
         <Text style={styles.title}>Account Validation</Text>
         <Text style={styles.subtitle}>
@@ -111,11 +112,11 @@ const CorporateValidationScreen = () => {
 export default CorporateValidationScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 100, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 50, paddingHorizontal: 20 },
+  gradientBackground: { flex: 1, paddingTop: 14, paddingHorizontal: 20 },
   headerOverlay: { flexDirection: "row", alignItems: "center" },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 32, paddingHorizontal: 20 },
+  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 32, paddingHorizontal: 20 },
   iconWrap: { alignSelf: "center", marginBottom: 16 },
   title: { fontSize: 24, fontWeight: "700", textAlign: "center", color: "#1B2B34", marginBottom: 8 },
   subtitle: { textAlign: "center", color: "#6B7C85", marginBottom: 24, fontSize: 14 },
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 14, color: "#6B7C85", fontWeight: "500" },
   statusTextValid: { color: "#14B8A6" },
   errorText: { fontSize: 14, color: "#DC2626", marginBottom: 12, fontWeight: "500" },
-  continueButton: { marginTop: 12, marginBottom: 24, backgroundColor: "#1EA7FD", paddingVertical: 16, borderRadius: 30, alignItems: "center", elevation: 3 },
+  continueButton: { marginTop: 12, marginBottom: 24, backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 30, alignItems: "center", elevation: 3 },
   continueButtonDisabled: { backgroundColor: "#EEF3F7", elevation: 1 },
   buttonContent: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
   buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },

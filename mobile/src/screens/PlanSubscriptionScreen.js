@@ -2,17 +2,20 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
   ScrollView,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import BackButton from "@/src/components/BackButton";
 import { api } from "@/src/api/client";
+import { theme } from "@/src/theme";
 
 const PLAN_SLUGS = [
   { slug: "basic", name: "Basic Plan", icon: "water-outline" },
@@ -26,6 +29,33 @@ const FREQUENCIES = [
   { key: "weekly", label: "Weekly" },
   { key: "monthly", label: "Monthly" },
 ];
+
+// Preferred delivery time: hour (1-12), minute (00, 15, 30, 45), AM/PM — dropdown only, no manual input
+function getPreferredTimeOptions() {
+  const options = [{ value: "", label: "Select time" }];
+  for (const ampm of ["AM", "PM"]) {
+    for (let h = 1; h <= 12; h++) {
+      for (const m of ["00", "15", "30", "45"]) {
+        options.push({ value: `${h}:${m} ${ampm}`, label: `${h}:${m} ${ampm}` });
+      }
+    }
+  }
+  return options;
+}
+const PREFERRED_TIME_OPTIONS = getPreferredTimeOptions();
+
+function getProductIcon(prod) {
+  const label = (prod?.productLabel || "").toLowerCase();
+  const key = (prod?.productKey || "").toLowerCase();
+  const combined = label + " " + key;
+  // Jar → mug (cup)
+  if (combined.includes("jar")) return "cafe-outline";
+  // Bottle → bottle outline
+  if (combined.includes("bottle") || combined.includes("1l") || combined.includes("1 l") || combined.includes("litre") || combined.includes("liter")) return "wine-outline";
+  // Can / big jar → big jar (nutrition jar style)
+  if (combined.includes("can") || combined.includes("canister") || combined.includes("20") || combined.includes("bulk")) return "nutrition-outline";
+  return "water-outline";
+}
 
 function getDaysInMonth(year, month) {
   const d = new Date(year, month + 1, 0);
@@ -77,8 +107,48 @@ const PlanSubscriptionScreen = () => {
   const [monthlyDays, setMonthlyDays] = useState([1, 15]); // days of month
   const [monthlyMonths, setMonthlyMonths] = useState(3);
   const [subscribeRange, setSubscribeRange] = useState(null); // "month" | "3months" | "custom"
+  const [preferredTimeRangeStart, setPreferredTimeRangeStart] = useState(""); // e.g. "11:00 AM" - user-given window start
+  const [preferredTimeRangeEnd, setPreferredTimeRangeEnd] = useState("");     // e.g. "12:00 PM" - user-given window end
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [showMenuModal, setShowMenuModal] = useState(false);
+  const [showTimeStartPicker, setShowTimeStartPicker] = useState(false);
+  const [showTimeEndPicker, setShowTimeEndPicker] = useState(false);
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
+  const [activeSubscriptions, setActiveSubscriptions] = useState([]);
+  const [activePlansDropdownOpen, setActivePlansDropdownOpen] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+
+  const fetchActiveSubscriptions = useCallback(async () => {
+    try {
+      const list = await api.subscriptions.list();
+      setActiveSubscriptions(list);
+    } catch (_) {
+      setActiveSubscriptions([]);
+    }
+  }, []);
+
+  const fetchSavedAddresses = useCallback(async () => {
+    try {
+      const list = await api.addresses.list();
+      setSavedAddresses(list || []);
+      setSelectedAddressId((prev) => {
+        if (!list?.length) return "";
+        if (prev && list.some((a) => a.id === prev)) return prev;
+        return list.find((a) => a.isDefault)?.id || list[0]?.id || "";
+      });
+    } catch (_) {
+      setSavedAddresses([]);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchActiveSubscriptions();
+      fetchSavedAddresses();
+    }, [fetchActiveSubscriptions, fetchSavedAddresses])
+  );
 
   const loadPlans = useCallback(async () => {
     try {
@@ -204,12 +274,25 @@ const PlanSubscriptionScreen = () => {
   const canSubscribe =
     !isComingSoon &&
     selectedProduct &&
+    selectedAddressId &&
     ((frequency === "daily" && selectedDates.length > 0) ||
       (frequency === "weekly" && weeklyWeekdays.length > 0) ||
       (frequency === "monthly" && monthlyDays.length > 0));
 
   const handleSubscribe = async () => {
     if (!canSubscribe || !planInfo) return;
+    if (!selectedAddressId) {
+      setError("Please select a delivery address.");
+      return;
+    }
+    if (preferredTimeRangeStart && !preferredTimeRangeEnd) {
+      setError("Please select both start and end time for delivery window.");
+      return;
+    }
+    if (preferredTimeRangeEnd && !preferredTimeRangeStart) {
+      setError("Please select both start and end time for delivery window.");
+      return;
+    }
     setError("");
     setSubmitting(true);
     try {
@@ -218,10 +301,14 @@ const PlanSubscriptionScreen = () => {
         planName: planInfo.name,
         productKey: selectedProduct.productKey,
         productLabel: selectedProduct.productLabel,
+        productId: selectedProduct.productId || undefined,
         frequency,
         unitPrice,
         quantity,
         selectedDates: resolvedDates,
+        addressId: selectedAddressId,
+        preferredTimeRangeStart: preferredTimeRangeStart.trim() || undefined,
+        preferredTimeRangeEnd: preferredTimeRangeEnd.trim() || undefined,
       });
       router.back();
     } catch (err) {
@@ -240,22 +327,61 @@ const PlanSubscriptionScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerPanel}>
+        <View style={styles.headerSection}>
           <LinearGradient
-            colors={["#1E40AF", "#3B82F6", "#60A5FA"]}
+            colors={theme.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.headerGradient}
+            style={styles.gradientBackground}
           >
-            <View style={styles.headerNav}>
+            <View style={styles.headerTopRow}>
               <BackButton onPress={() => router.back()} />
-              <Text style={styles.headerTitle}>Plan & Subscription</Text>
+              <TouchableOpacity
+                style={styles.headerMenuBtn}
+                activeOpacity={0.7}
+                onPress={() => setShowMenuModal(true)}
+              >
+                <Ionicons name="menu" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.headerCenter}>
+              <View style={styles.headerIconCircle}>
+                <Ionicons name="document-text-outline" size={36} color="#FFFFFF" />
+              </View>
+              <Text style={styles.headerTitle}>My Plan</Text>
             </View>
           </LinearGradient>
         </View>
 
         <View style={styles.contentSection}>
-          <Text style={styles.sectionLabel}>Select plan</Text>
+          {/* Active plans - dropdown showing count and list (display only) */}
+          <Text style={styles.sectionLabel}>Active plans</Text>
+          <View style={styles.activePlansCard}>
+            <TouchableOpacity
+              style={styles.activePlansDropdown}
+              onPress={() => setActivePlansDropdownOpen((open) => !open)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="document-text-outline" size={22} color={theme.primary} style={{ marginRight: 10 }} />
+              <Text style={styles.activePlansDropdownText} numberOfLines={1}>
+                {activeSubscriptions.length === 0
+                  ? "No active plans"
+                  : `${activeSubscriptions.length} plan${activeSubscriptions.length > 1 ? "s" : ""} (tap to view)`}
+              </Text>
+              <Ionicons name={activePlansDropdownOpen ? "chevron-up" : "chevron-down"} size={20} color="#6B7C85" />
+            </TouchableOpacity>
+            {activePlansDropdownOpen &&
+              activeSubscriptions.map((sub) => (
+                <View key={sub.id} style={styles.activePlanItem}>
+                  <Text style={styles.activePlanItemName}>{sub.planName} – {sub.productLabel}</Text>
+                  <Text style={styles.activePlanItemMeta}>
+                    {sub.subscriptionId ? `ID: ${sub.subscriptionId} · ` : ""}{sub.frequency} • ₹{sub.totalPrice} • {sub.selectedDates?.length || 0} dates
+                  </Text>
+                </View>
+              ))}
+          </View>
+
+          <Text style={styles.sectionLabel}>Select new plan</Text>
           <View style={styles.planTilesRow}>
             {PLAN_SLUGS.map((p) => {
               const isSelected = selectedSlug === p.slug;
@@ -265,16 +391,29 @@ const PlanSubscriptionScreen = () => {
                   key={p.slug}
                   style={[styles.planTile, isSelected && styles.planTileSelected]}
                   onPress={() => setSelectedSlug(p.slug)}
-                  activeOpacity={0.8}
+                  activeOpacity={1}
                 >
-                  <View style={styles.planTileIconWrap}>
-                    <Ionicons name={p.icon} size={24} color={comingSoon ? "#9CA3AF" : "#0EA5E9"} />
+                  <View style={[styles.planTileIconWrap, isSelected && styles.planTileIconWrapDark]}>
+                    <Ionicons
+                      name={p.icon}
+                      size={24}
+                      color={isSelected ? "#FFFFFF" : comingSoon ? "#9CA3AF" : theme.primary}
+                    />
                   </View>
-                  <Text style={[styles.planTileName, comingSoon && styles.planTileNameMuted]} numberOfLines={2}>
+                  <Text
+                    style={[
+                      styles.planTileName,
+                      comingSoon && !isSelected && styles.planTileNameMuted,
+                      isSelected && styles.planTileNameWhite,
+                    ]}
+                    numberOfLines={2}
+                  >
                     {p.name}
                   </Text>
                   {comingSoon && (
-                    <Text style={styles.comingSoonBadge}>Coming soon</Text>
+                    <Text style={[styles.comingSoonBadge, isSelected && styles.comingSoonBadgeWhite]}>
+                      Coming soon
+                    </Text>
                   )}
                 </TouchableOpacity>
               );
@@ -293,7 +432,7 @@ const PlanSubscriptionScreen = () => {
             <>
               {productsLoading ? (
                 <View style={styles.loadingWrap}>
-                  <ActivityIndicator size="large" color="#0EA5E9" />
+                  <ActivityIndicator size="large" color={theme.primary} />
                 </View>
               ) : planProducts?.products?.length ? (
                 <>
@@ -312,19 +451,29 @@ const PlanSubscriptionScreen = () => {
                   </View>
 
                   <Text style={styles.sectionLabel}>Product</Text>
-                  <View style={styles.productList}>
+                  <View style={styles.productGrid}>
                     {planProducts.products.map((prod) => {
                       const price = frequency === "daily" ? prod.priceDaily : frequency === "weekly" ? prod.priceWeekly : prod.priceMonthly;
                       const isSelected = selectedProduct?.productKey === prod.productKey;
+                      const iconName = getProductIcon(prod);
                       return (
                         <TouchableOpacity
                           key={prod.id}
-                          style={[styles.productRow, isSelected && styles.productRowSelected]}
+                          style={styles.productCardWrapper}
                           onPress={() => setSelectedProduct(prod)}
-                          activeOpacity={0.8}
+                          activeOpacity={1}
                         >
-                          <Text style={styles.productLabel}>{prod.productLabel}</Text>
-                          <Text style={styles.productPrice}>₹{price} / {frequency === "daily" ? "day" : frequency === "weekly" ? "week" : "month"}</Text>
+                          <View style={[styles.productCard, isSelected && styles.productCardSelected]}>
+                            <View style={[styles.productCardIconWrap, isSelected && styles.productCardIconWrapSelected]}>
+                              <Ionicons name={iconName} size={28} color={isSelected ? "#FFFFFF" : theme.primary} />
+                            </View>
+                            <Text style={[styles.productCardLabel, isSelected && styles.productCardLabelSelected]} numberOfLines={2}>
+                              {prod.productLabel}
+                            </Text>
+                            <Text style={[styles.productCardPrice, isSelected && styles.productCardPriceSelected]}>
+                              ₹{price} / {frequency === "daily" ? "day" : frequency === "weekly" ? "week" : "month"}
+                            </Text>
+                          </View>
                         </TouchableOpacity>
                       );
                     })}
@@ -500,9 +649,100 @@ const PlanSubscriptionScreen = () => {
                     </View>
                   )}
 
+                  <Text style={styles.sectionLabel}>Delivery address</Text>
+                  <Text style={[styles.hint, { marginBottom: 8 }]}>Select the address for subscription delivery. You can add or edit addresses in Profile → Saved Addresses.</Text>
+                  {savedAddresses.length === 0 ? (
+                    <View style={styles.noAddressBox}>
+                      <Ionicons name="location-outline" size={24} color="#6B7C85" />
+                      <Text style={styles.noAddressText}>No saved addresses. Add one in Profile → Saved Addresses to continue.</Text>
+                      <TouchableOpacity style={styles.noAddressBtn} onPress={() => router.push("/saved-addresses")} activeOpacity={0.8}>
+                        <Text style={styles.noAddressBtnText}>Go to Saved Addresses</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <>
+                      <TouchableOpacity style={styles.deliveryTimeInput} onPress={() => setShowAddressPicker(true)} activeOpacity={0.8}>
+                        <Text style={{ color: selectedAddressId ? "#1B2B34" : "#9CA3AF", fontSize: 15 }} numberOfLines={2}>
+                          {selectedAddressId ? (savedAddresses.find((a) => a.id === selectedAddressId)?.fullAddress || "Select address") : "Select address"}
+                        </Text>
+                        <Ionicons name="chevron-down" size={20} color="#6B7C85" style={{ position: "absolute", right: 12, top: 14 }} />
+                      </TouchableOpacity>
+                      <Modal visible={showAddressPicker} transparent animationType="slide">
+                        <TouchableOpacity style={styles.menuModalOverlay} activeOpacity={1} onPress={() => setShowAddressPicker(false)}>
+                          <View style={[styles.menuModalContent, { maxHeight: 360 }]} onStartShouldSetResponder={() => true}>
+                            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" }}>
+                              <Text style={{ fontSize: 16, fontWeight: "700", color: "#1B2B34" }}>Select address</Text>
+                              <TouchableOpacity onPress={() => setShowAddressPicker(false)}><Ionicons name="close" size={24} color="#6B7C85" /></TouchableOpacity>
+                            </View>
+                            <ScrollView style={{ maxHeight: 300 }}>
+                              {savedAddresses.map((a) => (
+                                <TouchableOpacity
+                                  key={a.id}
+                                  style={[styles.menuModalItem, selectedAddressId === a.id && { backgroundColor: "#E0F2FE" }]}
+                                  onPress={() => { setSelectedAddressId(a.id); setShowAddressPicker(false); }}
+                                  activeOpacity={0.8}
+                                >
+                                  <Text style={styles.menuModalItemText} numberOfLines={2}>{a.fullAddress || "—"}</Text>
+                                  {selectedAddressId === a.id && <Ionicons name="checkmark" size={20} color={theme.primary} />}
+                                </TouchableOpacity>
+                              ))}
+                            </ScrollView>
+                          </View>
+                        </TouchableOpacity>
+                      </Modal>
+                    </>
+                  )}
+
+                  <Text style={styles.sectionLabel}>Preferred delivery time range</Text>
+                  <Text style={[styles.hint, { marginBottom: 8 }]}>Choose a 1-hour window when you want delivery (e.g. 11:00 AM – 12:00 PM). Set by you when selecting the plan.</Text>
+                  <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
+                    <TouchableOpacity style={[styles.deliveryTimeInput, { flex: 1 }]} onPress={() => setShowTimeStartPicker(true)} activeOpacity={0.8}>
+                      <Text style={{ color: preferredTimeRangeStart ? "#1B2B34" : "#9CA3AF", fontSize: 15 }}>{preferredTimeRangeStart || "From"}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.deliveryTimeInput, { flex: 1 }]} onPress={() => setShowTimeEndPicker(true)} activeOpacity={0.8}>
+                      <Text style={{ color: preferredTimeRangeEnd ? "#1B2B34" : "#9CA3AF", fontSize: 15 }}>{preferredTimeRangeEnd || "To"}</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Modal visible={showTimeStartPicker} transparent animationType="slide">
+                    <TouchableOpacity style={styles.menuModalOverlay} activeOpacity={1} onPress={() => setShowTimeStartPicker(false)}>
+                      <View style={[styles.menuModalContent, { maxHeight: 320 }]} onStartShouldSetResponder={() => true}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" }}>
+                          <Text style={{ fontSize: 16, fontWeight: "700", color: "#1B2B34" }}>From (start)</Text>
+                          <TouchableOpacity onPress={() => setShowTimeStartPicker(false)}><Ionicons name="close" size={24} color="#6B7C85" /></TouchableOpacity>
+                        </View>
+                        <ScrollView style={{ maxHeight: 260 }}>
+                          {PREFERRED_TIME_OPTIONS.filter((o) => o.value).map((opt) => (
+                            <TouchableOpacity key={opt.value} style={[styles.menuModalItem, preferredTimeRangeStart === opt.value && { backgroundColor: "#E0F2FE" }]} onPress={() => { setPreferredTimeRangeStart(opt.value); setShowTimeStartPicker(false); }} activeOpacity={0.8}>
+                              <Text style={styles.menuModalItemText}>{opt.label}</Text>
+                              {preferredTimeRangeStart === opt.value && <Ionicons name="checkmark" size={20} color={theme.primary} />}
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    </TouchableOpacity>
+                  </Modal>
+                  <Modal visible={showTimeEndPicker} transparent animationType="slide">
+                    <TouchableOpacity style={styles.menuModalOverlay} activeOpacity={1} onPress={() => setShowTimeEndPicker(false)}>
+                      <View style={[styles.menuModalContent, { maxHeight: 320 }]} onStartShouldSetResponder={() => true}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" }}>
+                          <Text style={{ fontSize: 16, fontWeight: "700", color: "#1B2B34" }}>To (end)</Text>
+                          <TouchableOpacity onPress={() => setShowTimeEndPicker(false)}><Ionicons name="close" size={24} color="#6B7C85" /></TouchableOpacity>
+                        </View>
+                        <ScrollView style={{ maxHeight: 260 }}>
+                          {PREFERRED_TIME_OPTIONS.filter((o) => o.value).map((opt) => (
+                            <TouchableOpacity key={opt.value} style={[styles.menuModalItem, preferredTimeRangeEnd === opt.value && { backgroundColor: "#E0F2FE" }]} onPress={() => { setPreferredTimeRangeEnd(opt.value); setShowTimeEndPicker(false); }} activeOpacity={0.8}>
+                              <Text style={styles.menuModalItemText}>{opt.label}</Text>
+                              {preferredTimeRangeEnd === opt.value && <Ionicons name="checkmark" size={20} color={theme.primary} />}
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    </TouchableOpacity>
+                  </Modal>
+
                   <View style={styles.summaryCard}>
                     <View style={styles.summaryRow}>
-                      <Ionicons name="wallet-outline" size={24} color="#0EA5E9" style={styles.summaryIcon} />
+                      <Ionicons name="wallet-outline" size={24} color={theme.primary} style={styles.summaryIcon} />
                       <View style={styles.summaryContent}>
                         <Text style={styles.summaryLabel}>Total</Text>
                         <Text style={styles.summaryPrice}>₹{totalPrice}</Text>
@@ -538,6 +778,53 @@ const PlanSubscriptionScreen = () => {
           )}
         </View>
       </ScrollView>
+
+      <Modal visible={showMenuModal} transparent animationType="fade">
+        <TouchableOpacity
+          style={styles.menuModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMenuModal(false)}
+        >
+          <View style={styles.menuModalContent} onStartShouldSetResponder={() => true}>
+            <TouchableOpacity
+              style={styles.menuModalItem}
+              onPress={() => { setShowMenuModal(false); router.push("/profile"); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="person-outline" size={22} color="#1B2B34" />
+              <Text style={styles.menuModalItemText}>Profile</Text>
+              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuModalItem}
+              onPress={() => { setShowMenuModal(false); router.push("/order-history"); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="receipt-outline" size={22} color="#1B2B34" />
+              <Text style={styles.menuModalItemText}>Order History</Text>
+              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuModalItem}
+              onPress={() => { setShowMenuModal(false); router.push("/water-intake"); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="water-outline" size={22} color="#1B2B34" />
+              <Text style={styles.menuModalItemText}>Water Intake</Text>
+              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuModalItem}
+              onPress={() => { setShowMenuModal(false); router.push("/dashboard"); }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="home-outline" size={22} color="#1B2B34" />
+              <Text style={styles.menuModalItemText}>Dashboard</Text>
+              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -545,47 +832,169 @@ const PlanSubscriptionScreen = () => {
 export default PlanSubscriptionScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa" },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   scrollContent: { paddingBottom: 40 },
-  headerPanel: { marginHorizontal: -20, overflow: "hidden" },
-  headerGradient: { paddingTop: 14, paddingBottom: 20, paddingHorizontal: 28 },
-  headerNav: { flexDirection: "row", alignItems: "center", gap: 12 },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF", flex: 1 },
-  contentSection: { paddingHorizontal: 20, marginTop: -16, marginLeft: 11, marginRight: 11, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingBottom: 24 },
+  headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 200, overflow: "hidden" },
+  gradientBackground: { flex: 1, paddingTop: 24, paddingHorizontal: 36, paddingBottom: 36 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 0 },
+  headerMenuBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" },
+  headerCenter: { alignItems: "center", justifyContent: "center", marginTop: -14, width: "100%" },
+  headerIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center", marginBottom: 6 },
+  headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF", textAlign: "center", paddingBottom: 32 },
+  contentSection: {
+    marginTop: -16,
+    marginLeft: 2,
+    marginRight: 2,
+    backgroundColor: theme.screenBackground,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 8,
+  },
   sectionLabel: { fontSize: 15, fontWeight: "700", color: "#1B2B34", marginBottom: 10 },
+  activePlansCard: {
+    backgroundColor: "#f0f7fcd7",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  activePlansDropdown: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 4 },
+  activePlansDropdownText: { flex: 1, fontSize: 15, fontWeight: "600", color: "#1B2B34" },
+  activePlanItem: { borderTopWidth: 1, borderTopColor: "#E5E7EB", paddingVertical: 12, paddingHorizontal: 4 },
+  activePlanItemName: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
+  activePlanItemMeta: { fontSize: 13, color: "#6B7C85", marginTop: 4 },
   planTilesRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 },
-  planTile: { width: "48%", minWidth: 140, backgroundColor: "#f0f7fcd7", borderRadius: 16, padding: 16, elevation: 2 },
-  planTileSelected: { backgroundColor: "#E0F2FE", borderWidth: 2, borderColor: "#0EA5E9" },
-  planTileIconWrap: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center", marginBottom: 10 },
+  planTile: {
+    width: "48%",
+    minWidth: 140,
+    backgroundColor: "#f0f7fcd7",
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  planTileSelected: {
+    backgroundColor: theme.primary,
+    borderWidth: 2,
+    borderColor: theme.primary,
+  },
+  planTileIconWrap: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.selectedTint, justifyContent: "center", alignItems: "center", marginBottom: 10 },
+  planTileIconWrapDark: { backgroundColor: "rgba(255,255,255,0.25)" },
   planTileName: { fontSize: 14, fontWeight: "700", color: "#1B2B34" },
   planTileNameMuted: { color: "#6B7C85" },
-  comingSoonBadge: { fontSize: 11, color: "#0EA5E9", marginTop: 6, fontWeight: "600" },
-  comingSoonCard: { backgroundColor: "#f0f7fcd7", borderRadius: 20, padding: 32, alignItems: "center", marginBottom: 20 },
+  planTileNameWhite: { color: "#FFFFFF" },
+  comingSoonBadge: { fontSize: 11, color: theme.primary, marginTop: 6, fontWeight: "600" },
+  comingSoonBadgeWhite: { color: "rgba(255,255,255,0.9)" },
+  comingSoonCard: {
+    backgroundColor: "#f0f7fcd7",
+    borderRadius: 20,
+    padding: 32,
+    alignItems: "center",
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
   comingSoonTitle: { fontSize: 18, fontWeight: "700", color: "#1B2B34", marginTop: 12 },
   comingSoonText: { fontSize: 14, color: "#6B7C85", marginTop: 8, textAlign: "center" },
   loadingWrap: { padding: 40, alignItems: "center" },
   frequencyRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  freqChip: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 12, backgroundColor: "#f0f7fcd7" },
-  freqChipSelected: { backgroundColor: "#0EA5E9" },
+  freqChip: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    backgroundColor: "#f0f7fcd7",
+  },
+  freqChipSelected: {
+    backgroundColor: theme.primary,
+  },
   freqChipText: { fontSize: 14, fontWeight: "600", color: "#1B2B34" },
   freqChipTextSelected: { color: "#FFFFFF" },
-  productList: { marginBottom: 16 },
-  productRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 14, borderRadius: 12, backgroundColor: "#f0f7fcd7", marginBottom: 8 },
-  productRowSelected: { backgroundColor: "#E0F2FE", borderWidth: 2, borderColor: "#8ED1FC" },
-  productLabel: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
-  productPrice: { fontSize: 14, fontWeight: "600", color: "#0EA5E9" },
+  productGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginHorizontal: -6,
+    marginBottom: 16,
+  },
+  productCardWrapper: {
+    width: "33.33%",
+    paddingHorizontal: 6,
+    paddingTop: 6,
+    paddingBottom: 10,
+    minWidth: 0,
+  },
+  productCard: {
+    backgroundColor: "#f0f7fcd7",
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    minHeight: 120,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    flex: 1,
+  },
+  productCardSelected: {
+    backgroundColor: theme.primary,
+    borderWidth: 2,
+    borderColor: theme.primary,
+  },
+  productCardIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: theme.selectedTint,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  productCardIconWrapSelected: { backgroundColor: "rgba(255,255,255,0.25)" },
+  productCardLabel: { fontSize: 12, fontWeight: "600", color: "#1B2B34", textAlign: "center", marginBottom: 4 },
+  productCardLabelSelected: { color: "#FFFFFF" },
+  productCardPrice: { fontSize: 12, fontWeight: "700", color: theme.primary },
+  productCardPriceSelected: { color: "#FFFFFF" },
   quantityRow: { marginBottom: 16 },
   quantityControls: { flexDirection: "row", alignItems: "center", gap: 16 },
-  quantityBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center" },
+  quantityBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.selectedTint, justifyContent: "center", alignItems: "center" },
   quantityValue: { fontSize: 18, fontWeight: "700", color: "#1B2B34", minWidth: 32, textAlign: "center" },
   rangeToggles: { flexDirection: "row", gap: 8, marginBottom: 12 },
   rangeBtn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: "#f0f7fcd7" },
-  rangeBtnSelected: { backgroundColor: "#0EA5E9" },
+  rangeBtnSelected: { backgroundColor: theme.primary },
   rangeBtnText: { fontSize: 13, fontWeight: "600", color: "#1B2B34" },
   rangeBtnTextSelected: { color: "#FFFFFF" },
   clearSelectionBtn: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", marginBottom: 12, paddingVertical: 6, paddingHorizontal: 10, gap: 6 },
   clearSelectionText: { fontSize: 13, fontWeight: "600", color: "#6B7C85" },
-  calendarWrapper: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 16, marginBottom: 20, elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+  calendarWrapper: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
   calendarNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
   calendarNavBtn: { padding: 8 },
   calendarMonthLabel: { fontSize: 16, fontWeight: "700", color: "#1B2B34" },
@@ -594,26 +1003,51 @@ const styles = StyleSheet.create({
   calendarGrid: { flexDirection: "row", flexWrap: "wrap" },
   calendarDay: { width: "14.28%", aspectRatio: 1, justifyContent: "center", alignItems: "center", padding: 2 },
   calendarDayInner: { width: "78%", aspectRatio: 1, borderRadius: 999, justifyContent: "center", alignItems: "center", alignSelf: "center" },
-  calendarDayInnerSelected: { backgroundColor: "#0EA5E9" },
+  calendarDayInnerSelected: { backgroundColor: theme.primary },
   calendarDayInnerPast: { opacity: 0.35 },
   calendarDayText: { fontSize: 13, fontWeight: "600", color: "#1B2B34" },
   calendarDayTextSelected: { color: "#FFFFFF" },
   calendarDayTextPast: { color: "#9CA3AF" },
   hint: { fontSize: 13, color: "#6B7C85", marginBottom: 8 },
+  deliveryTimeInput: {
+    backgroundColor: "#f0f7fcd7",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: "#1B2B34",
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  noAddressBox: { backgroundColor: "#f0f7fcd7", borderRadius: 12, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: "#E5E7EB", alignItems: "center" },
+  noAddressText: { fontSize: 14, color: "#6B7C85", textAlign: "center", marginTop: 8 },
+  noAddressBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: theme.primary, borderRadius: 10 },
+  noAddressBtnText: { fontSize: 14, fontWeight: "600", color: "#FFF" },
   weeklySection: { marginBottom: 20 },
   weekdayChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
   weekdayChip: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: "#f0f7fcd7" },
-  weekdayChipSelected: { backgroundColor: "#0EA5E9" },
+  weekdayChipSelected: { backgroundColor: theme.primary },
   weekdayChipText: { fontSize: 13, fontWeight: "600", color: "#1B2B34" },
   weekdayChipTextSelected: { color: "#FFFFFF" },
   weeksStepper: { flexDirection: "row", alignItems: "center", gap: 16 },
   monthlySection: { marginBottom: 20 },
   monthlyDaysRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
   monthlyDayChip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: "#f0f7fcd7" },
-  monthlyDayChipSelected: { backgroundColor: "#0EA5E9" },
+  monthlyDayChipSelected: { backgroundColor: theme.primary },
   monthlyDayChipText: { fontSize: 14, fontWeight: "600", color: "#1B2B34" },
   monthlyDayChipTextSelected: { color: "#FFFFFF" },
-  summaryCard: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 18, marginBottom: 16, elevation: 2, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+  summaryCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 6,
+  },
   summaryRow: { flexDirection: "row", alignItems: "center" },
   summaryIcon: { marginRight: 12 },
   summaryContent: { flex: 1 },
@@ -621,8 +1055,12 @@ const styles = StyleSheet.create({
   summaryPrice: { fontSize: 22, fontWeight: "700", color: "#1B2B34" },
   summaryMeta: { fontSize: 12, color: "#6B7C85", marginTop: 4 },
   errorText: { fontSize: 14, color: "#EF4444", marginBottom: 12 },
-  subscribeBtn: { backgroundColor: "#0EA5E9", paddingVertical: 16, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  subscribeBtn: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center" },
   subscribeBtnDisabled: { backgroundColor: "#9CA3AF", opacity: 0.8 },
   subscribeBtnText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
   noProducts: { fontSize: 14, color: "#6B7C85", textAlign: "center", paddingVertical: 20 },
+  menuModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-start", paddingTop: 60, paddingRight: 20, alignItems: "flex-end" },
+  menuModalContent: { backgroundColor: "#FFFFFF", borderRadius: 16, paddingVertical: 8, minWidth: 220, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8 },
+  menuModalItem: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 18 },
+  menuModalItemText: { flex: 1, fontSize: 16, fontWeight: "600", color: "#1B2B34", marginLeft: 12 },
 });

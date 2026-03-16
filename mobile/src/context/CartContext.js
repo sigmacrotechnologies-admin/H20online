@@ -8,10 +8,15 @@ export function CartProvider({ children }) {
   const { isAuthenticated } = useAuth();
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [checkoutDetails, setCheckoutDetailsState] = useState(null);
+
+  const refreshOrders = () => {
+    if (!isAuthenticated) return;
+    api.orders.list().then((list) => setOrders(Array.isArray(list) ? list : [])).catch(() => {});
+  };
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    api.orders.list().then((list) => setOrders(list)).catch(() => {});
+    refreshOrders();
   }, [isAuthenticated]);
 
   const addToCart = (item, qty = 1) => {
@@ -38,18 +43,39 @@ export function CartProvider({ children }) {
 
   const clearCart = () => setCart([]);
 
+  /** Set cart to a single item for "Buy Now" flow, then navigate to checkout */
+  const setCartForBuyNow = (item, qty = 1) => {
+    setCart([{ ...item, qty }]);
+  };
+
   const cartCount = cart.reduce((sum, i) => sum + (i.qty || 1), 0);
   const cartTotal = cart.reduce((sum, i) => sum + (i.price || 0) * (i.qty || 1), 0);
 
-  const placeOrder = async (paymentMethod, address) => {
+  const setCheckoutDetails = (details) => setCheckoutDetailsState(details);
+  const getCheckoutDetails = () => checkoutDetails;
+
+  const placeOrder = async (paymentMethod, details) => {
     if (cart.length === 0) return null;
+    const address = (details && details.address) || "";
+    const receiverName = (details && details.receiverName) || null;
+    const receiverPhone = (details && details.receiverPhone) || null;
+    const scheduledAt = (details && details.scheduledAt) || null;
     if (isAuthenticated) {
       try {
-        const payload = { items: cart, total: cartTotal, paymentMethod: paymentMethod || "card", address: address || "" };
+        const payload = {
+          items: cart,
+          total: cartTotal,
+          paymentMethod: paymentMethod || "card",
+          address,
+          receiverName,
+          receiverPhone,
+          scheduledAt,
+        };
         const order = await api.orders.create(payload);
-        const list = await api.orders.list().catch(() => []);
-        setOrders(list.length > 0 ? list : (prev) => [order, ...prev]);
+        setOrders((prev) => [order, ...prev]);
         setCart([]);
+        setCheckoutDetailsState(null);
+        api.orders.list().then((list) => { if (Array.isArray(list) && list.length > 0) setOrders(list); }).catch(() => {});
         return order;
       } catch (err) {
         throw err;
@@ -66,20 +92,23 @@ export function CartProvider({ children }) {
     };
     setOrders((prev) => [order, ...prev]);
     setCart([]);
+    setCheckoutDetailsState(null);
     return order;
   };
 
   const getLatestOrder = () => orders[0] || null;
 
+  const matchOrderId = (o, id) => (o && id && (o.id === id || o._id === id || o.orderId === id));
+
   const cancelOrder = async (orderId) => {
     if (isAuthenticated) {
       try {
         await api.orders.cancel(orderId);
-        setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: "cancelled" } : o)));
+        setOrders((prev) => prev.map((o) => (matchOrderId(o, orderId) ? { ...o, status: "cancelled" } : o)));
       } catch (_) {}
       return;
     }
-    setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: "cancelled" } : o)));
+    setOrders((prev) => prev.map((o) => (matchOrderId(o, orderId) ? { ...o, status: "cancelled" } : o)));
   };
 
   return (
@@ -93,8 +122,12 @@ export function CartProvider({ children }) {
         removeFromCart,
         updateCartQty,
         clearCart,
+        setCartForBuyNow,
         placeOrder,
+        setCheckoutDetails,
+        getCheckoutDetails,
         getLatestOrder,
+        refreshOrders,
         cancelOrder,
       }}
     >

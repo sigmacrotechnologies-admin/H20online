@@ -2,6 +2,8 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "@/src/context/CartContext";
+import { getOrderId, getOrderIdShort } from "@/src/utils/orderId";
+import { theme } from "@/src/theme";
 
 export default function OrderDetailsModal({ visible, onClose, order }) {
   const { cancelOrder } = useCart();
@@ -9,9 +11,11 @@ export default function OrderDetailsModal({ visible, onClose, order }) {
   if (!order) return null;
 
   const statusLabel = order.status === "cancelled" ? "Cancelled" : order.status === "in_progress" ? "In progress" : "Delivered";
+  const orderIdDisplay = getOrderId(order);
+  const orderMongoId = order.id ?? order._id;
 
   const handleCancel = () => {
-    cancelOrder(order.id);
+    if (orderMongoId) cancelOrder(orderMongoId);
     onClose();
   };
 
@@ -27,7 +31,7 @@ export default function OrderDetailsModal({ visible, onClose, order }) {
             <View style={styles.statusBadge}>
               <Text style={styles.statusText}>{statusLabel}</Text>
             </View>
-            <Text style={styles.orderId}>Order #{order.id.slice(-8)}</Text>
+            <Text style={styles.orderId}>Order ID: {orderIdDisplay || getOrderIdShort(order)}</Text>
             <Text style={styles.date}>{new Date(order.date).toLocaleString()}</Text>
             <Text style={styles.sectionLabel}>Items</Text>
             {(order.items || []).map((item, idx) => (
@@ -46,7 +50,9 @@ export default function OrderDetailsModal({ visible, onClose, order }) {
                 {(order.supplierResponses || []).map((r, idx) => (
                   r.status === "accepted" && (
                     <View key={idx} style={styles.trackBlock}>
-                      <Text style={styles.trackLabel}>Accepted</Text>
+                      <Text style={styles.trackLabel}>
+                        {r.deliveryStage === "delivered" ? "Delivered" : r.deliveryStage === "picked_up" ? "Picked up" : "Accepted by supplier"}
+                      </Text>
                       {r.eta ? <Text style={styles.trackText}>ETA: {r.eta}</Text> : null}
                       {r.remarks ? <Text style={styles.trackText}>Remarks: {r.remarks}</Text> : null}
                       {r.deliveryPartnerName ? (
@@ -78,7 +84,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
   scroll: { maxHeight: 360 },
   statusBadge: { alignSelf: "flex-start", backgroundColor: "#E0F2FE", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, marginBottom: 10 },
-  statusText: { fontSize: 14, fontWeight: "600", color: "#0EA5E9" },
+  statusText: { fontSize: 14, fontWeight: "600", color: theme.primary },
   orderId: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
   date: { fontSize: 13, color: "#6B7C85", marginTop: 4, marginBottom: 16 },
   sectionLabel: { fontSize: 14, fontWeight: "600", color: "#6B7C85", marginBottom: 8 },
@@ -87,7 +93,7 @@ const styles = StyleSheet.create({
   itemQty: { fontSize: 14, color: "#6B7C85" },
   totalRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#E5E7EB" },
   totalLabel: { fontSize: 16, fontWeight: "700", color: "#1B2B34" },
-  totalValue: { fontSize: 16, fontWeight: "700", color: "#0EA5E9" },
+  totalValue: { fontSize: 16, fontWeight: "700", color: theme.primary },
   trackBlock: { backgroundColor: "#f0f7fc", borderRadius: 12, padding: 12, marginBottom: 12 },
   trackLabel: { fontSize: 14, fontWeight: "700", color: "#059669", marginBottom: 4 },
   trackText: { fontSize: 14, color: "#1B2B34", marginTop: 2 },
