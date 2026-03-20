@@ -31,6 +31,7 @@ const waterIntakeRoutes = require("./routes/waterIntake");
 const plansRoutes = require("./routes/plans");
 const subscriptionsRoutes = require("./routes/subscriptions");
 const addressesRoutes = require("./routes/addresses");
+const reviewsRoutes = require("./routes/reviews");
 
 const app = express();
 app.use(cors());
@@ -64,6 +65,7 @@ app.use("/api/delivery-support", deliverySupportRoutes);
 app.use("/api/supplier-support", supplierSupportRoutes);
 app.use("/api/products", productsRoutes);
 app.use("/api/orders", ordersRoutes);
+app.use("/api/reviews", reviewsRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/water-intake", waterIntakeRoutes);
 app.use("/api/plans", plansRoutes);

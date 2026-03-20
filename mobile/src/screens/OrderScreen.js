@@ -9,6 +9,7 @@ import {
   TextInput,
   Modal,
   FlatList,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,6 +17,7 @@ import { useCart } from "@/src/context/CartContext";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
 import { theme } from "@/src/theme";
+import ProductRatingsModal from "@/src/components/ProductRatingsModal";
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -74,6 +76,9 @@ const OrderScreen = () => {
   const [useCaseSelected, setUseCaseSelected] = useState([]);
   const [sizeSliderMin, setSizeSliderMin] = useState(1);
   const [sizeSliderMax, setSizeSliderMax] = useState(500);
+
+  const [ratingsModalProduct, setRatingsModalProduct] = useState(null);
+  const [showRatingsModal, setShowRatingsModal] = useState(false);
 
   const toggleCompare = (id) => {
     setProducts((prev) => {
@@ -147,6 +152,9 @@ const OrderScreen = () => {
     setCartForBuyNow(item, 1);
     router.push("/checkout");
   };
+
+  // Use one default image for all product cards.
+  const defaultProductIcon = require("../../assets/images/Product-icon/Water-Camper.png");
 
   return (
     <SafeAreaView style={styles.container}>
@@ -241,11 +249,21 @@ const OrderScreen = () => {
                 <Text style={styles.supplierName}>{item.supplierName}</Text>
               </View>
               <View style={styles.cardIconWrap}>
-                <Ionicons name={item.badge === "premium" ? "sparkles" : "water"} size={28} color={theme.primary} />
+                <Image source={defaultProductIcon} style={styles.productIconImage} resizeMode="contain" />
               </View>
             </View>
             <View style={styles.cardMeta}>
               <Text style={styles.ratingText}><Ionicons name="star" size={14} color="#EAB308" /> {item.rating} ({item.reviewCount} Reviews)</Text>
+              <TouchableOpacity
+                style={styles.viewRatingsLink}
+                onPress={() => {
+                  setRatingsModalProduct(item);
+                  setShowRatingsModal(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.viewRatingsText}>View ratings</Text>
+              </TouchableOpacity>
             </View>
             <Text style={styles.priceText}>₹{item.price} / {item.priceUnit}</Text>
             <View style={styles.deliveryRow}>
@@ -303,7 +321,9 @@ const OrderScreen = () => {
               <View style={styles.compareCardsRow}>
                 {comparedSuppliers.map((p) => (
                   <View key={p.id} style={styles.compareCard}>
-                    <View style={styles.compareCardIcon}><Ionicons name="water" size={28} color={theme.primary} /></View>
+                    <View style={styles.compareCardIcon}>
+                      <Image source={defaultProductIcon} style={styles.compareCardIconImage} resizeMode="contain" />
+                    </View>
                     <Text style={styles.compareCardName} numberOfLines={2}>{p.supplierName}</Text>
                     <Text style={styles.compareCardProduct} numberOfLines={2}>{p.productName}</Text>
                   </View>
@@ -458,6 +478,15 @@ const OrderScreen = () => {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <ProductRatingsModal
+        visible={showRatingsModal}
+        onClose={() => {
+          setShowRatingsModal(false);
+          setRatingsModalProduct(null);
+        }}
+        product={ratingsModalProduct}
+      />
     </SafeAreaView>
   );
 };
@@ -579,8 +608,11 @@ const styles = StyleSheet.create({
   productName: { fontSize: 16, fontWeight: "700", color: "#1B2B34", marginBottom: 4 },
   supplierName: { fontSize: 13, color: "#6B7C85" },
   cardIconWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center" },
+  productIconImage: { width: 26, height: 26 },
   cardMeta: { marginTop: 10 },
   ratingText: { fontSize: 13, color: "#1B2B34" },
+  viewRatingsLink: { marginTop: 4 },
+  viewRatingsText: { fontSize: 12, fontWeight: "700", color: theme.primary },
   priceText: { fontSize: 15, fontWeight: "700", color: "#1B2B34", marginTop: 8 },
   deliveryRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
   deliveryText: { fontSize: 13, color: "#6B7C85" },
@@ -634,6 +666,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   compareCardIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center", marginBottom: 10 },
+  compareCardIconImage: { width: 28, height: 28 },
   compareCardName: { fontSize: 14, fontWeight: "700", color: "#1B2B34", textAlign: "center" },
   compareCardProduct: { fontSize: 12, color: "#6B7C85", marginTop: 4, textAlign: "center" },
   compareCardPlaceholder: { fontSize: 13, color: "#6B7C85", textAlign: "center" },

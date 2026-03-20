@@ -244,6 +244,14 @@ const LoginScreen = () => {
           )}
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.forgotPasswordLink}
+          onPress={() => router.push("/forgot-password")}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+        </TouchableOpacity>
+
         <View style={styles.socialSection}>
           <Text style={styles.socialLabel}>Or continue with</Text>
           <View style={styles.socialRow}>
@@ -347,6 +355,8 @@ const styles = StyleSheet.create({
   socialRow: { flexDirection: "row", justifyContent: "center", gap: 16 },
   socialButton: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(255,255,255,0.85)", paddingVertical: 12, paddingHorizontal: 20, borderRadius: 24, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", elevation: 2 },
   socialButtonText: { fontSize: 15, fontWeight: "600", color: theme.textPrimary },
+  forgotPasswordLink: { marginTop: 8, alignItems: "center" },
+  forgotPasswordText: { fontSize: 13, fontWeight: "600", color: theme.link, textDecorationLine: "underline" },
   signUpLink: { alignItems: "center", paddingVertical: 12 },
   signUpLinkText: { fontSize: 14, fontWeight: "600", color: theme.link },
 });

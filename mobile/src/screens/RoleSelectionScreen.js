@@ -213,14 +213,14 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    width: "44%",
+    // Keep 2 columns even on smaller phones by sizing relative to available width
+    // (ScrollView already applies `paddingHorizontal: 20`, so two ~48% cards fit).
+    width: "48%",
     backgroundColor: "rgba(255,255,255,0.75)",
     borderRadius: 20,
     paddingVertical: 20,
     paddingHorizontal: 18,
     marginBottom: 16,
-    marginLeft: 11,
-    marginRight: 11,
     alignItems: "center",
     elevation: 2,
   },

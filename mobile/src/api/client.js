@@ -101,6 +101,11 @@ export const api = {
     create: (body) => request("/api/orders", { method: "POST", body: JSON.stringify(body) }),
     cancel: (id) => request("/api/orders/" + id + "/cancel", { method: "PATCH" }),
   },
+  reviews: {
+    submit: (body) => request("/api/reviews", { method: "POST", body: JSON.stringify(body) }),
+    listForProduct: (productId) => request("/api/reviews/product/" + productId),
+    getMyOrderReviews: (orderId) => request("/api/reviews/me/order/" + orderId),
+  },
   wallet: {
     get: () => request("/api/wallet"),
     credit: (amount) => request("/api/wallet/credit", { method: "POST", body: JSON.stringify({ amount }) }),
