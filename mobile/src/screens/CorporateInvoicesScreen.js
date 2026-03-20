@@ -3,7 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView } fr
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import BackButton from "@/src/components/BackButton";
+import BackButton, { backButtonContainerStyle } from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 
 const SAMPLE_INVOICES = [
   { id: "1", name: "June Invoice.pdf", date: "Jun 30, 2025", amount: "₹24,500" },
@@ -22,12 +23,12 @@ const CorporateInvoicesScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerSection}>
           <LinearGradient
-            colors={["#7DD3FC", "#38BDF8", "#0EA5E9", "#06B6D4"]}
+            colors={theme.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.gradientBackground}
           >
-            <View style={styles.headerOverlay}>
+            <View style={[styles.headerOverlay, backButtonContainerStyle]}>
               <BackButton onPress={() => router.back()} />
               <Text style={styles.headerTitle}>All Invoices</Text>
             </View>
@@ -39,7 +40,7 @@ const CorporateInvoicesScreen = () => {
           {SAMPLE_INVOICES.map((inv) => (
             <TouchableOpacity key={inv.id} style={styles.invoiceCard} activeOpacity={0.8}>
               <View style={styles.invoiceLeft}>
-                <Ionicons name="document-text" size={28} color="#1EA7FD" />
+                <Ionicons name="document-text" size={28} color={theme.primary} />
                 <View style={styles.invoiceInfo}>
                   <Text style={styles.invoiceName}>{inv.name}</Text>
                   <Text style={styles.invoiceDate}>{inv.date}</Text>
@@ -60,13 +61,13 @@ const CorporateInvoicesScreen = () => {
 export default CorporateInvoicesScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   scrollContent: { paddingBottom: 40 },
   headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 100, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 50, paddingHorizontal: 20 },
-  headerOverlay: { flexDirection: "row", alignItems: "center" },
+  gradientBackground: { flex: 1, paddingTop: 14, paddingHorizontal: 20 },
+  headerOverlay: { flexDirection: "row", alignItems: "center", right: 20 },
   headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF", marginLeft: 12 },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20 },
+  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20 },
   subtitle: { fontSize: 14, color: "#6B7C85", marginBottom: 20 },
   invoiceCard: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "rgba(255,255,255,0.85)", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", elevation: 2 },
   invoiceLeft: { flexDirection: "row", alignItems: "center", flex: 1 },

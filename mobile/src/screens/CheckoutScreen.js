@@ -10,16 +10,17 @@ import {
   Switch,
   Modal,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 import { useCart } from "@/src/context/CartContext";
 import { useWallet } from "@/src/context/WalletContext";
 import WalletModal from "@/src/components/WalletModal";
 
 const CheckoutScreen = () => {
   const router = useRouter();
-  const { cart, cartCount, cartTotal } = useCart();
+  const { cart, cartCount, cartTotal, setCheckoutDetails } = useCart();
   const { balance } = useWallet();
   const [fullAddress, setFullAddress] = useState("");
   const [receiverPhone, setReceiverPhone] = useState("");
@@ -34,9 +35,11 @@ const CheckoutScreen = () => {
   const [showWallet, setShowWallet] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
 
-  useEffect(() => {
-    if (cart.length === 0) router.replace("/cart");
-  }, [cart.length]);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (cart.length === 0) router.replace("/cart");
+    }, [cart.length])
+  );
 
   const applyCoupon = () => {};
 
@@ -57,7 +60,7 @@ const CheckoutScreen = () => {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <TouchableOpacity style={styles.cartSummary} onPress={() => router.push("/cart")} activeOpacity={0.8}>
-          <Ionicons name="cart-outline" size={20} color="#0EA5E9" />
+          <Ionicons name="cart-outline" size={20} color={theme.primary} />
           <Text style={styles.cartSummaryText}>{cart.length} item{cart.length !== 1 ? "s" : ""} · ₹{cartTotal}</Text>
           <Ionicons name="chevron-forward" size={20} color="#6B7C85" />
         </TouchableOpacity>
@@ -89,7 +92,7 @@ const CheckoutScreen = () => {
 
         <View style={styles.toggleRow}>
           <Text style={styles.toggleLabel}>Ordering for someone else</Text>
-          <Switch value={orderForSomeoneElse} onValueChange={setOrderForSomeoneElse} trackColor={{ false: "#E5E7EB", true: "#0EA5E9" }} thumbColor="#FFFFFF" />
+          <Switch value={orderForSomeoneElse} onValueChange={setOrderForSomeoneElse} trackColor={{ false: "#E5E7EB", true: theme.primary }} thumbColor="#FFFFFF" />
         </View>
 
         {orderForSomeoneElse && (
@@ -117,7 +120,7 @@ const CheckoutScreen = () => {
 
         {!instantDelivery && (
           <TouchableOpacity style={styles.scheduleBtn} onPress={() => setShowScheduleModal(true)} activeOpacity={0.8}>
-            <Ionicons name="time-outline" size={20} color="#0EA5E9" />
+            <Ionicons name="time-outline" size={20} color={theme.primary} />
             <Text style={styles.scheduleBtnText}>{scheduledDate && scheduledTime ? `${scheduledDate} ${scheduledTime}` : "Select date & time"}</Text>
             <Ionicons name="chevron-forward" size={20} color="#6B7C85" />
           </TouchableOpacity>
@@ -132,7 +135,7 @@ const CheckoutScreen = () => {
 
         <TouchableOpacity style={styles.walletCard} onPress={() => setShowWallet(true)} activeOpacity={0.8}>
           <View style={styles.walletRow}>
-            <Ionicons name="wallet-outline" size={24} color="#0EA5E9" />
+            <Ionicons name="wallet-outline" size={24} color={theme.primary} />
             <Text style={styles.walletLabel}>Wallet balance</Text>
           </View>
           <Text style={styles.walletBalance}>₹{balance}</Text>
@@ -141,7 +144,19 @@ const CheckoutScreen = () => {
       </ScrollView>
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.payBtn} onPress={() => router.push("/payment")} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={styles.payBtn}
+          onPress={() => {
+            setCheckoutDetails({
+              address: fullAddress,
+              receiverName: orderForSomeoneElse ? receiverName : null,
+              receiverPhone: orderForSomeoneElse ? receiverPhoneOther : receiverPhone,
+              scheduledAt: !instantDelivery && scheduledDate && scheduledTime ? new Date(`${scheduledDate} ${scheduledTime}`).toISOString() : null,
+            });
+            router.push("/payment");
+          }}
+          activeOpacity={0.8}
+        >
           <Text style={styles.payBtnText}>Proceed to payment</Text>
         </TouchableOpacity>
       </View>
@@ -172,12 +187,12 @@ const CheckoutScreen = () => {
 export default CheckoutScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa" },
+  container: { flex: 1, backgroundColor: theme.screenBackground },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12 },
   headerBackBtn: { backgroundColor: "#f0f7fcd7", marginRight: 12 },
   headerTitle: { flex: 1, fontSize: 22, fontWeight: "700", color: "#1B2B34" },
   cartIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#f0f7fcd7", justifyContent: "center", alignItems: "center", position: "relative" },
-  cartBadge: { position: "absolute", top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: "#0EA5E9", justifyContent: "center", alignItems: "center", paddingHorizontal: 4 },
+  cartBadge: { position: "absolute", top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: theme.primary, justifyContent: "center", alignItems: "center", paddingHorizontal: 4 },
   cartBadgeText: { fontSize: 11, fontWeight: "700", color: "#FFFFFF" },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 100, marginLeft: 11, marginRight: 11 },
   cartSummary: { flexDirection: "row", alignItems: "center", backgroundColor: "#f0f7fcd7", padding: 14, borderRadius: 14, marginBottom: 16, gap: 10 },
@@ -191,27 +206,27 @@ const styles = StyleSheet.create({
   toggleLabel: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
   deliveryRow: { flexDirection: "row", gap: 12, marginBottom: 12 },
   deliveryOption: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#f0f7fcd7", paddingVertical: 14, borderRadius: 14 },
-  deliveryOptionActive: { backgroundColor: "#0EA5E9" },
+  deliveryOptionActive: { backgroundColor: theme.primary },
   deliveryOptionText: { fontSize: 14, fontWeight: "600", color: "#1B2B34" },
   deliveryOptionTextActive: { color: "#FFFFFF" },
   scheduleBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "#f0f7fcd7", padding: 16, borderRadius: 14, marginBottom: 16, gap: 10 },
   scheduleBtnText: { flex: 1, fontSize: 15, color: "#1B2B34" },
   couponRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
   couponInput: { flex: 1, backgroundColor: "#f0f7fcd7", borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: "#1B2B34" },
-  couponApplyBtn: { backgroundColor: "#0EA5E9", paddingVertical: 14, paddingHorizontal: 20, borderRadius: 14, justifyContent: "center" },
+  couponApplyBtn: { backgroundColor: theme.primary, paddingVertical: 14, paddingHorizontal: 20, borderRadius: 14, justifyContent: "center" },
   couponApplyText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
   walletCard: { backgroundColor: "#f0f7fcd7", borderRadius: 20, padding: 20, marginBottom: 16 },
   walletRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
   walletLabel: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
-  walletBalance: { fontSize: 22, fontWeight: "800", color: "#0EA5E9" },
+  walletBalance: { fontSize: 22, fontWeight: "800", color: theme.primary },
   walletTap: { fontSize: 12, color: "#6B7C85", marginTop: 4 },
-  footer: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 28, backgroundColor: "#c6e2fa", marginLeft: 11, marginRight: 11 },
-  payBtn: { backgroundColor: "#0EA5E9", paddingVertical: 16, borderRadius: 20, alignItems: "center" },
+  footer: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 28, backgroundColor: theme.screenBackground, marginLeft: 11, marginRight: 11 },
+  payBtn: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 20, alignItems: "center" },
   payBtnText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  scheduleModalContent: { backgroundColor: "#c6e2fa", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  scheduleModalContent: { backgroundColor: theme.screenBackground, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   scheduleModalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
   scheduleModalTitle: { fontSize: 18, fontWeight: "700", color: "#1B2B34" },
-  scheduleConfirmBtn: { backgroundColor: "#0EA5E9", paddingVertical: 14, borderRadius: 14, alignItems: "center", marginTop: 16 },
+  scheduleConfirmBtn: { backgroundColor: theme.primary, paddingVertical: 14, borderRadius: 14, alignItems: "center", marginTop: 16 },
   scheduleConfirmText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
 });

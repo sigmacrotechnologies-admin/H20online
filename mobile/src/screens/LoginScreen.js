@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 
 const LOGIN_ROLES = [
   { id: 1, title: "Customer", icon: "person-outline" },
@@ -40,6 +41,7 @@ const LoginScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const roleFromParams = (params?.role && typeof params.role === "string") ? params.role : null;
+  const roleForLookup = roleFromParams === "Partner" ? "Delivery partner" : roleFromParams;
   const { login, logout } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,7 +50,7 @@ const LoginScreen = () => {
   const [error, setError] = useState("");
 
   const initialRole =
-    (roleFromParams && LOGIN_ROLES.find((r) => r.title === roleFromParams)) || LOGIN_ROLES[0];
+    (roleForLookup && LOGIN_ROLES.find((r) => r.title === roleForLookup)) || LOGIN_ROLES[0];
   const [selectedRole, setSelectedRole] = useState(initialRole);
 
   const handleLogin = async () => {
@@ -128,19 +130,19 @@ const LoginScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerSection}>
         <LinearGradient
-          colors={["#7DD3FC", "#38BDF8", "#0EA5E9", "#06B6D4"]}
+          colors={theme.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientBackground}
         >
           <View style={styles.headerTopRow}>
-            <BackButton onPress={() => router.back()} />
+            <BackButton onPress={() => router.replace("/")} />
           </View>
           <View style={styles.headerCenter}>
             <View style={styles.headerIconCircle}>
               <Ionicons name="log-in-outline" size={36} color="#FFFFFF" />
             </View>
-            <Text style={styles.headerTitle}>Sign in with Email</Text>
+            <Text style={styles.headerTitle}>Login</Text>
           </View>
         </LinearGradient>
       </View>
@@ -166,7 +168,7 @@ const LoginScreen = () => {
                   <Ionicons
                     name={role.icon}
                     size={24}
-                    color={isSelected ? "#0EA5E9" : "#6B7C85"}
+                    color={isSelected ? theme.primary : theme.textMuted}
                   />
                 </View>
                 <Text style={[styles.roleTileText, isSelected && styles.roleTileTextSelected]} numberOfLines={1}>
@@ -242,6 +244,14 @@ const LoginScreen = () => {
           )}
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.forgotPasswordLink}
+          onPress={() => router.push("/forgot-password")}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+        </TouchableOpacity>
+
         <View style={styles.socialSection}>
           <Text style={styles.socialLabel}>Or continue with</Text>
           <View style={styles.socialRow}>
@@ -258,7 +268,11 @@ const LoginScreen = () => {
 
         <TouchableOpacity
           style={styles.signUpLink}
-          onPress={() => router.replace(selectedRole.title === "Supplier" ? "/supplier-onboarding" : "/create-profile")}
+          onPress={() => {
+            if (selectedRole.title === "Supplier") router.replace("/supplier-onboarding");
+            else if (selectedRole.title === "Delivery partner") router.replace("/delivery-onboarding");
+            else router.replace("/create-profile");
+          }}
           activeOpacity={0.8}
         >
           <Text style={styles.signUpLinkText}>{"Don't have an account? Sign up"}</Text>
@@ -271,11 +285,11 @@ const LoginScreen = () => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
-  headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 168, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 36, paddingHorizontal: 20, paddingBottom: 16 },
-  headerTopRow: { flexDirection: "row", alignItems: "center", marginBottom: 2 },
-  headerCenter: { alignItems: "center", justifyContent: "center", marginTop: -50 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
+  headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 188, overflow: "hidden" },
+  gradientBackground: { flex: 1, paddingTop: 24, paddingHorizontal: 36, paddingBottom: 32 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", marginBottom: 0 },
+  headerCenter: { alignItems: "center", justifyContent: "center", marginTop: -14, width: "100%" },
   headerIconCircle: {
     width: 72,
     height: 72,
@@ -283,11 +297,11 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.25)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF", textAlign: "center", paddingBottom:20 },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20 },
-  roleLabel: { fontSize: 14, fontWeight: "600", color: "#1B2B34", marginBottom: 10 },
+  headerTitle: { fontSize: 20, fontWeight: "700", color: theme.white, textAlign: "center", paddingBottom: 28 },
+  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20 },
+  roleLabel: { fontSize: 14, fontWeight: "600", color: theme.textPrimary, marginBottom: 10 },
   roleTilesContainer: { marginHorizontal: -4, marginBottom: 4 },
   roleTilesScroll: { paddingHorizontal: 4, paddingVertical: 4, flexDirection: "row" },
   roleTile: {
@@ -303,8 +317,8 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   roleTileSelected: {
-    backgroundColor: "#E0F2FE",
-    borderColor: "#8ED1FC",
+    backgroundColor: "rgba(194,238,240,0.9)",
+    borderColor: theme.primaryLight,
   },
   roleTileIconWrap: {
     width: 44,
@@ -316,31 +330,33 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   roleTileIconWrapSelected: {
-    backgroundColor: "#BAE6FD",
+    backgroundColor: "rgba(51,175,193,0.3)",
   },
-  roleTileText: { fontSize: 11, fontWeight: "600", color: "#6B7C85", textAlign: "center" },
-  roleTileTextSelected: { color: "#0EA5E9" },
-  subtitle: { fontSize: 14, color: "#6B7C85", marginBottom: 24, marginTop: 4 },
+  roleTileText: { fontSize: 11, fontWeight: "600", color: theme.textMuted, textAlign: "center" },
+  roleTileTextSelected: { color: theme.primary },
+  subtitle: { fontSize: 14, color: theme.textMuted, marginBottom: 24, marginTop: 4 },
   inputSection: { marginBottom: 20 },
-  label: { fontSize: 15, fontWeight: "600", color: "#1B2B34", marginBottom: 10 },
+  label: { fontSize: 15, fontWeight: "600", color: theme.textPrimary, marginBottom: 10 },
   inputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.7)", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.8)", elevation: 3 },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: "#1B2B34", padding: 0 },
+  input: { flex: 1, fontSize: 16, color: theme.textPrimary, padding: 0 },
   termsRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 20 },
-  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: "#8ED1FC", marginRight: 12, justifyContent: "center", alignItems: "center" },
-  checkboxChecked: { backgroundColor: "#1EA7FD", borderColor: "#1EA7FD" },
-  termsText: { flex: 1, fontSize: 14, color: "#6B7C85" },
-  termsLink: { color: "#1EA7FD", fontWeight: "600" },
+  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: theme.primaryLight, marginRight: 12, justifyContent: "center", alignItems: "center" },
+  checkboxChecked: { backgroundColor: theme.primary, borderColor: theme.primary },
+  termsText: { flex: 1, fontSize: 14, color: theme.textMuted },
+  termsLink: { color: theme.link, fontWeight: "600" },
   errorText: { fontSize: 14, color: "#DC2626", marginBottom: 12, fontWeight: "500" },
-  loginButton: { backgroundColor: "#1EA7FD", paddingVertical: 16, borderRadius: 30, alignItems: "center", elevation: 3 },
+  loginButton: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 30, alignItems: "center", elevation: 3 },
   loginButtonDisabled: { backgroundColor: "#EEF3F7", elevation: 1 },
-  loginButtonText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
+  loginButtonText: { fontSize: 16, fontWeight: "600", color: theme.white },
   loginButtonTextDisabled: { fontSize: 16, fontWeight: "600", color: "#8A9AA3" },
   socialSection: { marginTop: 24, marginBottom: 20 },
-  socialLabel: { fontSize: 13, color: "#6B7C85", textAlign: "center", marginBottom: 12 },
+  socialLabel: { fontSize: 13, color: theme.textMuted, textAlign: "center", marginBottom: 12 },
   socialRow: { flexDirection: "row", justifyContent: "center", gap: 16 },
   socialButton: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(255,255,255,0.85)", paddingVertical: 12, paddingHorizontal: 20, borderRadius: 24, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", elevation: 2 },
-  socialButtonText: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
+  socialButtonText: { fontSize: 15, fontWeight: "600", color: theme.textPrimary },
+  forgotPasswordLink: { marginTop: 8, alignItems: "center" },
+  forgotPasswordText: { fontSize: 13, fontWeight: "600", color: theme.link, textDecorationLine: "underline" },
   signUpLink: { alignItems: "center", paddingVertical: 12 },
-  signUpLinkText: { fontSize: 14, fontWeight: "600", color: "#1EA7FD" },
+  signUpLinkText: { fontSize: 14, fontWeight: "600", color: theme.link },
 });

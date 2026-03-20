@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 
 const TILES = [
   { key: "incoming", title: "Incoming orders", subtitle: "Accept & set ETA", icon: "cart-outline", route: "supplier-incoming-orders", badge: true },
@@ -83,7 +84,7 @@ const SupplierDashboardScreen = () => {
                   activeOpacity={0.8}
                 >
                   <View style={styles.tileIconWrap}>
-                    <Ionicons name={tile.icon} size={32} color="#1EA7FD" />
+                    <Ionicons name={tile.icon} size={32} color={theme.primary} />
                     {count != null && count > 0 && (
                       <View style={styles.badge}>
                         <Text style={styles.badgeText}>{count > 99 ? "99+" : count}</Text>
@@ -187,15 +188,15 @@ function SupplierAddProductView({ onClose, onAdded }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   scrollContent: { paddingBottom: 30 },
   headerPanel: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 140, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 50, paddingHorizontal: 20 },
+  gradientBackground: { flex: 1, paddingTop: 14, paddingBottom: 16, paddingHorizontal: 20 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF" },
   welcomeText: { fontSize: 14, color: "rgba(255,255,255,0.95)", marginTop: 2 },
-  contentPanel: { marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20 },
+  contentPanel: { marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20 },
   tileGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
   tile: {
     width: "48%",
@@ -225,11 +226,11 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.9)",
   },
   checkRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
-  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: "#8ED1FC", marginRight: 10, justifyContent: "center", alignItems: "center" },
-  checkboxChecked: { backgroundColor: "#1EA7FD", borderColor: "#1EA7FD" },
+  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: theme.primaryLight, marginRight: 10, justifyContent: "center", alignItems: "center" },
+  checkboxChecked: { backgroundColor: theme.primary, borderColor: theme.primary },
   checkLabel: { fontSize: 15, color: "#1B2B34" },
   errorText: { fontSize: 14, color: "#DC2626", marginBottom: 12 },
-  submitButton: { backgroundColor: "#1EA7FD", paddingVertical: 16, borderRadius: 30, alignItems: "center", marginTop: 8, marginBottom: 24 },
+  submitButton: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 30, alignItems: "center", marginTop: 8, marginBottom: 24 },
   submitButtonDisabled: { opacity: 0.7 },
   submitButtonText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
 });

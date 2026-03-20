@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import Svg, { Path, Defs, ClipPath, G } from "react-native-svg";
+import { theme } from "@/src/theme";
 import Animated, {
   useSharedValue,
   useAnimatedProps,
@@ -74,13 +75,13 @@ export default function WaterDroplet({ percentage = 50, volumeText = "", goalTex
         {/* Light blue droplet outline / empty fill */}
         <Path
           d={getDropletPath()}
-          fill="#A5D6FA"
-          stroke="#93C5FD"
+          fill={theme.primaryLight}
+          stroke={theme.medium}
           strokeWidth={1.5}
         />
         {/* Water fill with wavy top - clipped by droplet */}
         <G clipPath="url(#dropletClip)">
-          <AnimatedPath fill="#0EA5E9" animatedProps={animatedWaterProps} />
+          <AnimatedPath fill={theme.primary} animatedProps={animatedWaterProps} />
         </G>
       </Svg>
       <View style={styles.textOverlay} pointerEvents="none">
@@ -98,9 +99,11 @@ const styles = StyleSheet.create({
     height: DROPLET_HEIGHT,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "visible",
   },
   svg: {
     position: "absolute",
+    overflow: "visible",
   },
   textOverlay: {
     alignItems: "center",

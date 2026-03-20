@@ -6,7 +6,14 @@ const router = express.Router();
 router.use(auth);
 
 router.get("/me", async (req, res) => {
-  res.json(req.user);
+  let user = await User.findById(req.user._id).select("-password").lean();
+  if (!user) return res.status(401).json({ error: "User not found" });
+  if (!user.userCode) {
+    const code = await User.generateUniqueUserCode(user.role || "customer");
+    await User.updateOne({ _id: user._id }, { $set: { userCode: code } });
+    user = { ...user, userCode: code };
+  }
+  res.json({ ...user, id: user._id.toString(), _id: user._id.toString() });
 });
 
 router.put("/me", async (req, res) => {

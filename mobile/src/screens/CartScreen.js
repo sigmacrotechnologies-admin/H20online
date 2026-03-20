@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "@/src/context/CartContext";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 
 const CartScreen = () => {
   const router = useRouter();
@@ -75,21 +76,21 @@ const CartScreen = () => {
 export default CartScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa" },
+  container: { flex: 1, backgroundColor: theme.screenBackground },
   header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12 },
   headerBackBtn: { backgroundColor: "#f0f7fcd7", marginRight: 12 },
   headerTitle: { fontSize: 22, fontWeight: "700", color: "#1B2B34" },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 100, marginLeft: 11, marginRight: 11 },
   emptyWrap: { flex: 1, justifyContent: "center", alignItems: "center", padding: 40 },
   emptyText: { fontSize: 16, color: "#6B7C85", marginTop: 16 },
-  shopBtn: { marginTop: 20, backgroundColor: "#0EA5E9", paddingVertical: 14, paddingHorizontal: 24, borderRadius: 14 },
+  shopBtn: { marginTop: 20, backgroundColor: theme.primary, paddingVertical: 14, paddingHorizontal: 24, borderRadius: 14 },
   shopBtnText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
   card: { backgroundColor: "#f0f7fcd7", borderRadius: 20, padding: 18, marginBottom: 16, elevation: 2 },
   cardRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   itemInfo: { flex: 1 },
   itemName: { fontSize: 16, fontWeight: "700", color: "#1B2B34", marginBottom: 4 },
   itemSupplier: { fontSize: 13, color: "#6B7C85", marginBottom: 8 },
-  itemPrice: { fontSize: 14, fontWeight: "600", color: "#0EA5E9" },
+  itemPrice: { fontSize: 14, fontWeight: "600", color: theme.primary },
   qtyRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   qtyBtn: { width: 32, height: 32, borderRadius: 8, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center" },
   qtyBtnText: { fontSize: 18, fontWeight: "600", color: "#1B2B34" },
@@ -98,8 +99,8 @@ const styles = StyleSheet.create({
   removeText: { fontSize: 14, color: "#EF4444", fontWeight: "600" },
   totalCard: { backgroundColor: "#f0f7fcd7", borderRadius: 20, padding: 20, marginTop: 8, flexDirection: "row", justifyContent: "space-between", alignItems: "center", elevation: 2 },
   totalLabel: { fontSize: 18, fontWeight: "700", color: "#1B2B34" },
-  totalValue: { fontSize: 22, fontWeight: "800", color: "#0EA5E9" },
-  footer: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 28, backgroundColor: "#c6e2fa", marginLeft: 11, marginRight: 11 },
-  checkoutBtn: { backgroundColor: "#0EA5E9", paddingVertical: 16, borderRadius: 20, alignItems: "center" },
+  totalValue: { fontSize: 22, fontWeight: "800", color: theme.primary },
+  footer: { position: "absolute", bottom: 0, left: 0, right: 0, padding: 20, paddingBottom: 28, backgroundColor: theme.screenBackground, marginLeft: 11, marginRight: 11 },
+  checkoutBtn: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 20, alignItems: "center" },
   checkoutBtnText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
 });

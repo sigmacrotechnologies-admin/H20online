@@ -13,6 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 
 const DEPT_TABS = ["Sales", "Tech", "HR", "Ops", "Mktg"];
 const BULK_SCHEDULE_TYPES = [
@@ -85,7 +86,7 @@ const CorporateDashboardScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerSection}>
           <LinearGradient
-            colors={["#7DD3FC", "#38BDF8", "#0EA5E9", "#06B6D4"]}
+            colors={theme.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.gradientBackground}
@@ -107,7 +108,7 @@ const CorporateDashboardScreen = () => {
           {/* Company Overview Card */}
           <View style={styles.card}>
             <View style={styles.companyRow}>
-              <Ionicons name="business" size={22} color="#1EA7FD" style={styles.companyIcon} />
+              <Ionicons name="business" size={22} color={theme.primary} style={styles.companyIcon} />
               <Text style={styles.companyName}>{companyName}</Text>
             </View>
             <Text style={styles.metaText}>{locations} Locations • {employees} Employees</Text>
@@ -120,15 +121,15 @@ const CorporateDashboardScreen = () => {
           {/* Quick tiles: Order History, Update Subscription, Ad hoc */}
           <View style={styles.tilesRow}>
             <TouchableOpacity style={styles.tile} onPress={() => router.push("/corporate-order-history")} activeOpacity={0.8}>
-              <Ionicons name="list" size={24} color="#1EA7FD" />
+              <Ionicons name="list" size={24} color={theme.primary} />
               <Text style={styles.tileText}>Order History</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.tile} onPress={() => setShowSubscriptionModal(true)} activeOpacity={0.8}>
-              <Ionicons name="repeat" size={24} color="#1EA7FD" />
+              <Ionicons name="repeat" size={24} color={theme.primary} />
               <Text style={styles.tileText}>Update Plans</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.tile} onPress={() => router.push("/order")} activeOpacity={0.8}>
-              <Ionicons name="cart-outline" size={24} color="#1EA7FD" />
+              <Ionicons name="cart-outline" size={24} color={theme.primary} />
               <Text style={styles.tileText}>Ad hoc Orders</Text>
             </TouchableOpacity>
           </View>
@@ -167,7 +168,7 @@ const CorporateDashboardScreen = () => {
                 <Text style={styles.sectionSubtitle}>Automated deliveries.</Text>
               </View>
               <TouchableOpacity style={styles.plusButton} onPress={() => setShowBulkModal(true)} activeOpacity={0.8}>
-                <Ionicons name="add" size={28} color="#1EA7FD" />
+                <Ionicons name="add" size={28} color={theme.primary} />
               </TouchableOpacity>
             </View>
             {schedules.map((s) => (
@@ -325,7 +326,7 @@ const CorporateDashboardScreen = () => {
                   >
                     <Text style={styles.modalOptionName}>{opt.label}</Text>
                     {selectedTier?.id === tier.id && subscriptionMode === opt.id && (
-                      <Ionicons name="checkmark-circle" size={22} color="#1EA7FD" />
+                      <Ionicons name="checkmark-circle" size={22} color={theme.primary} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -344,14 +345,14 @@ const CorporateDashboardScreen = () => {
 export default CorporateDashboardScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   scrollContent: { paddingBottom: 40 },
   headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 120, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 50, paddingHorizontal: 20, paddingBottom: 16 },
+  gradientBackground: { flex: 1, paddingTop: 14, paddingHorizontal: 20, paddingBottom: 16 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   bellButton: { padding: 8, marginLeft: 8 },
   appTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF", textAlign: "center", marginTop: 8 },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20 },
+  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20 },
   hubTitle: { fontSize: 24, fontWeight: "700", color: "#1B2B34", marginBottom: 4 },
   hubSubtitle: { fontSize: 14, color: "#6B7C85", marginBottom: 20 },
   card: { backgroundColor: "rgba(255,255,255,0.85)", borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", elevation: 3 },
@@ -368,13 +369,13 @@ const styles = StyleSheet.create({
   sectionSubtitle: { fontSize: 13, color: "#6B7C85", marginBottom: 12 },
   graphToggleRow: { flexDirection: "row", gap: 8, marginBottom: 12 },
   graphToggle: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: "#E5E7EB" },
-  graphToggleActive: { backgroundColor: "#1EA7FD" },
+  graphToggleActive: { backgroundColor: theme.primary },
   graphToggleText: { fontSize: 13, fontWeight: "600", color: "#6B7C85" },
   graphToggleTextActive: { color: "#FFFFFF" },
   barRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 80 },
   barCol: { flex: 1, alignItems: "center" },
-  barBg: { width: 20, backgroundColor: "#E0F2FE", borderRadius: 4, overflow: "hidden", justifyContent: "flex-end" },
-  barFill: { width: "100%", backgroundColor: "#1EA7FD", borderRadius: 4, minHeight: 4 },
+  barBg: { width: 20, backgroundColor: theme.selectedTint, borderRadius: 4, overflow: "hidden", justifyContent: "flex-end" },
+  barFill: { width: "100%", backgroundColor: theme.primary, borderRadius: 4, minHeight: 4 },
   barLabel: { fontSize: 11, color: "#6B7C85", marginTop: 6 },
   schedulerHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 },
   plusButton: { padding: 4 },
@@ -389,11 +390,11 @@ const styles = StyleSheet.create({
   tierRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
   tierName: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
   manageSubBtn: { marginTop: 12 },
-  manageSubBtnText: { fontSize: 14, fontWeight: "600", color: "#1EA7FD" },
+  manageSubBtnText: { fontSize: 14, fontWeight: "600", color: theme.primary },
   billingHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   paidBadge: { backgroundColor: "#D1FAE5", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   paidBadgeText: { fontSize: 12, fontWeight: "600", color: "#059669" },
-  cycleCard: { backgroundColor: "#E0F2FE", borderRadius: 16, padding: 16, marginBottom: 16 },
+  cycleCard: { backgroundColor: theme.selectedTint, borderRadius: 16, padding: 16, marginBottom: 16 },
   cycleLabel: { fontSize: 13, color: "#6B7C85", marginBottom: 4 },
   cycleAmount: { fontSize: 22, fontWeight: "700", color: "#1B2B34" },
   cycleGst: { fontSize: 12, color: "#6B7C85", marginTop: 4 },
@@ -403,10 +404,10 @@ const styles = StyleSheet.create({
   invoiceName: { flex: 1, fontSize: 14, color: "#1B2B34" },
   invoiceDate: { fontSize: 13, color: "#6B7C85", marginRight: 8 },
   viewAllInvoices: { marginTop: 12 },
-  viewAllInvoicesText: { fontSize: 14, fontWeight: "600", color: "#1EA7FD" },
+  viewAllInvoicesText: { fontSize: 14, fontWeight: "600", color: theme.primary },
   deptTabs: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   deptTab: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: "#E5E7EB" },
-  deptTabActive: { backgroundColor: "#1EA7FD" },
+  deptTabActive: { backgroundColor: theme.primary },
   deptTabText: { fontSize: 13, fontWeight: "600", color: "#6B7C85" },
   deptTabTextActive: { color: "#FFFFFF" },
   costRow: { flexDirection: "row", gap: 16 },
@@ -422,11 +423,11 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
   modalHint: { fontSize: 14, color: "#6B7C85", marginBottom: 16 },
   modalOption: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderRadius: 12, backgroundColor: "#f0f7fcd7", marginBottom: 10 },
-  modalOptionSelected: { backgroundColor: "#E0F2FE", borderWidth: 2, borderColor: "#8ED1FC" },
+  modalOptionSelected: { backgroundColor: theme.selectedTint, borderWidth: 2, borderColor: theme.primaryLight },
   modalOptionName: { fontSize: 16, fontWeight: "600", color: "#1B2B34" },
   modalOptionDesc: { fontSize: 13, color: "#6B7C85", marginTop: 2 },
   tierBlock: { marginBottom: 16 },
   tierBlockTitle: { fontSize: 15, fontWeight: "700", color: "#1B2B34", marginBottom: 8 },
-  continueButton: { marginTop: 20, backgroundColor: "#1EA7FD", paddingVertical: 14, borderRadius: 24, alignItems: "center" },
+  continueButton: { marginTop: 20, backgroundColor: theme.primary, paddingVertical: 14, borderRadius: 24, alignItems: "center" },
   buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
 });

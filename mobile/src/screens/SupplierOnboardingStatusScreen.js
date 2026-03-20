@@ -10,7 +10,9 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import BackButton from "@/src/components/BackButton";
 import { api } from "@/src/api/client";
+import { theme } from "@/src/theme";
 
 const SupplierOnboardingStatusScreen = () => {
   const router = useRouter();
@@ -49,18 +51,20 @@ const SupplierOnboardingStatusScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerSection}>
         <LinearGradient
-          colors={["#7DD3FC", "#38BDF8", "#0EA5E9", "#06B6D4"]}
+          colors={theme.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.gradientBackground}
         >
-          <View style={styles.headerOverlay}>
-            <Text style={styles.headerTitle}>Onboarding Status</Text>
+          <View style={styles.headerTopRow}>
+            <BackButton onPress={() => router.back()} />
           </View>
-          <View style={styles.statusBadge}>
-            <Ionicons name="hourglass-outline" size={40} color="#FFFFFF" />
-            <Text style={styles.statusLabel}>Status</Text>
-            <Text style={styles.statusValue}>{status === "approved" ? "Approved" : "Pending"}</Text>
+          <View style={styles.headerCenter}>
+            <View style={styles.headerIconCircle}>
+              <Ionicons name="business-outline" size={36} color="#FFFFFF" />
+            </View>
+            <Text style={styles.headerTitle}>Onboarding Status</Text>
+            <Text style={styles.headerSubtitle}>{status === "approved" ? "Approved" : "Pending"}</Text>
           </View>
         </LinearGradient>
       </View>
@@ -111,17 +115,25 @@ const SupplierOnboardingStatusScreen = () => {
 export default SupplierOnboardingStatusScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
-  headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 180, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 50, paddingHorizontal: 20, alignItems: "center" },
-  headerOverlay: { width: "100%", alignItems: "center" },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF" },
-  statusBadge: { marginTop: 16, alignItems: "center" },
-  statusLabel: { fontSize: 12, color: "rgba(255,255,255,0.9)", marginTop: 4 },
-  statusValue: { fontSize: 18, fontWeight: "700", color: "#FFFFFF", marginTop: 2 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
+  headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 200, overflow: "hidden" },
+  gradientBackground: { flex: 1, paddingTop: 24, paddingHorizontal: 36, paddingBottom: 36 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", marginBottom: 0 },
+  headerCenter: { alignItems: "center", justifyContent: "center", marginTop: -14, width: "100%" },
+  headerIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF", textAlign: "center", paddingBottom: 4 },
+  headerSubtitle: { fontSize: 14, color: "rgba(255,255,255,0.95)", marginBottom: 32 },
   contentPanel: {
-    marginTop: -20,
-    backgroundColor: "#c6e2fa",
+    marginTop: -16,
+    backgroundColor: theme.screenBackground,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingTop: 28,
@@ -139,7 +151,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.8)",
   },
   codeLabel: { fontSize: 12, color: "#6B7C85", marginBottom: 4 },
-  codeValue: { fontSize: 28, fontWeight: "700", color: "#0EA5E9", letterSpacing: 8 },
+  codeValue: { fontSize: 28, fontWeight: "700", color: theme.primary, letterSpacing: 8 },
   inputSection: { marginBottom: 20 },
   label: { fontSize: 15, fontWeight: "600", color: "#1B2B34", marginBottom: 10 },
   inputContainer: {
@@ -159,7 +171,7 @@ const styles = StyleSheet.create({
   continueButton: {
     marginTop: 12,
     marginBottom: 24,
-    backgroundColor: "#1EA7FD",
+    backgroundColor: theme.primary,
     paddingVertical: 16,
     borderRadius: 30,
     alignItems: "center",

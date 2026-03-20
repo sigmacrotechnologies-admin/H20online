@@ -45,6 +45,9 @@ export default function Suppliers() {
   const [verifyModal, setVerifyModal] = useState(null);
   const [verifyForm, setVerifyForm] = useState({});
   const [verifySaving, setVerifySaving] = useState(false);
+  const [commissionModal, setCommissionModal] = useState(null);
+  const [commissionPct, setCommissionPct] = useState("");
+  const [commissionSaving, setCommissionSaving] = useState(false);
   const { canRemoveSupplier } = useAuth();
   const limit = 20;
 
@@ -125,7 +128,32 @@ export default function Suppliers() {
     }
   };
 
+  const openCommission = (s) => {
+    setCommissionModal(s);
+    setCommissionPct(String(s.commissionPercentage ?? 20));
+  };
+
+  const handleCommissionSave = async () => {
+    if (!commissionModal?.id) return;
+    const pct = Number(commissionPct);
+    if (isNaN(pct) || pct < 0 || pct > 100) {
+      alert("Enter a number between 0 and 100.");
+      return;
+    }
+    setCommissionSaving(true);
+    try {
+      await api.updateSupplier(commissionModal.id, { commissionPercentage: pct });
+      setCommissionModal(null);
+      load();
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setCommissionSaving(false);
+    }
+  };
+
   const allColumns = [
+    { key: "supplierId", label: "Supplier ID" },
     { key: "name", label: "Business" },
     { key: "contactPerson", label: "Contact" },
     { key: "email", label: "Email" },
@@ -141,6 +169,7 @@ export default function Suppliers() {
     { key: "documentAddressProof", label: "Address doc" },
     { key: "documentBusinessLicense", label: "License doc" },
     { key: "onboardingStatus", label: "Status" },
+    { key: "commissionPercentage", label: "Commission %" },
     { key: "tentativeVerificationTime", label: "Est. time" },
   ];
 
@@ -203,13 +232,14 @@ export default function Suppliers() {
                 {list.map((s) => (
                   <tr key={s.id}>
                     {allColumns.map((col) => {
-                      const val = s[col.key];
+                      const val = col.key === "supplierId" ? (s.supplierId || s.id) : s[col.key];
                       const display = val === undefined || val === null || val === "" ? "—" : typeof val === "string" && (val.startsWith("http") || val.length > 40) ? (val.startsWith("http") ? "Uploaded" : val.slice(0, 20) + "…") : String(val);
                       return <td key={col.key} style={td} title={val}>{display}</td>;
                     })}
                     <td style={td}>
+                      <button style={btnSmall} onClick={() => openCommission(s)} title="Platform fee %">Edit commission</button>
                       {s.onboardingStatus === "pending" && (
-                        <button style={btnPrimary} onClick={() => openVerify(s)}>Verify</button>
+                        <button style={{ ...btnPrimary, marginLeft: 8 }} onClick={() => openVerify(s)}>Verify</button>
                       )}
                       {canRemoveSupplier && <button style={{ ...btnDanger, marginLeft: 8 }} onClick={() => handleRemove(s.id)}>Remove</button>}
                     </td>
@@ -228,11 +258,34 @@ export default function Suppliers() {
           </div>
         </>
       )}
+      {commissionModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }} onClick={() => setCommissionModal(null)}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 360, width: "95%" }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0 }}>Platform commission: {commissionModal.name}</h3>
+            <p style={{ fontSize: 14, color: "#6B7C85", marginBottom: 12 }}>Percentage of order value kept as platform fee. Supplier receives (100 − commission)%.</p>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={commissionPct}
+              onChange={(e) => setCommissionPct(e.target.value)}
+              placeholder="e.g. 20"
+              style={{ ...input, width: "100%", marginBottom: 16 }}
+            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <button style={btnPrimary} onClick={handleCommissionSave} disabled={commissionSaving}>{commissionSaving ? "Saving..." : "Save"}</button>
+              <button style={btnSmall} onClick={() => setCommissionModal(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       {verifyModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }} onClick={() => setVerifyModal(null)}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 560, width: "95%", maxHeight: "90vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0 }}>Verify supplier: {verifyModal.name}</h3>
             <div style={{ marginBottom: 16, fontSize: 14, color: "#1B2B34" }}>
+              <p><strong>Supplier ID:</strong> {verifyModal.supplierId || verifyModal.id || "—"}</p>
               <p><strong>Contact:</strong> {verifyModal.contactPerson} | {verifyModal.email} | {verifyModal.phone}</p>
               <p><strong>Address:</strong> {verifyModal.address}, {verifyModal.city} {verifyModal.location ? `(${verifyModal.location})` : ""}</p>
               <p><strong>Business type:</strong> {verifyModal.businessType} | GST: {verifyModal.gstNumber || "—"} | Bank: {verifyModal.bankAccount || "—"} {verifyModal.ifscCode ? `(${verifyModal.ifscCode})` : ""}</p>

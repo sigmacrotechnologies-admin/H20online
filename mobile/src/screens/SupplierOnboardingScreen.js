@@ -17,6 +17,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 
 let ImagePicker;
 try {
@@ -25,10 +26,8 @@ try {
 
 const BUSINESS_TYPES = [
   { id: "waterSupplier", name: "Water Supplier", icon: "water-outline" },
-  { id: "distributor", name: "Distributor", icon: "cube-outline" },
-  { id: "manufacturer", name: "Manufacturer", icon: "construct-outline" },
-  { id: "other", name: "Other", icon: "ellipsis-horizontal-outline" },
   { id: "deliveryAgent", name: "Delivery Agent", icon: "bicycle-outline" },
+  { id: "other", name: "Other", icon: "ellipsis-horizontal-outline" },
 ];
 
 const DOC_TYPES_BUSINESS = [
@@ -40,6 +39,15 @@ const DOC_TYPES_BUSINESS = [
 const DOC_TYPES_DELIVERY = [
   { id: "idProof", label: "ID Proof", icon: "card-outline" },
   { id: "addressProof", label: "Address Proof", icon: "location-outline" },
+  { id: "vehicleIdentification", label: "Vehicle identification", icon: "car-outline" },
+];
+
+const VEHICLE_TYPE_OPTIONS = [
+  { id: "bike", name: "Bike", icon: "bicycle-outline" },
+  { id: "van", name: "Van", icon: "car-outline" },
+  { id: "bicycle", name: "Bicycle", icon: "bicycle-outline" },
+  { id: "tanker", name: "Tanker", icon: "water" },
+  { id: "miniTruck", name: "Mini truck", icon: "bus-outline" },
 ];
 
 const SupplierOnboardingScreen = () => {
@@ -61,7 +69,10 @@ const SupplierOnboardingScreen = () => {
     idProof: null,
     businessLicense: null,
     addressProof: null,
+    vehicleIdentification: null,
   });
+  const [deliveryVehicleType, setDeliveryVehicleType] = useState(null);
+  const [vehicleNumber, setVehicleNumber] = useState("");
   const [activeDocType, setActiveDocType] = useState(null);
   const [showDocPicker, setShowDocPicker] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -114,8 +125,16 @@ const SupplierOnboardingScreen = () => {
     const cityTrim = city.trim();
     const pwd = password.trim();
 
-    if (!nameTrim) {
+    if (!isDeliveryAgent && !nameTrim) {
       setError("Please enter business / vendor name");
+      return;
+    }
+    if (isDeliveryAgent && !deliveryVehicleType) {
+      setError("Please select type of vehicle");
+      return;
+    }
+    if (isDeliveryAgent && !(vehicleNumber || "").trim()) {
+      setError("Please enter vehicle number");
       return;
     }
     if (!contactTrim) {
@@ -150,7 +169,7 @@ const SupplierOnboardingScreen = () => {
     setLoading(true);
     try {
       const payload = {
-        businessName: nameTrim,
+        businessName: isDeliveryAgent ? contactTrim : nameTrim,
         contactPerson: contactTrim,
         email: emailTrim,
         phone: phoneTrim,
@@ -163,6 +182,11 @@ const SupplierOnboardingScreen = () => {
         bankAccount: isDeliveryAgent ? "" : bankAccount.trim(),
         ifscCode: isDeliveryAgent ? "" : ifscCode.trim(),
       };
+      if (isDeliveryAgent) {
+        payload.vehicleType = deliveryVehicleType?.id || "bike";
+        payload.vehicleNumber = (vehicleNumber || "").trim();
+        payload.documentVehicleIdentification = documents.vehicleIdentification || "";
+      }
       const data = await api.auth.registerSupplier(payload);
       if (data.token && data.user) {
         loginWithToken(data.token, data.user);
@@ -179,160 +203,41 @@ const SupplierOnboardingScreen = () => {
   };
 
   const isSubmitEnabled =
-    businessName.trim().length > 0 &&
+    businessType !== null &&
     contactPerson.trim().length > 0 &&
     email.trim().length > 0 &&
     phone.trim().length > 0 &&
     password.trim().length >= 6 &&
     address.trim().length > 0 &&
     city.trim().length > 0 &&
-    businessType !== null;
+    (isDeliveryAgent ? (deliveryVehicleType !== null && (vehicleNumber || "").trim().length > 0) : businessName.trim().length > 0);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.avatarSection}>
+        <View style={styles.headerSection}>
           <LinearGradient
-            colors={["#7DD3FC", "#38BDF8", "#0EA5E9", "#06B6D4"]}
+            colors={theme.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.gradientBackground}
           >
-            <View style={styles.headerOverlay}>
+            <View style={styles.headerTopRow}>
               <BackButton onPress={handleBack} />
             </View>
-            <View style={styles.avatarContainer}>
-              <View style={styles.logoPlaceholder}>
-                <Ionicons name="business" size={56} color="#06B6D4" />
+            <View style={styles.headerCenter}>
+              <View style={styles.headerIconCircle}>
+                <Ionicons name="business-outline" size={36} color="#FFFFFF" />
               </View>
+              <Text style={styles.headerTitle}>Partner onboarding</Text>
             </View>
           </LinearGradient>
         </View>
 
         <View style={styles.contentPanel}>
-          <Text style={styles.title}>Supplier Onboarding</Text>
           <Text style={styles.subtitle}>Register as a vendor. Fill details and upload verification documents.</Text>
 
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>Business / Vendor Name</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="business-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={businessName}
-                onChangeText={setBusinessName}
-                placeholder="Enter business name"
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>Contact Person Name</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="person-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={contactPerson}
-                onChangeText={setContactPerson}
-                placeholder="Enter contact person name"
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>Email</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Enter email"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>Password</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Min 6 characters"
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>Phone Number</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="call-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="Enter phone number"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="phone-pad"
-              />
-            </View>
-          </View>
-
-          <View style={styles.inputSection}>
-            <Text style={styles.label}>Address</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="location-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={address}
-                onChangeText={setAddress}
-                placeholder="Street, building, area"
-                placeholderTextColor="#9CA3AF"
-                multiline
-                numberOfLines={2}
-              />
-            </View>
-          </View>
-
-          <View style={styles.row}>
-            <View style={styles.halfWidth}>
-              <Text style={styles.label}>Location</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="navigate-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  value={location}
-                  onChangeText={setLocation}
-                  placeholder="Area"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-            </View>
-            <View style={styles.halfWidth}>
-              <Text style={styles.label}>City</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="business-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.input}
-                  value={city}
-                  onChangeText={setCity}
-                  placeholder="City"
-                  placeholderTextColor="#9CA3AF"
-                />
-              </View>
-            </View>
-          </View>
-
-          <Text style={styles.sectionTitle}>Business Type</Text>
+          <Text style={styles.sectionTitle}>Partner type</Text>
           <Text style={styles.hintText}>Select one option</Text>
           <View style={styles.tileRow}>
             {BUSINESS_TYPES.map((type) => {
@@ -347,7 +252,7 @@ const SupplierOnboardingScreen = () => {
                   <Ionicons
                     name={type.icon}
                     size={28}
-                    color={selected ? "#0EA5E9" : "#6B7C85"}
+                    color={selected ? theme.primary : theme.textMuted}
                   />
                   <Text style={[styles.businessTileText, selected && styles.businessTileTextSelected]}>
                     {type.name}
@@ -358,18 +263,176 @@ const SupplierOnboardingScreen = () => {
           </View>
 
           {!isDeliveryAgent && (
+            <View style={styles.inputSection}>
+              <Text style={styles.label}>Business / Vendor Name</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="business-outline" size={20} color={theme.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={businessName}
+                  onChangeText={setBusinessName}
+                  placeholder="Enter business name"
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+            </View>
+          )}
+
+          <View style={styles.inputSection}>
+            <Text style={styles.label}>Contact Person Name</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="person-outline" size={20} color={theme.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={contactPerson}
+                onChangeText={setContactPerson}
+                placeholder="Enter contact person name"
+                placeholderTextColor={theme.textMuted}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputSection}>
+            <Text style={styles.label}>Email</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="mail-outline" size={20} color={theme.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter email"
+                placeholderTextColor={theme.textMuted}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputSection}>
+            <Text style={styles.label}>Password</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed-outline" size={20} color={theme.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Min 6 characters"
+                placeholderTextColor={theme.textMuted}
+                secureTextEntry
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputSection}>
+            <Text style={styles.label}>Phone Number</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="call-outline" size={20} color={theme.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="Enter phone number"
+                placeholderTextColor={theme.textMuted}
+                keyboardType="phone-pad"
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputSection}>
+            <Text style={styles.label}>Address</Text>
+            <View style={styles.inputContainer}>
+              <Ionicons name="location-outline" size={20} color={theme.textMuted} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                value={address}
+                onChangeText={setAddress}
+                placeholder="Street, building, area"
+                placeholderTextColor={theme.textMuted}
+                multiline
+                numberOfLines={2}
+              />
+            </View>
+          </View>
+
+          <View style={styles.row}>
+            <View style={styles.halfWidth}>
+              <Text style={styles.label}>Location</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="navigate-outline" size={20} color={theme.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={location}
+                  onChangeText={setLocation}
+                  placeholder="Area"
+                  placeholderTextColor={theme.textMuted}
+                />
+              </View>
+            </View>
+            <View style={styles.halfWidth}>
+              <Text style={styles.label}>City</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="business-outline" size={20} color={theme.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={city}
+                  onChangeText={setCity}
+                  placeholder="City"
+                  placeholderTextColor={theme.textMuted}
+                />
+          </View>
+          </View>
+          </View>
+
+          {isDeliveryAgent && (
+            <>
+              <Text style={styles.sectionTitle}>Type of vehicle</Text>
+              <Text style={styles.hintText}>Select one option</Text>
+              <View style={styles.tileRow}>
+                {VEHICLE_TYPE_OPTIONS.map((opt) => {
+                  const selected = deliveryVehicleType?.id === opt.id;
+                  return (
+                    <TouchableOpacity
+                      key={opt.id}
+                      style={[styles.businessTile, selected && styles.businessTileSelected]}
+                      onPress={() => setDeliveryVehicleType(opt)}
+                      activeOpacity={0.8}
+                    >
+                      <Ionicons name={opt.icon} size={28} color={selected ? theme.primary : theme.textMuted} />
+                      <Text style={[styles.businessTileText, selected && styles.businessTileTextSelected]}>{opt.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <View style={styles.inputSection}>
+                <Text style={styles.label}>Vehicle number</Text>
+                <View style={styles.inputContainer}>
+                  <Ionicons name="car-outline" size={20} color={theme.textMuted} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    value={vehicleNumber}
+                    onChangeText={setVehicleNumber}
+                    placeholder="e.g. MH 12 AB 1234"
+                    placeholderTextColor={theme.textMuted}
+                    autoCapitalize="characters"
+                  />
+                </View>
+              </View>
+            </>
+          )}
+
+          {!isDeliveryAgent && (
             <>
               <View style={styles.row}>
                 <View style={styles.halfWidth}>
                   <Text style={styles.label}>GST Number</Text>
                   <View style={styles.inputContainer}>
-                    <Ionicons name="receipt-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      value={gstNumber}
-                      onChangeText={setGstNumber}
-                      placeholder="GSTIN"
-                      placeholderTextColor="#9CA3AF"
+                <Ionicons name="receipt-outline" size={20} color={theme.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={gstNumber}
+                  onChangeText={setGstNumber}
+                  placeholder="GSTIN"
+                  placeholderTextColor={theme.textMuted}
                       autoCapitalize="characters"
                     />
                   </View>
@@ -377,13 +440,13 @@ const SupplierOnboardingScreen = () => {
                 <View style={styles.halfWidth}>
                   <Text style={styles.label}>Bank A/c</Text>
                   <View style={styles.inputContainer}>
-                    <Ionicons name="wallet-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-                    <TextInput
-                      style={styles.input}
-                      value={bankAccount}
-                      onChangeText={setBankAccount}
-                      placeholder="Account number"
-                      placeholderTextColor="#9CA3AF"
+                <Ionicons name="wallet-outline" size={20} color={theme.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={bankAccount}
+                  onChangeText={setBankAccount}
+                  placeholder="Account number"
+                  placeholderTextColor={theme.textMuted}
                       keyboardType="numeric"
                     />
                   </View>
@@ -392,13 +455,13 @@ const SupplierOnboardingScreen = () => {
               <View style={styles.inputSection}>
                 <Text style={styles.label}>IFSC Code</Text>
                 <View style={styles.inputContainer}>
-                  <Ionicons name="card-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-                  <TextInput
-                    style={styles.input}
-                    value={ifscCode}
-                    onChangeText={setIfscCode}
-                    placeholder="e.g. SBIN0001234"
-                    placeholderTextColor="#9CA3AF"
+                <Ionicons name="card-outline" size={20} color={theme.textMuted} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={ifscCode}
+                  onChangeText={setIfscCode}
+                  placeholder="e.g. SBIN0001234"
+                  placeholderTextColor={theme.textMuted}
                     autoCapitalize="characters"
                   />
                 </View>
@@ -411,13 +474,15 @@ const SupplierOnboardingScreen = () => {
 
           <Text style={styles.sectionTitle}>Verification Documents (optional)</Text>
           <Text style={styles.hintText}>
-            You can upload ID proof, address proof and business license later. Completing onboarding does not require documents.
+            {isDeliveryAgent
+              ? "ID proof, address proof and vehicle identification can be uploaded later. Vehicle number is required above."
+              : "You can upload ID proof, address proof and business license later. Completing onboarding does not require documents."}
           </Text>
           {docTypes.map((doc) => (
             <View key={doc.id} style={styles.docCard}>
               <View style={styles.docCardLeft}>
                 <View style={styles.docIconWrap}>
-                  <Ionicons name={doc.icon} size={24} color="#1EA7FD" />
+                  <Ionicons name={doc.icon} size={24} color={theme.primary} />
                 </View>
                 <View>
                   <Text style={styles.docLabel}>{doc.label}</Text>
@@ -436,7 +501,7 @@ const SupplierOnboardingScreen = () => {
                 {documents[doc.id] ? (
                   <Image source={{ uri: documents[doc.id] }} style={styles.docThumb} />
                 ) : (
-                  <Ionicons name="add-circle-outline" size={28} color="#1EA7FD" />
+                  <Ionicons name="add-circle-outline" size={28} color={theme.primary} />
                 )}
               </TouchableOpacity>
             </View>
@@ -452,7 +517,7 @@ const SupplierOnboardingScreen = () => {
           >
             <View style={styles.buttonContent}>
               {loading ? (
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <ActivityIndicator color={theme.white} size="small" />
               ) : (
                 <>
                   <Text style={isSubmitEnabled && !loading ? styles.buttonText : styles.buttonTextDisabled}>
@@ -494,15 +559,15 @@ const SupplierOnboardingScreen = () => {
                   setActiveDocType(null);
                 }}
               >
-                <Ionicons name="close" size={24} color="#1B2B34" />
+                <Ionicons name="close" size={24} color={theme.textPrimary} />
               </TouchableOpacity>
             </View>
             <TouchableOpacity style={styles.avatarOption} onPress={() => pickDocument("gallery")}>
-              <Ionicons name="image-outline" size={24} color="#1EA7FD" />
+              <Ionicons name="image-outline" size={24} color={theme.primary} />
               <Text style={styles.avatarOptionText}>Choose from Gallery</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.avatarOption} onPress={() => pickDocument("camera")}>
-              <Ionicons name="camera-outline" size={24} color="#1EA7FD" />
+              <Ionicons name="camera-outline" size={24} color={theme.primary} />
               <Text style={styles.avatarOptionText}>Take Photo</Text>
             </TouchableOpacity>
           </View>
@@ -515,48 +580,42 @@ const SupplierOnboardingScreen = () => {
 export default SupplierOnboardingScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   scrollContent: { paddingBottom: 30 },
-  avatarSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 200, overflow: "hidden", position: "relative" },
-  gradientBackground: { flex: 1, position: "relative", paddingTop: 50, paddingBottom: 24 },
-  headerOverlay: { position: "absolute", top: 14, left: 28, right: 28, flexDirection: "row", alignItems: "center", zIndex: 10 },
-  avatarContainer: { alignItems: "center", justifyContent: "center", marginTop: 12 },
-  logoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 24,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
+  headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 200, overflow: "hidden" },
+  gradientBackground: { flex: 1, paddingTop: 24, paddingHorizontal: 36, paddingBottom: 36 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", marginBottom: 0 },
+  headerCenter: { alignItems: "center", justifyContent: "center", marginTop: -14, width: "100%" },
+  headerIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "rgba(255,255,255,0.25)",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 3,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 5,
+    marginBottom: 6,
   },
+  headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF", textAlign: "center", paddingBottom: 32 },
   contentPanel: {
-    marginTop: -20,
+    marginTop: -16,
     marginLeft: 2,
     marginRight: 2,
-    backgroundColor: "#c6e2fa",
+    backgroundColor: theme.screenBackground,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingTop: 28,
     paddingHorizontal: 20,
     overflow: "hidden",
   },
-  title: { fontSize: 26, fontWeight: "700", textAlign: "center", color: "#1B2B34", marginTop: 0, marginBottom: 8 },
-  subtitle: { textAlign: "center", color: "#6B7C85", marginTop: 6, marginBottom: 25, fontSize: 14 },
-  sectionTitle: { fontSize: 17, fontWeight: "700", color: "#1B2B34", marginBottom: 6, marginTop: 8 },
+  subtitle: { textAlign: "center", color: theme.textMuted, marginTop: 0, marginBottom: 25, fontSize: 14 },
+  sectionTitle: { fontSize: 17, fontWeight: "700", color: theme.textPrimary, marginBottom: 6, marginTop: 8 },
   inputSection: { marginBottom: 20 },
-  label: { fontSize: 15, fontWeight: "600", color: "#1B2B34", marginBottom: 10 },
-  hintText: { fontSize: 12, color: "#7A8A93", marginBottom: 10 },
+  label: { fontSize: 15, fontWeight: "600", color: theme.textPrimary, marginBottom: 10 },
+  hintText: { fontSize: 12, color: theme.textMuted, marginBottom: 10 },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    backgroundColor: theme.cardBackground,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -565,14 +624,14 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: "#1B2B34", padding: 0 },
+  input: { flex: 1, fontSize: 16, color: theme.textPrimary, padding: 0 },
   row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20, gap: 12 },
   halfWidth: { flex: 1 },
   tileRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 20, gap: 10 },
   businessTile: {
     width: "48%",
     minWidth: 140,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    backgroundColor: theme.cardBackground,
     borderRadius: 16,
     padding: 16,
     borderWidth: 2,
@@ -580,16 +639,16 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   businessTileSelected: {
-    borderColor: "#8ED1FC",
-    backgroundColor: "#E0F2FE",
+    borderColor: theme.primaryLight,
+    backgroundColor: theme.selectedTint,
   },
-  businessTileText: { fontSize: 14, fontWeight: "600", color: "#1B2B34", marginTop: 8 },
-  businessTileTextSelected: { color: "#0EA5E9" },
+  businessTileText: { fontSize: 14, fontWeight: "600", color: theme.textPrimary, marginTop: 8 },
+  businessTileTextSelected: { color: theme.primary },
   docCard: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    backgroundColor: theme.cardBackground,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -598,33 +657,33 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   docCardLeft: { flexDirection: "row", alignItems: "center", flex: 1 },
-  docIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center", marginRight: 12 },
-  docLabel: { fontSize: 16, fontWeight: "600", color: "#1B2B34" },
-  docStatus: { fontSize: 12, color: "#14B8A6", marginTop: 2 },
-  docStatusEmpty: { fontSize: 12, color: "#9CA3AF", marginTop: 2 },
+  docIconWrap: { width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(51,175,193,0.2)", justifyContent: "center", alignItems: "center", marginRight: 12 },
+  docLabel: { fontSize: 16, fontWeight: "600", color: theme.textPrimary },
+  docStatus: { fontSize: 12, color: theme.primary, marginTop: 2 },
+  docStatusEmpty: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
   docAddBtn: { padding: 8 },
   docUpdateBtn: { padding: 4 },
-  docThumb: { width: 48, height: 48, borderRadius: 10, backgroundColor: "#f0f0f0" },
+  docThumb: { width: 48, height: 48, borderRadius: 10, backgroundColor: theme.selectedTint },
   errorText: { fontSize: 14, color: "#DC2626", marginBottom: 12, fontWeight: "500" },
-  continueButton: { marginTop: 20, marginBottom: 24, backgroundColor: "#1EA7FD", paddingVertical: 16, borderRadius: 30, alignItems: "center", elevation: 3 },
+  continueButton: { marginTop: 20, marginBottom: 24, backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 30, alignItems: "center", elevation: 3 },
   continueButtonDisabled: { backgroundColor: "#EEF3F7", elevation: 1 },
   buttonContent: { flexDirection: "row", alignItems: "center", gap: 8 },
-  buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
-  buttonTextDisabled: { color: "#8A9AA3", fontSize: 16, fontWeight: "600" },
-  buttonArrow: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
-  buttonArrowDisabled: { color: "#8A9AA3", fontSize: 16, fontWeight: "600" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: "flex-end" },
-  modalContent: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "70%" },
+  buttonText: { color: theme.white, fontSize: 16, fontWeight: "600" },
+  buttonTextDisabled: { color: theme.textMuted, fontSize: 16, fontWeight: "600" },
+  buttonArrow: { color: theme.white, fontSize: 16, fontWeight: "600" },
+  buttonArrowDisabled: { color: theme.textMuted, fontSize: 16, fontWeight: "600" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(27,43,52,0.45)", justifyContent: "flex-end" },
+  modalContent: { backgroundColor: theme.cardBackgroundSolid, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "70%" },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
+  modalTitle: { fontSize: 20, fontWeight: "700", color: theme.textPrimary },
   avatarOption: {
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: theme.selectedTint,
     marginBottom: 12,
     gap: 12,
   },
-  avatarOptionText: { fontSize: 16, fontWeight: "600", color: "#1B2B34" },
+  avatarOptionText: { fontSize: 16, fontWeight: "600", color: theme.textPrimary },
 });

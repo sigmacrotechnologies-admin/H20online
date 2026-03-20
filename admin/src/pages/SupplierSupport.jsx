@@ -14,12 +14,18 @@ export default function SupplierSupport() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    api.supplierSupport().then(setThreads).catch(() => setThreads([])).finally(() => setLoading(false));
+    const loadThreads = () => api.supplierSupport().then(setThreads).catch(() => setThreads([])).finally(() => setLoading(false));
+    loadThreads();
+    const interval = setInterval(loadThreads, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     if (!selected?.supplierId) return;
-    api.supplierSupportThread(selected.supplierId).then((t) => setMessages(t.messages || [])).catch(() => setMessages([]));
+    const loadMessages = () => api.supplierSupportThread(selected.supplierId).then((t) => setMessages(t.messages || [])).catch(() => setMessages([]));
+    loadMessages();
+    const interval = setInterval(loadMessages, 5000);
+    return () => clearInterval(interval);
   }, [selected?.supplierId]);
 
   const sendReply = async () => {
@@ -75,6 +81,7 @@ export default function SupplierSupport() {
                   <div key={i} style={{ marginBottom: 12, padding: 10, borderRadius: 12, background: m.from === "admin" ? "#E0F2FE" : "rgba(255,255,255,0.9)" }}>
                     <div style={{ fontSize: 12, color: "#6B7C85", marginBottom: 4 }}>{m.from === "admin" ? "You" : "Supplier"}</div>
                     <div>{m.text}</div>
+                    {m.createdAt && <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>{new Date(m.createdAt).toLocaleString()}</div>}
                   </div>
                 ))}
               </div>

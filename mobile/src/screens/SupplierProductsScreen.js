@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Act
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 import { api } from "@/src/api/client";
 
 export default function SupplierProductsScreen() {
@@ -35,7 +36,7 @@ export default function SupplierProductsScreen() {
         </LinearGradient>
       </View>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentWrap}>
-        {loading ? <ActivityIndicator size="large" color="#1EA7FD" style={{ marginTop: 24 }} /> : (
+        {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24 }} /> : (
           products.length === 0 ? <Text style={styles.empty}>No products. Add from dashboard.</Text> : (
             products.map((p) => (
               <View key={p.id} style={styles.card}>
@@ -54,18 +55,18 @@ export default function SupplierProductsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   headerPanel: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 140, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 50, paddingHorizontal: 20 },
+  gradientBackground: { flex: 1, paddingTop: 14, paddingBottom: 16, paddingHorizontal: 20 },
   headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF" },
   content: { flex: 1 },
-  contentWrap: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24, marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28 },
+  contentWrap: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 24, marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28 },
   empty: { textAlign: "center", color: "#6B7C85", marginTop: 24 },
   card: { backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 16, padding: 16, marginBottom: 12 },
   cardName: { fontSize: 16, fontWeight: "700", color: "#1B2B34" },
-  cardPrice: { fontSize: 14, color: "#0EA5E9", marginTop: 4 },
+  cardPrice: { fontSize: 14, color: theme.primary, marginTop: 4 },
   removeBtn: { marginTop: 10, alignSelf: "flex-start" },
   removeBtnText: { fontSize: 14, color: "#DC2626", fontWeight: "600" },
 });

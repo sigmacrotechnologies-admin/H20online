@@ -16,6 +16,7 @@ import { useAuth } from "@/src/context/AuthContext";
 import { useCart } from "@/src/context/CartContext";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
+import { theme } from "@/src/theme";
 
 const ProfileScreen = () => {
   const router = useRouter();
@@ -103,12 +104,15 @@ const ProfileScreen = () => {
           <View style={styles.userCardRow}>
             <View style={styles.avatarWrap}>
               <View style={styles.avatarCircle}>
-                <Ionicons name="person" size={40} color="#0EA5E9" />
+                <Ionicons name="person" size={40} color={theme.primary} />
               </View>
             </View>
             <View style={styles.userInfo}>
               <Text style={styles.userName}>{user?.name || "Guest"}</Text>
               <Text style={styles.userEmail}>{user?.email || "Login to sync"}</Text>
+              {user?.userCode ? (
+                <Text style={styles.userIdText}>ID: {user.userCode}</Text>
+              ) : null}
               <View style={styles.premiumBadge}>
                 <Text style={styles.premiumBadgeText}>Premium Member</Text>
               </View>
@@ -124,7 +128,7 @@ const ProfileScreen = () => {
               }}
               activeOpacity={0.7}
             >
-              <Ionicons name="pencil" size={20} color="#0EA5E9" />
+              <Ionicons name="pencil" size={20} color={theme.primary} />
             </TouchableOpacity>
           </View>
         </View>
@@ -167,7 +171,7 @@ const ProfileScreen = () => {
             <Ionicons name="chevron-forward" size={20} color="#6B7C85" />
           </TouchableOpacity>
           <View style={styles.menuDivider} />
-          <TouchableOpacity style={styles.menuRow} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.menuRow} onPress={() => router.push("/saved-addresses")} activeOpacity={0.7}>
             <View style={styles.menuIconCircleBlue}>
               <Ionicons name="location-outline" size={22} color="#FFFFFF" />
             </View>
@@ -363,10 +367,10 @@ const ProfileScreen = () => {
 export default ProfileScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa" },
+  container: { flex: 1, backgroundColor: theme.screenBackground },
   scrollContent: { paddingBottom: 40, paddingHorizontal: 20, marginLeft: 11, marginRight: 11 },
-  header: { flexDirection: "row", alignItems: "center", marginTop: 14, marginBottom: 20, paddingHorizontal: 8 },
-  headerBackButton: { backgroundColor: "#f0f7fcd7", marginRight: 12, elevation: 2 },
+  header: { flexDirection: "row", alignItems: "center", paddingTop: 14, paddingBottom: 12, paddingHorizontal: 20, marginBottom: 20 },
+  headerBackButton: { backgroundColor: "#f0f7fcd7", elevation: 2 },
   headerTitle: { flex: 1, fontSize: 26, fontWeight: "700", color: "#1B2B34", marginLeft: 0 },
   settingsButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#f0f7fcd7", justifyContent: "center", alignItems: "center", elevation: 2 },
 
@@ -376,22 +380,23 @@ const styles = StyleSheet.create({
   avatarCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center" },
   userInfo: { flex: 1 },
   userName: { fontSize: 18, fontWeight: "700", color: "#1B2B34", marginBottom: 4 },
-  userEmail: { fontSize: 14, color: "#6B7C85", marginBottom: 8 },
+  userEmail: { fontSize: 14, color: "#6B7C85", marginBottom: 4 },
+  userIdText: { fontSize: 13, color: "#6B7C85", marginBottom: 8 },
   premiumBadge: { alignSelf: "flex-start", backgroundColor: "#14B8A6", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   premiumBadgeText: { fontSize: 12, fontWeight: "600", color: "#FFFFFF" },
   editIconWrap: { padding: 8 },
 
   statsRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
   statCard: { flex: 1, backgroundColor: "#f0f7fcd7", borderRadius: 20, padding: 16, elevation: 2 },
-  statValue: { fontSize: 22, fontWeight: "700", color: "#0EA5E9", marginBottom: 4 },
+  statValue: { fontSize: 22, fontWeight: "700", color: theme.primary, marginBottom: 4 },
   statLabel: { fontSize: 13, color: "#6B7C85" },
 
   sectionTitle: { fontSize: 15, fontWeight: "600", color: "#6B7C85", marginBottom: 10 },
   menuRow: { flexDirection: "row", alignItems: "center", paddingVertical: 14 },
-  menuIconCircleBlue: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#0EA5E9", justifyContent: "center", alignItems: "center", marginRight: 14 },
+  menuIconCircleBlue: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.primary, justifyContent: "center", alignItems: "center", marginRight: 14 },
   menuIconCirclePurple: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#8B5CF6", justifyContent: "center", alignItems: "center", marginRight: 14 },
   menuLabel: { flex: 1, fontSize: 16, fontWeight: "600", color: "#1B2B34" },
-  menuEdit: { fontSize: 14, color: "#0EA5E9", marginRight: 8 },
+  menuEdit: { fontSize: 14, color: theme.primary, marginRight: 8 },
   menuDivider: { height: 1, backgroundColor: "#E5E7EB", marginLeft: 54 },
 
   logoutButton: { backgroundColor: "#F87171", paddingVertical: 16, borderRadius: 20, alignItems: "center", marginTop: 8, elevation: 2 },
@@ -404,7 +409,7 @@ const styles = StyleSheet.create({
   modalField: { marginBottom: 16 },
   modalFieldLabel: { fontSize: 14, fontWeight: "600", color: "#1B2B34", marginBottom: 8 },
   modalInput: { backgroundColor: "#f0f7fcd7", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: "#1B2B34", borderWidth: 1, borderColor: "rgba(255,255,255,0.8)" },
-  modalSaveButton: { backgroundColor: "#1EA7FD", paddingVertical: 16, borderRadius: 20, alignItems: "center", marginTop: 8 },
+  modalSaveButton: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 20, alignItems: "center", marginTop: 8 },
   modalSaveButtonDisabled: { opacity: 0.7 },
   modalSaveText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
   saveErrorText: { fontSize: 14, color: "#DC2626", marginTop: 8, marginBottom: 4 },

@@ -13,6 +13,7 @@ const supplierResponseSchema = new mongoose.Schema(
   {
     supplierId: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier", required: true },
     status: { type: String, enum: ["pending", "accepted", "rejected"], default: "pending" },
+    deliveryStage: { type: String, enum: ["accepted", "picked_up", "delivered"], default: "accepted" },
     eta: { type: String, default: "" },
     remarks: { type: String, default: "" },
     deliveryPartnerId: { type: mongoose.Schema.Types.ObjectId, ref: "DeliveryPartner", default: null },
@@ -23,8 +24,16 @@ const supplierResponseSchema = new mongoose.Schema(
   { _id: false }
 );
 
+function randomOrderIdSuffix(len = 8) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s = "";
+  for (let i = 0; i < len; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+  return s;
+}
+
 const orderSchema = new mongoose.Schema(
   {
+    orderId: { type: String, trim: true, unique: true, sparse: true }, // ORD_XXXXXXXX
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     items: [orderItemSchema],
     total: { type: Number, required: true },
@@ -40,5 +49,22 @@ const orderSchema = new mongoose.Schema(
 );
 
 orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ orderId: 1 });
+
+orderSchema.statics.generateUniqueOrderId = async function () {
+  let id;
+  let exists = true;
+  while (exists) {
+    id = "ORD_" + randomOrderIdSuffix(8);
+    exists = await this.exists({ orderId: id });
+  }
+  return id;
+};
+
+orderSchema.pre("save", async function () {
+  if (!this.orderId) {
+    this.orderId = await this.constructor.generateUniqueOrderId();
+  }
+});
 
 module.exports = mongoose.model("Order", orderSchema);

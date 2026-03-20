@@ -7,10 +7,13 @@ import Users from "./pages/Users";
 import Orders from "./pages/Orders";
 import Suppliers from "./pages/Suppliers";
 import Plans from "./pages/Plans";
+import Subscriptions from "./pages/Subscriptions";
 import Financials from "./pages/Financials";
 import AdminUsers from "./pages/AdminUsers";
 import DeliveryPartners from "./pages/DeliveryPartners";
 import SupplierSupport from "./pages/SupplierSupport";
+import DeliveryPartnerSupport from "./pages/DeliveryPartnerSupport";
+import WalletManagement from "./pages/WalletManagement";
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -48,10 +51,13 @@ function AppRoutes() {
         <Route path="orders" element={<Orders />} />
         <Route path="suppliers" element={<Suppliers />} />
         <Route path="plans" element={<Plans />} />
+        <Route path="subscriptions" element={<Subscriptions />} />
+        <Route path="wallet-management" element={<WalletManagement />} />
         <Route path="financials" element={<FinancialsRoute />} />
         <Route path="admin-users" element={<AdminUsersRoute />} />
         <Route path="delivery-partners" element={<DeliveryPartners />} />
         <Route path="supplier-support" element={<SupplierSupport />} />
+        <Route path="delivery-support" element={<DeliveryPartnerSupport />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

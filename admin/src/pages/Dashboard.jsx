@@ -18,6 +18,8 @@ const tiles = [
   { to: "/orders", title: "Orders", subtitle: "Ongoing and past orders", emoji: "📦" },
   { to: "/suppliers", title: "Supplier onboarding", subtitle: "Add or remove suppliers", emoji: "🚚" },
   { to: "/plans", title: "Plans & rates", subtitle: "Update subscription plans and bottle rates", emoji: "📋" },
+  { to: "/subscriptions", title: "Subscription orders", subtitle: "Active subscriptions, financials, delivery assignment", emoji: "📅" },
+  { to: "/wallet-management", title: "Wallet management", subtitle: "Customer, supplier & delivery wallets — view, add, deduct, set balance", emoji: "💳" },
   { to: "/financials", title: "Financials", subtitle: "Revenue, platform cut (20% / 30%)", emoji: "💰", requireMasterOrAdmin: true },
   { to: "/admin-users", title: "Admin users", subtitle: "Create admin or sub-admin", emoji: "🔐", requireMasterOrAdmin: true },
   { to: "/delivery-partners", title: "Delivery partners", subtitle: "Verify & approve delivery partners", emoji: "🏍️" },

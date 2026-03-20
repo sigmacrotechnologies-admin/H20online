@@ -28,6 +28,7 @@ const supplierSchema = new mongoose.Schema(
     documentAddressProofVerified: { type: Boolean, default: false },
     documentBusinessLicenseVerified: { type: Boolean, default: false },
     tentativeVerificationTime: { type: String, default: "24-48 hours" },
+    commissionPercentage: { type: Number, default: 20 }, // platform fee %; supplier gets (100 - commission)%
   },
   { timestamps: true }
 );

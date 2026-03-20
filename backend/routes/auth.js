@@ -69,11 +69,25 @@ router.post("/register-supplier", async (req, res) => {
       documentBusinessLicense,
     } = req.body;
 
-    if (!businessName || !contactPerson || !email || !phone || !password || !address || !city || !businessType) {
-      return res.status(400).json({ error: "Business name, contact person, email, phone, password, address, city and business type are required" });
-    }
-
     const isDeliveryAgent = businessType === "deliveryAgent";
+    if (isDeliveryAgent) {
+      if (!contactPerson || !email || !phone || !password || !address || !city || !businessType) {
+        return res.status(400).json({ error: "Contact person, email, phone, password, address, city and partner type are required" });
+      }
+      const vehicleType = req.body.vehicleType;
+      const vehicleNumber = (req.body.vehicleNumber || "").trim();
+      const validVehicle = ["bike", "van", "bicycle", "tanker", "miniTruck"].includes(vehicleType);
+      if (!vehicleType || !validVehicle) {
+        return res.status(400).json({ error: "Valid vehicle type is required (bike, van, bicycle, tanker, miniTruck)" });
+      }
+      if (!vehicleNumber) {
+        return res.status(400).json({ error: "Vehicle number is required" });
+      }
+    } else {
+      if (!businessName || !contactPerson || !email || !phone || !password || !address || !city || !businessType) {
+        return res.status(400).json({ error: "Business name, contact person, email, phone, password, address, city and business type are required" });
+      }
+    }
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) return res.status(400).json({ error: "Email already registered" });
 
@@ -86,8 +100,9 @@ router.post("/register-supplier", async (req, res) => {
     });
 
     const verificationCode = randomSixDigit();
+    const supplierName = isDeliveryAgent ? (contactPerson || "Delivery Partner").trim() : businessName.trim();
     const supplier = await Supplier.create({
-      name: businessName.trim(),
+      name: supplierName,
       contactPerson: contactPerson.trim(),
       email: email.toLowerCase(),
       phone: phone.trim(),
@@ -107,16 +122,18 @@ router.post("/register-supplier", async (req, res) => {
     });
 
     if (isDeliveryAgent) {
-      const vehicleType = (req.body.vehicleType && ["bicycle", "bike", "truck", "minivan", "camper", "cycle"].includes(req.body.vehicleType))
-        ? req.body.vehicleType
-        : "bike";
+      const vehicleType = req.body.vehicleType;
+      const vehicleNumber = (req.body.vehicleNumber || "").trim();
+      const documentVehicleIdentification = req.body.documentVehicleIdentification || "";
       await DeliveryPartner.create({
         name: contactPerson.trim(),
         email: email.toLowerCase(),
         phone: phone.trim(),
         vehicleType,
+        vehicleNumber,
         licenseDocument: documentIdProof || "",
         identityDocument: documentAddressProof || "",
+        vehicleIdentificationDocument: documentVehicleIdentification,
         userId: user._id,
         onboardingStatus: "pending",
       });
@@ -140,12 +157,12 @@ router.post("/register-supplier", async (req, res) => {
 
 router.post("/register-delivery", async (req, res) => {
   try {
-    const { name, email, phone, password, vehicleType, licenseDocument, identityDocument } = req.body;
+    const { name, email, phone, password, vehicleType, vehicleNumber, licenseDocument, identityDocument, documentVehicleIdentification } = req.body;
     if (!name || !email || !phone || !password || !vehicleType) {
       return res.status(400).json({ error: "Name, email, phone, password and vehicle type are required" });
     }
-    const validVehicle = ["bicycle", "bike", "truck", "minivan", "camper", "cycle"].includes(vehicleType);
-    if (!validVehicle) return res.status(400).json({ error: "Invalid vehicle type" });
+    const validVehicle = ["bike", "van", "bicycle", "tanker", "miniTruck"].includes(vehicleType);
+    if (!validVehicle) return res.status(400).json({ error: "Invalid vehicle type (bike, van, bicycle, tanker, miniTruck)" });
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) return res.status(400).json({ error: "Email already registered" });
     const user = await User.create({
@@ -160,8 +177,10 @@ router.post("/register-delivery", async (req, res) => {
       email: email.toLowerCase(),
       phone: phone.trim(),
       vehicleType,
+      vehicleNumber: (vehicleNumber || "").trim(),
       licenseDocument: licenseDocument || "",
       identityDocument: identityDocument || "",
+      vehicleIdentificationDocument: documentVehicleIdentification || "",
       userId: user._id,
       onboardingStatus: "pending",
     });

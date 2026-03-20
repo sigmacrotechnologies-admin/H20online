@@ -61,7 +61,9 @@ export default function Orders() {
             <table style={table}>
               <thead>
                 <tr>
+                  <th style={th}>Order ID</th>
                   <th style={th}>Date</th>
+                  <th style={th}>User ID</th>
                   <th style={th}>User</th>
                   <th style={th}>Total</th>
                   <th style={th}>Status</th>
@@ -71,8 +73,10 @@ export default function Orders() {
               <tbody>
                 {orders.map((o) => (
                   <tr key={o.id}>
+                    <td style={td}>{o.orderId || o.id}</td>
                     <td style={td}>{o.createdAt ? new Date(o.createdAt).toLocaleString() : "—"}</td>
-                    <td style={td}>{o.userName || o.userEmail || o.userId || "—"}</td>
+                    <td style={td}>{o.userCode || o.userId || "—"}</td>
+                    <td style={td}>{o.userName || o.userEmail || "—"}</td>
                     <td style={td}>₹{Number(o.total).toLocaleString()}</td>
                     <td style={td}>{o.status}</td>
                     <td style={td}>
@@ -96,10 +100,19 @@ export default function Orders() {
       {detail && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10 }} onClick={() => setDetail(null)}>
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 500, width: "90%", maxHeight: "80vh", overflow: "auto" }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginTop: 0 }}>Order #{detail.id?.slice(-6)}</h3>
+            <h3 style={{ marginTop: 0 }}>Order {detail.orderId || detail.id}</h3>
+            <p><strong>Order ID:</strong> {detail.orderId || detail.id}</p>
+            <p><strong>User ID:</strong> {detail.userCode || detail.userId || "—"}</p>
             <p><strong>User:</strong> {detail.userName} ({detail.userEmail})</p>
             <p><strong>Total:</strong> ₹{Number(detail.total).toLocaleString()}</p>
             <p><strong>Status:</strong> {detail.status}</p>
+            {detail.supplierResponses?.length > 0 && (
+              <p><strong>Delivery:</strong> {detail.supplierResponses.map((r) => {
+                const stage = r.deliveryStage || (r.status === "accepted" ? "accepted" : "");
+                if (r.status !== "accepted") return null;
+                return `${r.deliveryPartnerName || "—"} (${stage === "delivered" ? "Delivered" : stage === "picked_up" ? "Picked up" : "Accepted"})`;
+              }).filter(Boolean).join("; ") || "—"}</p>
+            )}
             <p><strong>Address:</strong> {detail.address || "—"}</p>
             <p><strong>Items:</strong></p>
             <ul style={{ paddingLeft: 20 }}>

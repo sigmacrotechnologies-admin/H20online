@@ -4,13 +4,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "@/src/context/CartContext";
-import BackButton from "@/src/components/BackButton";
+import BackButton, { backButtonContainerStyle } from "@/src/components/BackButton";
+import { getOrderId, getOrderIdShort } from "@/src/utils/orderId";
+import { theme } from "@/src/theme";
 
 const CorporateOrderHistoryScreen = () => {
   const router = useRouter();
   const { orders } = useCart();
 
-  const statusColor = (status) => (status === "cancelled" ? "#EF4444" : status === "in_progress" ? "#0EA5E9" : "#10B981");
+  const statusColor = (status) => (status === "cancelled" ? "#EF4444" : status === "in_progress" ? theme.primary : "#10B981");
   const list = orders.length > 0 ? orders : [];
 
   return (
@@ -18,7 +20,7 @@ const CorporateOrderHistoryScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.headerSection}>
           <LinearGradient
-            colors={["#7DD3FC", "#38BDF8", "#0EA5E9", "#06B6D4"]}
+            colors={theme.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.gradientBackground}
@@ -32,7 +34,7 @@ const CorporateOrderHistoryScreen = () => {
 
         <View style={styles.contentPanel}>
           <TouchableOpacity style={styles.updatePlanTile} onPress={() => router.push("/corporate-dashboard")} activeOpacity={0.8}>
-            <Ionicons name="repeat" size={24} color="#1EA7FD" />
+            <Ionicons name="repeat" size={24} color={theme.primary} />
             <Text style={styles.updatePlanText}>Update subscription plans</Text>
             <Ionicons name="chevron-forward" size={20} color="#6B7C85" />
           </TouchableOpacity>
@@ -48,9 +50,9 @@ const CorporateOrderHistoryScreen = () => {
             </View>
           ) : (
             list.map((item) => (
-              <TouchableOpacity key={item.id} style={styles.card} activeOpacity={0.8}>
+              <TouchableOpacity key={getOrderId(item) || Math.random()} style={styles.card} activeOpacity={0.8}>
                 <View style={styles.cardRow}>
-                  <Text style={styles.orderId}>#{(item.id || "").slice(-8)}</Text>
+                  <Text style={styles.orderId}>#{getOrderIdShort(item)}</Text>
                   <View style={[styles.statusBadge, { backgroundColor: statusColor(item.status) + "20" }]}>
                     <Text style={[styles.statusText, { color: statusColor(item.status) }]}>
                       {item.status === "cancelled" ? "Cancelled" : item.status === "in_progress" ? "In progress" : "Delivered"}
@@ -64,7 +66,7 @@ const CorporateOrderHistoryScreen = () => {
           )}
 
           <TouchableOpacity style={styles.adhocLink} onPress={() => router.push("/order")} activeOpacity={0.8}>
-            <Ionicons name="cart-outline" size={20} color="#1EA7FD" />
+            <Ionicons name="cart-outline" size={20} color={theme.primary} />
             <Text style={styles.adhocLinkText}>Ad hoc / single orders (customer order flow)</Text>
           </TouchableOpacity>
         </View>
@@ -76,19 +78,19 @@ const CorporateOrderHistoryScreen = () => {
 export default CorporateOrderHistoryScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#c6e2fa", paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   scrollContent: { paddingBottom: 40 },
   headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 100, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 50, paddingHorizontal: 20 },
-  headerOverlay: { flexDirection: "row", alignItems: "center" },
+  gradientBackground: { flex: 1, paddingTop: 14, paddingHorizontal: 20 },
+  headerOverlay: { flexDirection: "row", alignItems: "center", right: 20 },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF", marginLeft: 12 },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#c6e2fa", borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20 },
+  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20 },
   updatePlanTile: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.85)", borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", elevation: 2 },
   updatePlanText: { flex: 1, fontSize: 15, fontWeight: "600", color: "#1B2B34", marginLeft: 12 },
   sectionTitle: { fontSize: 17, fontWeight: "700", color: "#1B2B34", marginBottom: 12 },
   emptyWrap: { alignItems: "center", paddingVertical: 40 },
   emptyText: { fontSize: 15, color: "#6B7C85", marginTop: 12 },
-  adhocBtn: { marginTop: 16, backgroundColor: "#1EA7FD", paddingVertical: 12, paddingHorizontal: 24, borderRadius: 24 },
+  adhocBtn: { marginTop: 16, backgroundColor: theme.primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 24 },
   adhocBtnText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
   card: { backgroundColor: "rgba(255,255,255,0.85)", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", elevation: 2 },
   cardRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
@@ -96,7 +98,7 @@ const styles = StyleSheet.create({
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   statusText: { fontSize: 12, fontWeight: "600" },
   date: { fontSize: 13, color: "#6B7C85", marginTop: 8 },
-  total: { fontSize: 18, fontWeight: "700", color: "#0EA5E9", marginTop: 4 },
+  total: { fontSize: 18, fontWeight: "700", color: theme.primary, marginTop: 4 },
   adhocLink: { flexDirection: "row", alignItems: "center", marginTop: 24, paddingVertical: 12, gap: 8 },
-  adhocLinkText: { fontSize: 14, fontWeight: "600", color: "#1EA7FD" },
+  adhocLinkText: { fontSize: 14, fontWeight: "600", color: theme.primary },
 });

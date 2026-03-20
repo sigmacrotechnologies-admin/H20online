@@ -111,6 +111,7 @@ router.patch("/orders/:id/accept", async (req, res) => {
     if (resp.status !== "pending") return res.status(400).json({ error: "Order already responded" });
     const { eta, remarks, deliveryPartnerId, requestedFleetType } = req.body;
     resp.status = "accepted";
+    resp.deliveryStage = "accepted";
     if (eta != null && typeof eta === "string") resp.eta = eta.trim();
     if (remarks != null && typeof remarks === "string") resp.remarks = remarks.trim();
     if (requestedFleetType != null && typeof requestedFleetType === "string") resp.requestedFleetType = requestedFleetType.trim();
@@ -206,6 +207,26 @@ router.get("/products", async (req, res) => {
     const Product = require("../models/Product");
     const list = await Product.find({ supplierId }).sort({ createdAt: -1 }).lean();
     res.json(list.map((p) => ({ ...p, id: p._id.toString(), _id: p._id.toString() })));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Supplier cancel order (order in progress, for this supplier's part)
+router.patch("/orders/:id/cancel", async (req, res) => {
+  try {
+    const supplierId = await getSupplierId(req.user._id);
+    if (!supplierId) return res.status(403).json({ error: "Supplier profile required" });
+    const orderId = toObjectId(req.params.id);
+    if (!orderId) return res.status(400).json({ error: "Invalid order id" });
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    const resp = (order.supplierResponses || []).find((r) => String(r.supplierId) === String(supplierId));
+    if (!resp) return res.status(404).json({ error: "Order not found for this supplier" });
+    if (order.status !== "in_progress") return res.status(400).json({ error: "Order cannot be cancelled" });
+    order.status = "cancelled";
+    await order.save();
+    res.json({ id: order._id.toString(), status: order.status });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

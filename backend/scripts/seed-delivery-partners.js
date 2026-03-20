@@ -6,14 +6,13 @@ const DeliveryPartner = require("../models/DeliveryPartner");
 const uri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/h20online";
 
 const samples = [
-  { name: "Rahul Rider", email: "rahul.dp@h2o.test", phone: "9876543210", vehicleType: "bicycle" },
-  { name: "Vikram Bike", email: "vikram.dp@h2o.test", phone: "9876543211", vehicleType: "bike" },
-  { name: "Suresh Van", email: "suresh.dp@h2o.test", phone: "9876543212", vehicleType: "minivan" },
-  { name: "Amit Truck", email: "amit.dp@h2o.test", phone: "9876543213", vehicleType: "truck" },
-  { name: "Priya Cycle", email: "priya.dp@h2o.test", phone: "9876543214", vehicleType: "cycle" },
-  { name: "Deepak Camper", email: "deepak.dp@h2o.test", phone: "9876543215", vehicleType: "camper" },
-  { name: "Anita Bike", email: "anita.dp@h2o.test", phone: "9876543216", vehicleType: "bike" },
-  { name: "Rohan Bicycle", email: "rohan.dp@h2o.test", phone: "9876543217", vehicleType: "bicycle" },
+  { name: "Rahul Rider", email: "rahul.dp@h2o.test", phone: "9876543210", vehicleType: "bicycle", vehicleNumber: "MH 01 AB 1001" },
+  { name: "Vikram Bike", email: "vikram.dp@h2o.test", phone: "9876543211", vehicleType: "bike", vehicleNumber: "MH 02 CD 2002" },
+  { name: "Suresh Van", email: "suresh.dp@h2o.test", phone: "9876543212", vehicleType: "van", vehicleNumber: "MH 03 EF 3003" },
+  { name: "Amit Truck", email: "amit.dp@h2o.test", phone: "9876543213", vehicleType: "miniTruck", vehicleNumber: "MH 04 GH 4004" },
+  { name: "Priya Tanker", email: "priya.dp@h2o.test", phone: "9876543214", vehicleType: "tanker", vehicleNumber: "MH 05 IJ 5005" },
+  { name: "Anita Bike", email: "anita.dp@h2o.test", phone: "9876543216", vehicleType: "bike", vehicleNumber: "MH 06 KL 6006" },
+  { name: "Rohan Bicycle", email: "rohan.dp@h2o.test", phone: "9876543217", vehicleType: "bicycle", vehicleNumber: "MH 07 MN 7007" },
 ];
 
 const PASSWORD = "delivery123";
@@ -47,10 +46,12 @@ async function seed() {
         email: s.email,
         phone: s.phone,
         vehicleType: s.vehicleType,
+        vehicleNumber: s.vehicleNumber || "",
         userId: user._id,
         onboardingStatus: "approved",
         documentLicenseVerified: true,
         documentIdentityVerified: true,
+        documentVehicleIdentificationVerified: true,
       });
       console.log("Created DP:", s.email, s.vehicleType);
     }
