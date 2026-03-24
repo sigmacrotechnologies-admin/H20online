@@ -4,6 +4,7 @@ const Supplier = require("../models/Supplier");
 const { auth } = require("../middleware/auth");
 
 const router = express.Router();
+const DEFAULT_PRODUCT_IMAGE = "https://placehold.co/400x300?text=H2O+Product";
 
 router.get("/", async (req, res) => {
   try {
@@ -32,12 +33,15 @@ router.get("/", async (req, res) => {
         list.push({
           id: (p._id && p._id.toString) ? p._id.toString() : String(p._id),
           productName: p.productName != null ? String(p.productName) : "",
+          productType: p.productType != null ? String(p.productType) : "jar",
+          imageUrl: p.imageUrl != null && String(p.imageUrl).trim() ? String(p.imageUrl).trim() : DEFAULT_PRODUCT_IMAGE,
           supplierName,
           supplierId: supplierIdStr,
           price: typeof p.price === "number" ? p.price : Number(p.price) || 0,
           priceUnit: p.priceUnit != null ? String(p.priceUnit) : "20L Jar",
           delivery: p.delivery != null ? String(p.delivery) : "",
           inStock: p.inStock !== false,
+          stockQty: typeof p.stockQty === "number" ? p.stockQty : Number(p.stockQty) || 0,
           capacityL: typeof p.capacityL === "number" ? p.capacityL : Number(p.capacityL) || 20,
           categories: Array.isArray(p.categories) ? p.categories : [],
           badge: p.badge != null ? String(p.badge) : "",
@@ -62,10 +66,13 @@ router.post("/", auth, async (req, res) => {
     if (!supplier) return res.status(403).json({ error: "Supplier profile required to add products" });
     const {
       productName,
+      productType,
+      imageUrl,
       price,
       priceUnit,
       delivery,
       inStock,
+      stockQty,
       capacityL,
       categories,
       badge,
@@ -78,10 +85,13 @@ router.post("/", auth, async (req, res) => {
     const product = await Product.create({
       productName: String(productName).trim(),
       supplierId: supplier._id,
+      productType: productType != null && String(productType).trim() ? String(productType).trim() : "jar",
+      imageUrl: imageUrl != null && String(imageUrl).trim() ? String(imageUrl).trim() : DEFAULT_PRODUCT_IMAGE,
       price: Number(price),
       priceUnit: priceUnit != null ? String(priceUnit) : "20L Jar",
       delivery: delivery != null ? String(delivery) : "20-30 min",
-      inStock: inStock !== false,
+      inStock: stockQty != null ? Number(stockQty) > 0 : inStock !== false,
+      stockQty: stockQty != null ? Math.max(0, Number(stockQty) || 0) : 0,
       capacityL: capacityL != null ? Number(capacityL) : 20,
       categories: Array.isArray(categories) ? categories : [],
       badge: badge && ["subscription", "premium"].includes(badge) ? badge : "",
@@ -93,12 +103,15 @@ router.post("/", auth, async (req, res) => {
     res.status(201).json({
       id: p._id.toString(),
       productName: p.productName || "",
+      productType: p.productType || "jar",
+      imageUrl: p.imageUrl || DEFAULT_PRODUCT_IMAGE,
       supplierName: sid && typeof sid === "object" && sid.name ? sid.name : "",
       supplierId: sid ? String(sid._id) : "",
       price: p.price,
       priceUnit: p.priceUnit,
       delivery: p.delivery,
       inStock: p.inStock !== false,
+      stockQty: p.stockQty || 0,
       capacityL: p.capacityL || 20,
       categories: p.categories || [],
       badge: p.badge || "",
@@ -121,17 +134,87 @@ router.get("/:id", async (req, res) => {
     res.json({
       id: p._id.toString(),
       productName: p.productName || "",
+      productType: p.productType || "jar",
+      imageUrl: p.imageUrl || DEFAULT_PRODUCT_IMAGE,
       supplierName,
       supplierId: supplierIdStr,
       price: p.price,
       priceUnit: p.priceUnit,
       delivery: p.delivery,
       inStock: p.inStock !== false,
+      stockQty: p.stockQty || 0,
       capacityL: p.capacityL || 20,
       categories: p.categories || [],
       badge: p.badge || "",
       rating: p.rating,
       reviewCount: p.reviewCount,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put("/:id", auth, async (req, res) => {
+  try {
+    const supplier = await Supplier.findOne({ userId: req.user._id });
+    if (!supplier) return res.status(403).json({ error: "Supplier profile required" });
+    const p = await Product.findOne({ _id: req.params.id, supplierId: supplier._id });
+    if (!p) return res.status(404).json({ error: "Product not found" });
+
+    const {
+      productName,
+      productType,
+      imageUrl,
+      price,
+      priceUnit,
+      delivery,
+      inStock,
+      stockQty,
+      capacityL,
+      categories,
+      badge,
+      rating,
+      reviewCount,
+    } = req.body || {};
+
+    if (productName !== undefined && String(productName).trim()) p.productName = String(productName).trim();
+    if (productType !== undefined) p.productType = String(productType || "jar").trim() || "jar";
+    if (imageUrl !== undefined) p.imageUrl = String(imageUrl || "").trim() || DEFAULT_PRODUCT_IMAGE;
+    if (price !== undefined && price !== null && price !== "") p.price = Number(price);
+    if (priceUnit !== undefined) p.priceUnit = String(priceUnit || "20L Jar");
+    if (delivery !== undefined) p.delivery = String(delivery || "20-30 min");
+    if (stockQty !== undefined && stockQty !== null && stockQty !== "") {
+      p.stockQty = Math.max(0, Number(stockQty) || 0);
+      p.inStock = p.stockQty > 0;
+    } else if (inStock !== undefined) {
+      p.inStock = inStock !== false;
+    }
+    if (capacityL !== undefined && capacityL !== null && capacityL !== "") p.capacityL = Number(capacityL) || 20;
+    if (categories !== undefined) p.categories = Array.isArray(categories) ? categories : [];
+    if (badge !== undefined) p.badge = badge && ["subscription", "premium"].includes(badge) ? badge : "";
+    if (rating !== undefined) p.rating = Number(rating) || 4;
+    if (reviewCount !== undefined) p.reviewCount = String(reviewCount);
+
+    await p.save();
+    const out = await Product.findById(p._id).populate("supplierId", "name").lean();
+    const sid = out.supplierId;
+    res.json({
+      id: out._id.toString(),
+      productName: out.productName || "",
+      productType: out.productType || "jar",
+      imageUrl: out.imageUrl || DEFAULT_PRODUCT_IMAGE,
+      supplierName: sid && typeof sid === "object" && sid.name ? sid.name : "",
+      supplierId: sid ? String(sid._id) : "",
+      price: out.price,
+      priceUnit: out.priceUnit,
+      delivery: out.delivery,
+      inStock: out.inStock !== false,
+      stockQty: out.stockQty || 0,
+      capacityL: out.capacityL || 20,
+      categories: out.categories || [],
+      badge: out.badge || "",
+      rating: out.rating,
+      reviewCount: out.reviewCount,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

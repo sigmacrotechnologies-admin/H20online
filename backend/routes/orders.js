@@ -2,6 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const Supplier = require("../models/Supplier");
+const Product = require("../models/Product");
+const SavedAddress = require("../models/SavedAddress");
 const { auth } = require("../middleware/auth");
 const { getOrCreateWallet, getOrCreatePlatformWallet } = require("./wallet");
 
@@ -56,6 +58,8 @@ router.get("/", async (req, res) => {
         total: o.total,
         paymentMethod: o.paymentMethod,
         status: o.status,
+        orderType: o.orderType || "instant",
+        scheduledAt: o.scheduledAt || null,
         date: o.createdAt,
         address: o.address,
         supplierResponses: o.supplierResponses || [],
@@ -101,6 +105,8 @@ router.get("/:id", async (req, res) => {
       items: o.items,
       total: o.total,
       status: o.status,
+      orderType: o.orderType || "instant",
+      scheduledAt: o.scheduledAt || null,
       date: o.createdAt,
       address: o.address,
       receiverName: o.receiverName,
@@ -127,6 +133,33 @@ router.post("/", async (req, res) => {
       qty: Number(i.qty) || 1,
     }));
     const orderTotal = typeof body.total === "number" ? body.total : orderItems.reduce((s, i) => s + (i.price || 0) * (i.qty || 1), 0);
+    const qtyByProductId = new Map();
+    for (const it of orderItems) {
+      const key = it.productId ? String(it.productId) : "";
+      if (!key) continue;
+      qtyByProductId.set(key, (qtyByProductId.get(key) || 0) + (Number(it.qty) || 1));
+    }
+    const stockDocs = [];
+    if (qtyByProductId.size > 0) {
+      const ids = Array.from(qtyByProductId.keys()).filter((id) => mongoose.Types.ObjectId.isValid(id));
+      const products = await Product.find({ _id: { $in: ids } });
+      for (const p of products) {
+        const needed = qtyByProductId.get(String(p._id)) || 0;
+        const available = Number(p.stockQty || 0);
+        if (needed > available) {
+          return res.status(400).json({ error: `Insufficient stock for ${p.productName || "product"}. Available: ${available}` });
+        }
+      }
+      for (const p of products) {
+        const needed = qtyByProductId.get(String(p._id)) || 0;
+        if (needed > 0) {
+          p.stockQty = Math.max(0, Number(p.stockQty || 0) - needed);
+          p.inStock = p.stockQty > 0;
+          stockDocs.push({ id: p._id.toString(), deducted: needed });
+          await p.save();
+        }
+      }
+    }
     const paymentMethod = body.paymentMethod || "card";
     let didWalletDebit = false;
     if (paymentMethod === "wallet") {
@@ -146,6 +179,7 @@ router.post("/", async (req, res) => {
     const uniqueSupplierIds = [...new Set(orderItems.map((i) => i.supplierId).filter(Boolean))];
     const supplierResponses = uniqueSupplierIds.map((sid) => ({ supplierId: sid, status: "pending" }));
     const scheduledAt = body.scheduledAt ? new Date(body.scheduledAt) : null;
+    const orderType = scheduledAt ? "scheduled" : "instant";
     let order;
     try {
       order = await Order.create({
@@ -154,12 +188,24 @@ router.post("/", async (req, res) => {
         total: orderTotal,
         paymentMethod,
         address: body.address || "",
+        orderType,
         receiverName: body.receiverName || null,
         receiverPhone: body.receiverPhone || null,
         scheduledAt,
         supplierResponses,
       });
     } catch (createErr) {
+      if (stockDocs.length > 0) {
+        for (const s of stockDocs) {
+          try {
+            const p = await Product.findById(s.id);
+            if (!p) continue;
+            p.stockQty = Math.max(0, Number(p.stockQty || 0) + Number(s.deducted || 0));
+            p.inStock = p.stockQty > 0;
+            await p.save();
+          } catch (_) {}
+        }
+      }
       if (didWalletDebit) {
         const userWallet = await getOrCreateWallet(req.user._id);
         const platformWallet = await getOrCreatePlatformWallet();
@@ -173,6 +219,33 @@ router.post("/", async (req, res) => {
       throw createErr;
     }
     const out = order.toObject();
+    // Auto-save checkout address (with phone) for future selections.
+    try {
+      const addrText = String(body.address || "").trim();
+      const phoneText = String(body.receiverPhone || "").trim();
+      if (addrText && phoneText) {
+        const existing = await SavedAddress.findOne({
+          userId: req.user._id,
+          fullAddress: addrText,
+          phoneNumber: phoneText,
+        }).lean();
+        if (!existing) {
+          await SavedAddress.create({
+            userId: req.user._id,
+            fullAddress: addrText,
+            phoneNumber: phoneText,
+            houseNumber: "",
+            locality: "",
+            city: "",
+            state: "",
+            pinCode: "",
+            isDefault: false,
+          });
+        }
+      }
+    } catch (_) {
+      // Non-blocking: order is already created successfully.
+    }
     res.status(201).json({
       id: out._id.toString(),
       orderId: out.orderId || out._id.toString(),
@@ -181,6 +254,8 @@ router.post("/", async (req, res) => {
       status: out.status,
       date: out.createdAt,
       address: out.address,
+      orderType: out.orderType || "instant",
+      scheduledAt: out.scheduledAt || null,
     });
     console.log("Order created:", out._id.toString());
   } catch (err) {

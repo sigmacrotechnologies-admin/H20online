@@ -28,6 +28,7 @@ export default function RootLayout() {
             <Stack.Screen name="payment" options={{ headerShown: false }} />
             <Stack.Screen name="order-confirmed" options={{ headerShown: false }} />
             <Stack.Screen name="order-history" options={{ headerShown: false }} />
+            <Stack.Screen name="saved-addresses" options={{ headerShown: false }} />
             <Stack.Screen name="track-order" options={{ headerShown: false }} />
             <Stack.Screen name="water-intake" options={{ headerShown: false }} />
             <Stack.Screen name="plan-subscription" options={{ headerShown: false }} />
@@ -47,6 +48,7 @@ export default function RootLayout() {
             <Stack.Screen name="supplier-order-history" options={{ headerShown: false }} />
             <Stack.Screen name="supplier-products" options={{ headerShown: false }} />
             <Stack.Screen name="supplier-financials" options={{ headerShown: false }} />
+            <Stack.Screen name="supplier-wallet" options={{ headerShown: false }} />
             <Stack.Screen name="supplier-support" options={{ headerShown: false }} />
             <Stack.Screen name="delivery-onboarding" options={{ headerShown: false }} />
             <Stack.Screen name="delivery-verification-pending" options={{ headerShown: false }} />

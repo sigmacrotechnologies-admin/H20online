@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,10 +8,16 @@ import {
   TextInput,
   ActivityIndicator,
   ScrollView,
+  Image,
+  Platform,
+  StatusBar,
+  Animated,
+  Easing,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import Svg, { Path } from "react-native-svg";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
@@ -36,6 +42,23 @@ const ROLE_TO_DB = {
   "Event Org": "eventOrg",
   Institute: "institute",
 };
+const COMING_SOON_ROLES = ["Corporate", "Restaurant", "Event Org", "Institute"];
+const HEADER_DROPLETS = [
+  { left: -8, top: 18, width: 16, height: 22, phase: "a" },
+  { left: 22, top: 58, width: 14, height: 20, phase: "b" },
+  { left: 56, top: 20, width: 18, height: 24, phase: "c" },
+  { left: 92, top: 86, width: 14, height: 20, phase: "a" },
+  { left: 132, top: 38, width: 16, height: 22, phase: "b" },
+  { left: 172, top: 102, width: 14, height: 20, phase: "c" },
+  { left: 212, top: 60, width: 16, height: 22, phase: "a" },
+  { left: 24, top: 156, width: 14, height: 20, phase: "c" },
+  { right: 118, top: 68, width: 14, height: 20, phase: "a" },
+  { right: 82, top: 30, width: 16, height: 22, phase: "b" },
+  { right: 46, top: 94, width: 14, height: 20, phase: "c" },
+  { right: 10, top: 54, width: 16, height: 22, phase: "a" },
+  { right: -6, top: 124, width: 14, height: 20, phase: "b" },
+  { right: 92, top: 160, width: 14, height: 20, phase: "c" },
+];
 
 const LoginScreen = () => {
   const router = useRouter();
@@ -48,10 +71,32 @@ const LoginScreen = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const contentScrollRef = useRef(null);
+  const [passwordAnchorY, setPasswordAnchorY] = useState(0);
+  const [loginAnchorY, setLoginAnchorY] = useState(0);
+  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
+  const dropletAnimA = useRef(new Animated.Value(0)).current;
+  const dropletAnimB = useRef(new Animated.Value(0)).current;
+  const dropletAnimC = useRef(new Animated.Value(0)).current;
 
   const initialRole =
     (roleForLookup && LOGIN_ROLES.find((r) => r.title === roleForLookup)) || LOGIN_ROLES[0];
   const [selectedRole, setSelectedRole] = useState(initialRole);
+  useEffect(() => {
+    const loop = (value, duration) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(value, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(value, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      );
+    const a = loop(dropletAnimA, 3400);
+    const b = loop(dropletAnimB, 4200);
+    const c = loop(dropletAnimC, 3800);
+    a.start(); b.start(); c.start();
+    return () => { a.stop(); b.stop(); c.stop(); };
+  }, [dropletAnimA, dropletAnimB, dropletAnimC]);
+  const getDropletAnim = (phase) => phase === "b" ? dropletAnimB : phase === "c" ? dropletAnimC : dropletAnimA;
 
   const handleLogin = async () => {
     setError("");
@@ -125,6 +170,11 @@ const LoginScreen = () => {
   };
 
   const canLogin = email.trim().length > 0 && password.trim().length > 0 && termsAccepted;
+  const isComingSoonRole = COMING_SOON_ROLES.includes(selectedRole.title);
+  const scrollToY = (y) => {
+    if (!contentScrollRef.current || y <= 0) return;
+    contentScrollRef.current.scrollTo({ y: Math.max(0, y - 24), animated: true });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -133,21 +183,57 @@ const LoginScreen = () => {
           colors={theme.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.gradientBackground}
+          style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}
         >
+          <View style={styles.headerOverlay}>
+            {HEADER_DROPLETS.map((drop, idx) => {
+              const dropAnim = getDropletAnim(drop.phase);
+              return (
+                <Animated.View
+                  key={`login-drop-${idx}`}
+                  style={[styles.dropletWrap, {
+                    left: drop.left, right: drop.right, top: drop.top, width: drop.width, height: drop.height,
+                    opacity: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.32] }),
+                    transform: [
+                      { translateY: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
+                      { scale: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.05] }) },
+                    ],
+                  }]}
+                >
+                  <Svg width="100%" height="100%" viewBox="0 0 60 80">
+                    <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.3)" />
+                  </Svg>
+                </Animated.View>
+              );
+            })}
+          </View>
           <View style={styles.headerTopRow}>
             <BackButton onPress={() => router.replace("/")} />
+            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
+            <View style={styles.headerTopSpacer} />
           </View>
           <View style={styles.headerCenter}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="log-in-outline" size={36} color="#FFFFFF" />
+            <View style={styles.headerInfoRow}>
+              <View style={styles.headerIconCircle}>
+                <Ionicons name="log-in-outline" size={24} color="#FFFFFF" />
+              </View>
+              <View style={styles.headerTextWrap}>
+                <Text style={styles.headerTitle}>Login</Text>
+                <Text style={styles.headerSubtitle}>Sign in with your profile email and password</Text>
+              </View>
             </View>
-            <Text style={styles.headerTitle}>Login</Text>
           </View>
         </LinearGradient>
       </View>
 
-      <View style={styles.contentPanel}>
+      <ScrollView
+        ref={contentScrollRef}
+        style={styles.contentScroll}
+        contentContainerStyle={styles.contentScrollInner}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.contentPanel}>
         <Text style={styles.roleLabel}>Sign in as</Text>
         <ScrollView
           horizontal
@@ -168,7 +254,7 @@ const LoginScreen = () => {
                   <Ionicons
                     name={role.icon}
                     size={24}
-                    color={isSelected ? theme.primary : theme.textMuted}
+                    color={isSelected ? "#FFFFFF" : theme.textMuted}
                   />
                 </View>
                 <Text style={[styles.roleTileText, isSelected && styles.roleTileTextSelected]} numberOfLines={1}>
@@ -180,104 +266,122 @@ const LoginScreen = () => {
         </ScrollView>
         <Text style={styles.subtitle}>Use your email and password to log in. Enter the email and password for the selected profile type.</Text>
 
-        <View style={styles.inputSection}>
-          <Text style={styles.label}>Email ID</Text>
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Enter your email"
-              placeholderTextColor="#9CA3AF"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-          </View>
-        </View>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.label}>Password</Text>
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Enter your password"
-              placeholderTextColor="#9CA3AF"
-              secureTextEntry
-            />
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={styles.termsRow}
-          onPress={() => setTermsAccepted(!termsAccepted)}
-          activeOpacity={0.8}
-        >
-          <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
-            {termsAccepted ? <Ionicons name="checkmark" size={16} color="#FFFFFF" /> : null}
-          </View>
-          <Text style={styles.termsText}>
-            I agree to the{" "}
-            <Text style={styles.termsLink}>Terms & Conditions</Text>
-            {" "}and{" "}
-            <Text style={styles.termsLink}>Privacy Policy</Text>
-          </Text>
-        </TouchableOpacity>
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        <TouchableOpacity
-          style={[styles.loginButton, (!canLogin || loading) && styles.loginButtonDisabled]}
-          onPress={handleLogin}
-          disabled={!canLogin || loading}
-          activeOpacity={canLogin && !loading ? 0.9 : 1}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <Text style={canLogin && !loading ? styles.loginButtonText : styles.loginButtonTextDisabled}>
-              Log in
+        {isComingSoonRole ? (
+          <View style={styles.comingSoonCard}>
+            <Ionicons name="time-outline" size={40} color={theme.primary} />
+            <Text style={styles.comingSoonTitle}>Feature coming soon</Text>
+            <Text style={styles.comingSoonText}>
+              {selectedRole.title} login will be available soon.
             </Text>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.forgotPasswordLink}
-          onPress={() => router.push("/forgot-password")}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-        </TouchableOpacity>
-
-        <View style={styles.socialSection}>
-          <Text style={styles.socialLabel}>Or continue with</Text>
-          <View style={styles.socialRow}>
-            <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn} activeOpacity={0.8}>
-              <Ionicons name="logo-google" size={24} color="#1B2B34" />
-              <Text style={styles.socialButtonText}>Google</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton} onPress={handleAppleSignIn} activeOpacity={0.8}>
-              <Ionicons name="logo-apple" size={24} color="#1B2B34" />
-              <Text style={styles.socialButtonText}>Apple</Text>
-            </TouchableOpacity>
           </View>
-        </View>
+        ) : (
+          <>
+            <View style={styles.inputSection}>
+              <Text style={styles.label}>Email ID</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="mail-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  underlineColorAndroid="transparent"
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  onFocus={() => scrollToY(passwordAnchorY)}
+                />
+              </View>
+            </View>
 
-        <TouchableOpacity
-          style={styles.signUpLink}
-          onPress={() => {
-            if (selectedRole.title === "Supplier") router.replace("/supplier-onboarding");
-            else if (selectedRole.title === "Delivery partner") router.replace("/delivery-onboarding");
-            else router.replace("/create-profile");
-          }}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.signUpLinkText}>{"Don't have an account? Sign up"}</Text>
-        </TouchableOpacity>
-      </View>
+            <View style={styles.inputSection} onLayout={(e) => setPasswordAnchorY(e.nativeEvent.layout.y)}>
+              <Text style={styles.label}>Password</Text>
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  underlineColorAndroid="transparent"
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry
+                  onFocus={() => scrollToY(loginAnchorY)}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.termsRow}
+              onPress={() => setTermsAccepted(!termsAccepted)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>
+                {termsAccepted ? <Ionicons name="checkmark" size={16} color="#FFFFFF" /> : null}
+              </View>
+              <Text style={styles.termsText}>
+                I agree to the{" "}
+                <Text style={styles.termsLink}>Terms & Conditions</Text>
+                {" "}and{" "}
+                <Text style={styles.termsLink}>Privacy Policy</Text>
+              </Text>
+            </TouchableOpacity>
+
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+            <TouchableOpacity
+              onLayout={(e) => setLoginAnchorY(e.nativeEvent.layout.y)}
+              style={[styles.loginButton, (!canLogin || loading) && styles.loginButtonDisabled]}
+              onPress={handleLogin}
+              disabled={!canLogin || loading}
+              activeOpacity={canLogin && !loading ? 0.9 : 1}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Text style={canLogin && !loading ? styles.loginButtonText : styles.loginButtonTextDisabled}>
+                  Log in
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.forgotPasswordLink}
+              onPress={() => router.push("/forgot-password")}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+            </TouchableOpacity>
+
+            <View style={styles.socialSection}>
+              <Text style={styles.socialLabel}>Or continue with</Text>
+              <View style={styles.socialRow}>
+                <TouchableOpacity style={styles.socialButton} onPress={handleGoogleSignIn} activeOpacity={0.8}>
+                  <Ionicons name="logo-google" size={24} color="#1B2B34" />
+                  <Text style={styles.socialButtonText}>Google</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.socialButton} onPress={handleAppleSignIn} activeOpacity={0.8}>
+                  <Ionicons name="logo-apple" size={24} color="#1B2B34" />
+                  <Text style={styles.socialButtonText}>Apple</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.signUpLink}
+              onPress={() => {
+                if (selectedRole.title === "Supplier") router.replace("/supplier-onboarding");
+                else if (selectedRole.title === "Delivery partner") router.replace("/delivery-onboarding");
+                else router.replace("/create-profile");
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.signUpLinkText}>{"Don't have an account? Sign up"}</Text>
+            </TouchableOpacity>
+          </>
+        )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -285,22 +389,39 @@ const LoginScreen = () => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
-  headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 188, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 24, paddingHorizontal: 36, paddingBottom: 32 },
-  headerTopRow: { flexDirection: "row", alignItems: "center", marginBottom: 0 },
-  headerCenter: { alignItems: "center", justifyContent: "center", marginTop: -14, width: "100%" },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
+  headerSection: { height: 236, overflow: "hidden" },
+  gradientBackground: { flex: 1, paddingHorizontal: 20, paddingBottom: 34 },
+  headerOverlay: { ...StyleSheet.absoluteFillObject },
+  dropletWrap: { position: "absolute", alignItems: "center", justifyContent: "center" },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 30 },
+  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
+  headerTopSpacer: { width: 40, height: 40 },
+  headerCenter: { alignItems: "flex-start", justifyContent: "center", marginTop: 2, width: "100%" },
+  headerInfoRow: { flexDirection: "row", alignItems: "center" },
+  headerTextWrap: { flex: 1, marginLeft: 12 },
   headerIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "rgba(255,255,255,0.25)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 2,
   },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: theme.white, textAlign: "center", paddingBottom: 28 },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20 },
+  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
+  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
+  contentScroll: { flex: 1, marginTop: -16 },
+  contentScrollInner: { paddingBottom: Platform.OS === "android" ? 40 : 24 },
+  contentPanel: {
+    marginTop: 0,
+    backgroundColor: theme.screenBackground,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 24,
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === "android" ? 34 : 20,
+  },
   roleLabel: { fontSize: 14, fontWeight: "600", color: theme.textPrimary, marginBottom: 10 },
   roleTilesContainer: { marginHorizontal: -4, marginBottom: 4 },
   roleTilesScroll: { paddingHorizontal: 4, paddingVertical: 4, flexDirection: "row" },
@@ -317,8 +438,8 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   roleTileSelected: {
-    backgroundColor: "rgba(194,238,240,0.9)",
-    borderColor: theme.primaryLight,
+    backgroundColor: theme.primary,
+    borderColor: theme.primary,
   },
   roleTileIconWrap: {
     width: 44,
@@ -330,16 +451,31 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   roleTileIconWrapSelected: {
-    backgroundColor: "rgba(51,175,193,0.3)",
+    backgroundColor: "rgba(255,255,255,0.24)",
   },
   roleTileText: { fontSize: 11, fontWeight: "600", color: theme.textMuted, textAlign: "center" },
-  roleTileTextSelected: { color: theme.primary },
+  roleTileTextSelected: { color: "#FFFFFF" },
   subtitle: { fontSize: 14, color: theme.textMuted, marginBottom: 24, marginTop: 4 },
   inputSection: { marginBottom: 20 },
   label: { fontSize: 15, fontWeight: "600", color: theme.textPrimary, marginBottom: 10 },
-  inputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.7)", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.8)", elevation: 3 },
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1.2,
+    borderColor: "rgba(214,234,242,0.95)",
+    shadowColor: "#0B3A4A",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.14,
+    shadowRadius: 10,
+    elevation: 4,
+    overflow: "hidden",
+  },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: theme.textPrimary, padding: 0 },
+  input: { flex: 1, fontSize: 16, color: theme.textPrimary, padding: 0, margin: 0, borderWidth: 0, backgroundColor: "transparent", includeFontPadding: false },
   termsRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 20 },
   checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: theme.primaryLight, marginRight: 12, justifyContent: "center", alignItems: "center" },
   checkboxChecked: { backgroundColor: theme.primary, borderColor: theme.primary },
@@ -359,4 +495,27 @@ const styles = StyleSheet.create({
   forgotPasswordText: { fontSize: 13, fontWeight: "600", color: theme.link, textDecorationLine: "underline" },
   signUpLink: { alignItems: "center", paddingVertical: 12 },
   signUpLinkText: { fontSize: 14, fontWeight: "600", color: theme.link },
+  comingSoonCard: {
+    backgroundColor: "rgba(255,255,255,0.78)",
+    borderRadius: 16,
+    paddingVertical: 26,
+    paddingHorizontal: 18,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
+    marginTop: 8,
+    marginBottom: 18,
+  },
+  comingSoonTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1B2B34",
+    marginTop: 10,
+  },
+  comingSoonText: {
+    fontSize: 14,
+    color: "#6B7C85",
+    marginTop: 6,
+    textAlign: "center",
+  },
 });

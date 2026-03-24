@@ -22,6 +22,7 @@ export default function DeliveryIncomingOrdersScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actioningId, setActioningId] = useState(null);
+  const [activeTypeFilter, setActiveTypeFilter] = useState("all");
 
   const fetchOrders = () => {
     return api.deliveryPartners.ordersIncoming()
@@ -60,6 +61,15 @@ export default function DeliveryIncomingOrdersScreen() {
     return dt.toLocaleDateString() + " " + dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
+  const instantOrders = orders.filter((o) => (o.orderType || "instant") === "instant");
+  const scheduledOrders = orders.filter((o) => (o.orderType || "instant") === "scheduled");
+  const visibleOrders =
+    activeTypeFilter === "instant"
+      ? instantOrders
+      : activeTypeFilter === "scheduled"
+      ? scheduledOrders
+      : orders;
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -80,14 +90,38 @@ export default function DeliveryIncomingOrdersScreen() {
           contentContainerStyle={styles.scrollContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />}
         >
-        {orders.length === 0 ? (
+        <View style={styles.typeTilesRow}>
+          <TouchableOpacity
+            style={[styles.typeTile, activeTypeFilter === "instant" && styles.typeTileActive]}
+            onPress={() => setActiveTypeFilter("instant")}
+            activeOpacity={0.85}
+          >
+            <View style={styles.typeTileTop}>
+              <Text style={[styles.typeTileTitle, activeTypeFilter === "instant" && styles.typeTileTitleActive]}>Instant order</Text>
+              {instantOrders.length > 0 ? <View style={styles.liveDot} /> : null}
+            </View>
+            <Text style={[styles.typeTileCount, activeTypeFilter === "instant" && styles.typeTileCountActive]}>{instantOrders.length}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.typeTile, activeTypeFilter === "scheduled" && styles.typeTileActive]}
+            onPress={() => setActiveTypeFilter("scheduled")}
+            activeOpacity={0.85}
+          >
+            <View style={styles.typeTileTop}>
+              <Text style={[styles.typeTileTitle, activeTypeFilter === "scheduled" && styles.typeTileTitleActive]}>Schedule for later</Text>
+              {scheduledOrders.length > 0 ? <View style={[styles.liveDot, { backgroundColor: "#22C55E" }]} /> : null}
+            </View>
+            <Text style={[styles.typeTileCount, activeTypeFilter === "scheduled" && styles.typeTileCountActive]}>{scheduledOrders.length}</Text>
+          </TouchableOpacity>
+        </View>
+        {visibleOrders.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="cart-outline" size={48} color="#9CA3AF" />
             <Text style={styles.emptyText}>No incoming orders</Text>
             <Text style={styles.emptySub}>When suppliers assign orders to you, they will appear here. Completed orders are in Order history.</Text>
           </View>
         ) : (
-          orders.map((o) => {
+          visibleOrders.map((o) => {
             const stage = o.supplierResponse?.deliveryStage || "accepted";
             const canPickedUp = stage === "accepted" && o.status === "in_progress";
             const canDeliver = stage === "picked_up" && o.status === "in_progress";
@@ -104,6 +138,9 @@ export default function DeliveryIncomingOrdersScreen() {
                   </View>
                 </View>
                 <Text style={styles.cardCustomer}>{o.customerName || o.customerEmail || "Customer"}</Text>
+                <View style={[styles.orderTypePill, (o.orderType || "instant") === "scheduled" ? styles.orderTypeScheduled : styles.orderTypeInstant]}>
+                  <Text style={styles.orderTypeText}>{(o.orderType || "instant") === "scheduled" ? "Scheduled" : "Instant"}</Text>
+                </View>
                 {o.address ? <Text style={styles.cardAddress} numberOfLines={2}>{o.address}</Text> : null}
                 {o.supplierResponse?.eta ? <Text style={styles.cardEta}>ETA: {o.supplierResponse.eta}</Text> : null}
                 <Text style={styles.cardTotal}>₹{o.total ?? 0}</Text>
@@ -146,6 +183,15 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 40 },
+  typeTilesRow: { flexDirection: "row", gap: 10, marginBottom: 12 },
+  typeTile: { flex: 1, borderRadius: 14, padding: 12, backgroundColor: "rgba(255,255,255,0.9)", borderWidth: 1, borderColor: "rgba(255,255,255,0.9)" },
+  typeTileActive: { backgroundColor: theme.primary },
+  typeTileTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  typeTileTitle: { fontSize: 13, fontWeight: "700", color: "#1B2B34" },
+  typeTileTitleActive: { color: "#FFFFFF" },
+  typeTileCount: { fontSize: 20, fontWeight: "800", color: theme.primary, marginTop: 8 },
+  typeTileCountActive: { color: "#FFFFFF" },
+  liveDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#EF4444" },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   empty: { alignItems: "center", paddingVertical: 48 },
   emptyText: { fontSize: 16, fontWeight: "600", color: "#6B7C85", marginTop: 12 },
@@ -158,6 +204,10 @@ const styles = StyleSheet.create({
   statusDelivered: { backgroundColor: "#D1FAE5" },
   statusText: { fontSize: 12, fontWeight: "600", color: "#92400E" },
   cardCustomer: { fontSize: 15, fontWeight: "600", color: "#374151", marginBottom: 4 },
+  orderTypePill: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginBottom: 6 },
+  orderTypeInstant: { backgroundColor: "#FEE2E2" },
+  orderTypeScheduled: { backgroundColor: "#DCFCE7" },
+  orderTypeText: { fontSize: 11, fontWeight: "700", color: "#1F2937" },
   cardAddress: { fontSize: 13, color: "#6B7C85", marginBottom: 4 },
   cardEta: { fontSize: 13, color: theme.primary, marginBottom: 4 },
   cardTotal: { fontSize: 16, fontWeight: "700", color: "#1B2B34" },

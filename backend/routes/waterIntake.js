@@ -65,6 +65,31 @@ router.post("/", async (req, res) => {
   }
 });
 
+router.delete("/:entryId", async (req, res) => {
+  try {
+    const { date } = req.query;
+    const { entryId } = req.params;
+    const userId = req.user._id;
+    const d = date || dateString(new Date());
+    if (!isWithinLast7Days(d)) {
+      return res.status(400).json({ error: "Date must be within last 7 days or today" });
+    }
+
+    const doc = await WaterIntake.findOne({ userId, date: d });
+    if (!doc) return res.status(404).json({ error: "No intake entries found for selected date" });
+
+    const entry = doc.entries.id(entryId);
+    if (!entry) return res.status(404).json({ error: "Entry not found" });
+
+    entry.deleteOne();
+    await doc.save();
+
+    res.json({ date: doc.date, entries: doc.entries || [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get("/summary", async (req, res) => {
   try {
     const { from, to } = req.query;

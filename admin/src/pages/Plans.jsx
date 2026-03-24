@@ -12,6 +12,18 @@ const btn = { padding: "8px 16px", borderRadius: 8, border: "none", fontWeight: 
 const btnPrimary = { ...btn, background: "#1EA7FD", color: "#fff" };
 const btnDanger = { ...btn, background: "#FEE2E2", color: "#B91C1C", padding: "6px 12px", fontSize: 13 };
 const btnSmall = { ...btn, background: "#E0F2FE", color: "#1B2B34", padding: "6px 12px", fontSize: 13 };
+const PRODUCT_IMAGE_OPTIONS = [
+  { label: "Default", value: "" },
+  { label: "Water Camper", value: "asset://water-camper" },
+  { label: "Water Bottle", value: "asset://water-bottle" },
+  { label: "Plastic Bottle", value: "asset://plastic-bottle" },
+  { label: "Gallon Bottle", value: "asset://gallon-bottle" },
+  { label: "Gallon 1", value: "asset://gallon-1" },
+  { label: "Gallon 2", value: "asset://gallon-2" },
+  { label: "Gallon 3", value: "asset://gallon-3" },
+  { label: "Dispenser", value: "asset://water-dispenser" },
+  { label: "Tank Truck", value: "asset://tank-truck" },
+];
 
 function randomProductId() {
   return "prod_" + Math.random().toString(36).slice(2, 10);
@@ -26,6 +38,7 @@ export default function Plans() {
     productKey: "",
     productLabel: "",
     productId: "",
+    imageUrl: "",
     priceDaily: 0,
     priceWeekly: 0,
     priceMonthly: 0,
@@ -137,6 +150,7 @@ export default function Plans() {
         productKey: key,
         productLabel: label,
         productId: (newProduct.productId || "").trim() || undefined,
+        imageUrl: (newProduct.imageUrl || "").trim() || undefined,
         priceDaily: daily,
         priceWeekly: weekly,
         priceMonthly: monthly,
@@ -145,7 +159,7 @@ export default function Plans() {
         prev.map((p) => (p.id === plan.id ? { ...p, products: [...(p.products || []), created] } : p))
       );
       setAddingForPlanId(null);
-      setNewProduct({ productKey: "", productLabel: "", productId: "", priceDaily: 0, priceWeekly: 0, priceMonthly: 0 });
+      setNewProduct({ productKey: "", productLabel: "", productId: "", imageUrl: "", priceDaily: 0, priceWeekly: 0, priceMonthly: 0 });
     } catch (e) {
       alert(e.message || "Add product failed");
     } finally {
@@ -205,6 +219,7 @@ export default function Plans() {
                 <th style={th}>Product ID</th>
                 <th style={th}>Product key</th>
                 <th style={th}>Label</th>
+                <th style={th}>Image</th>
                 <th style={th}>Daily (₹)</th>
                 <th style={th}>Weekly (₹)</th>
                 <th style={th}>Monthly (₹)</th>
@@ -254,6 +269,22 @@ export default function Plans() {
                       }}
                       style={inputWide}
                     />
+                  </td>
+                  <td style={td}>
+                    <select
+                      defaultValue={pp.imageUrl || ""}
+                      onBlur={(e) => {
+                        const v = e.target.value;
+                        if (v !== (pp.imageUrl || "")) updateProduct(pp, "imageUrl", v);
+                      }}
+                      style={{ ...inputWide, maxWidth: 160 }}
+                    >
+                      {PRODUCT_IMAGE_OPTIONS.map((opt) => (
+                        <option key={opt.value || "default"} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td style={td}>
                     <input
@@ -330,6 +361,17 @@ export default function Plans() {
                   onChange={(e) => setNewProduct((n) => ({ ...n, productId: e.target.value }))}
                   style={inputId}
                 />
+                <select
+                  value={newProduct.imageUrl}
+                  onChange={(e) => setNewProduct((n) => ({ ...n, imageUrl: e.target.value }))}
+                  style={{ ...inputWide, maxWidth: 170 }}
+                >
+                  {PRODUCT_IMAGE_OPTIONS.map((opt) => (
+                    <option key={opt.value || "default"} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
                 <input
                   type="number"
                   min={0}

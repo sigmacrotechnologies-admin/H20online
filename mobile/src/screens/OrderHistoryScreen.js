@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -7,16 +7,42 @@ import {
   SafeAreaView,
   FlatList,
   RefreshControl,
-  Modal,
+  Image,
+  Platform,
+  StatusBar,
+  Animated,
+  Easing,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import Svg, { Path } from "react-native-svg";
 import BackButton from "@/src/components/BackButton";
 import { useCart } from "@/src/context/CartContext";
 import OrderDetailsModal from "@/src/components/OrderDetailsModal";
 import { getOrderId, getOrderIdShort } from "@/src/utils/orderId";
 import { theme } from "@/src/theme";
+
+const HEADER_DROPLETS = [
+  { left: -8, top: 18, width: 16, height: 22, phase: "a" },
+  { left: 22, top: 58, width: 14, height: 20, phase: "b" },
+  { left: 56, top: 20, width: 18, height: 24, phase: "c" },
+  { left: 92, top: 86, width: 14, height: 20, phase: "a" },
+  { left: 132, top: 38, width: 16, height: 22, phase: "b" },
+  { left: 172, top: 102, width: 14, height: 20, phase: "c" },
+  { left: 212, top: 60, width: 16, height: 22, phase: "a" },
+  { left: 24, top: 156, width: 14, height: 20, phase: "c" },
+  { left: 84, top: 188, width: 14, height: 20, phase: "a" },
+  { left: 152, top: 174, width: 16, height: 22, phase: "b" },
+  { right: 154, top: 20, width: 16, height: 22, phase: "c" },
+  { right: 118, top: 68, width: 14, height: 20, phase: "a" },
+  { right: 82, top: 30, width: 16, height: 22, phase: "b" },
+  { right: 46, top: 94, width: 14, height: 20, phase: "c" },
+  { right: 10, top: 54, width: 16, height: 22, phase: "a" },
+  { right: -6, top: 124, width: 14, height: 20, phase: "b" },
+  { right: 92, top: 160, width: 14, height: 20, phase: "c" },
+  { right: 28, top: 188, width: 14, height: 20, phase: "a" },
+];
 
 const OrderHistoryScreen = () => {
   const router = useRouter();
@@ -24,7 +50,23 @@ const OrderHistoryScreen = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [showMenuModal, setShowMenuModal] = useState(false);
+  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
+  const dropletAnimA = useRef(new Animated.Value(0)).current;
+  const dropletAnimB = useRef(new Animated.Value(0)).current;
+  const dropletAnimC = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = (value, duration) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(value, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(value, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      );
+    const a = loop(dropletAnimA, 3400), b = loop(dropletAnimB, 4200), c = loop(dropletAnimC, 3800);
+    a.start(); b.start(); c.start();
+    return () => { a.stop(); b.stop(); c.stop(); };
+  }, [dropletAnimA, dropletAnimB, dropletAnimC]);
+  const getDropletAnim = (phase) => phase === "b" ? dropletAnimB : phase === "c" ? dropletAnimC : dropletAnimA;
 
   useFocusEffect(useCallback(() => { refreshOrders(); }, [refreshOrders]));
 
@@ -53,24 +95,52 @@ const OrderHistoryScreen = () => {
           colors={theme.gradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.gradientBackground}
+          style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}
         >
+          <View style={styles.headerOverlay}>
+            {HEADER_DROPLETS.map((drop, idx) => {
+              const dropAnim = getDropletAnim(drop.phase);
+              return (
+                <Animated.View
+                  key={`order-history-drop-${idx}`}
+                  style={[styles.dropletWrap, {
+                    left: drop.left, right: drop.right, top: drop.top, width: drop.width, height: drop.height,
+                    opacity: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.32] }),
+                    transform: [
+                      { translateY: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
+                      { scale: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.05] }) },
+                    ],
+                  }]}
+                >
+                  <Svg width="100%" height="100%" viewBox="0 0 60 80">
+                    <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.3)" />
+                  </Svg>
+                </Animated.View>
+              );
+            })}
+          </View>
           <View style={styles.headerTopRow}>
             <BackButton onPress={() => router.back()} />
+            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
             <TouchableOpacity
               style={styles.headerMenuBtn}
               activeOpacity={0.7}
-              onPress={() => setShowMenuModal(true)}
+              onPress={() => router.push("/profile")}
             >
               <Ionicons name="menu" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
           <View style={styles.headerCenter}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="receipt-outline" size={36} color="#FFFFFF" />
+            <View style={styles.headerInfoRow}>
+              <View style={styles.headerIconCircle}>
+                <Ionicons name="receipt-outline" size={24} color="#FFFFFF" />
+              </View>
+              <View style={styles.headerTextWrap}>
+                <Text style={styles.headerTitle}>Order History</Text>
+                <Text style={styles.headerSubtitle}>View recent and past customer orders</Text>
+              </View>
             </View>
-            <Text style={styles.headerTitle}>Order history</Text>
           </View>
         </LinearGradient>
       </View>
@@ -140,65 +210,6 @@ const OrderHistoryScreen = () => {
         order={selectedOrder}
       />
 
-      {/* Hamburger menu - same as Dashboard */}
-      <Modal visible={showMenuModal} transparent animationType="fade">
-        <TouchableOpacity
-          style={styles.menuModalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowMenuModal(false)}
-        >
-          <View style={styles.menuModalContent} onStartShouldSetResponder={() => true}>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => {
-                setShowMenuModal(false);
-                router.push("/profile");
-              }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="person-outline" size={22} color="#1B2B34" />
-              <Text style={styles.menuModalItemText}>Profile</Text>
-              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => {
-                setShowMenuModal(false);
-                router.push("/order-history");
-              }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="receipt-outline" size={22} color="#1B2B34" />
-              <Text style={styles.menuModalItemText}>Order History</Text>
-              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => {
-                setShowMenuModal(false);
-                router.push("/water-intake");
-              }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="water-outline" size={22} color="#1B2B34" />
-              <Text style={styles.menuModalItemText}>Water Intake</Text>
-              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => {
-                setShowMenuModal(false);
-                router.push("/dashboard");
-              }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="home-outline" size={22} color="#1B2B34" />
-              <Text style={styles.menuModalItemText}>Dashboard</Text>
-              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </SafeAreaView>
   );
 };
@@ -209,27 +220,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.screenBackground,
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
   },
-  headerSection: {
-    marginTop: -10,
-    marginLeft: -20,
-    marginRight: -20,
-    height: 200,
-    overflow: "hidden",
-  },
+  headerSection: { minHeight: 236, overflow: "hidden" },
   gradientBackground: {
     flex: 1,
-    paddingTop: 24,
-    paddingHorizontal: 36,
-    paddingBottom: 36,
+    paddingHorizontal: 20,
+    paddingBottom: 34,
   },
+  headerOverlay: { ...StyleSheet.absoluteFillObject },
+  dropletWrap: { position: "absolute", alignItems: "center", justifyContent: "center" },
   headerTopRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 0,
+    marginBottom: 30,
   },
+  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
   headerMenuBtn: {
     width: 40,
     height: 40,
@@ -238,33 +245,27 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  headerCenter: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: -14,
-    width: "100%",
-  },
+  headerCenter: { alignItems: "flex-start", justifyContent: "center", marginTop: 2, width: "100%" },
+  headerInfoRow: { flexDirection: "row", alignItems: "center" },
+  headerTextWrap: { marginLeft: 12, flex: 1 },
   headerIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: "rgba(255,255,255,0.25)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 2,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "700",
     color: "#FFFFFF",
-    textAlign: "center",
-    paddingBottom: 32,
   },
+  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
 
   contentSection: {
     marginTop: -16,
-    marginLeft: 2,
-    marginRight: 2,
     backgroundColor: theme.screenBackground,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -289,11 +290,13 @@ const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,
-    elevation: 2,
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
   },
   cardRow: {
     flexDirection: "row",
@@ -333,36 +336,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  menuModalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "flex-start",
-    paddingTop: 60,
-    paddingRight: 20,
-    alignItems: "flex-end",
-  },
-  menuModalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    paddingVertical: 8,
-    minWidth: 220,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-  },
-  menuModalItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-  },
-  menuModalItemText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1B2B34",
-    marginLeft: 12,
-  },
 });

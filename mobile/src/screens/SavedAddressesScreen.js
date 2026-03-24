@@ -10,7 +10,11 @@ import {
   Modal,
   ActivityIndicator,
   Alert,
+  Image,
+  Platform,
+  StatusBar,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/src/api/client";
@@ -23,15 +27,17 @@ const FIELDS = [
   { key: "city", label: "City", placeholder: "e.g. Mumbai" },
   { key: "state", label: "State", placeholder: "e.g. Maharashtra" },
   { key: "pinCode", label: "PIN code", placeholder: "e.g. 400001", keyboardType: "number-pad" },
+  { key: "phoneNumber", label: "Phone number *", placeholder: "e.g. 9876543210", keyboardType: "phone-pad" },
 ];
 
 export default function SavedAddressesScreen() {
   const router = useRouter();
+  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ houseNumber: "", locality: "", city: "", state: "", pinCode: "", isDefault: false });
+  const [form, setForm] = useState({ houseNumber: "", locality: "", city: "", state: "", pinCode: "", phoneNumber: "", isDefault: false });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -45,7 +51,7 @@ export default function SavedAddressesScreen() {
 
   const openAdd = () => {
     setEditingId(null);
-    setForm({ houseNumber: "", locality: "", city: "", state: "", pinCode: "", isDefault: false });
+    setForm({ houseNumber: "", locality: "", city: "", state: "", pinCode: "", phoneNumber: "", isDefault: false });
     setError("");
     setShowForm(true);
   };
@@ -58,6 +64,7 @@ export default function SavedAddressesScreen() {
       city: a.city || "",
       state: a.state || "",
       pinCode: a.pinCode || "",
+      phoneNumber: a.phoneNumber || "",
       isDefault: a.isDefault || false,
     });
     setError("");
@@ -70,9 +77,13 @@ export default function SavedAddressesScreen() {
   };
 
   const validate = () => {
-    const { locality, city, state, pinCode } = form;
+    const { locality, city, state, pinCode, phoneNumber } = form;
     if (!locality.trim() && !city.trim() && !state.trim() && !pinCode.trim()) {
       setError("Please fill at least locality, city, state or PIN code.");
+      return false;
+    }
+    if (!String(phoneNumber || "").trim()) {
+      setError("Phone number is required.");
       return false;
     }
     return true;
@@ -111,13 +122,27 @@ export default function SavedAddressesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <BackButton onPress={() => router.back()} iconColor="#1B2B34" />
-        <Text style={styles.headerTitle}>Saved addresses</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={openAdd} activeOpacity={0.8}>
-          <Ionicons name="add" size={24} color="#FFF" />
-        </TouchableOpacity>
+      <View style={styles.headerSection}>
+        <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}>
+          <View style={styles.headerTopRow}>
+            <BackButton onPress={() => router.back()} />
+            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
+            <TouchableOpacity style={styles.addBtn} onPress={openAdd} activeOpacity={0.8}>
+              <Ionicons name="add" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.headerInfoRow}>
+            <View style={styles.headerIconCircle}>
+              <Ionicons name="location-outline" size={24} color="#FFFFFF" />
+            </View>
+            <View style={styles.headerTextWrap}>
+              <Text style={styles.headerTitle}>Saved addresses</Text>
+              <Text style={styles.headerSubtitle}>Manage delivery locations and contact numbers</Text>
+            </View>
+          </View>
+        </LinearGradient>
       </View>
+      <View style={styles.contentSection}>
       {loading ? (
         <View style={styles.centered}><ActivityIndicator size="large" color={theme.primary} /></View>
       ) : (
@@ -154,6 +179,7 @@ export default function SavedAddressesScreen() {
           )}
         </ScrollView>
       )}
+      </View>
 
       <Modal visible={showForm} transparent animationType="slide">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeForm}>
@@ -198,17 +224,32 @@ export default function SavedAddressesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.screenBackground },
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
-  headerTitle: { flex: 1, fontSize: 18, fontWeight: "700", color: "#1B2B34", textAlign: "center" },
-  addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.primary, justifyContent: "center", alignItems: "center" },
-  scrollContent: { padding: 16, paddingBottom: 40 },
+  headerSection: { minHeight: 220, overflow: "hidden" },
+  gradientBackground: { flex: 1, paddingHorizontal: 20, paddingBottom: 20 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
+  headerLogoLight: { width: 124, height: 34 },
+  addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" },
+  headerInfoRow: { flexDirection: "row", alignItems: "center" },
+  headerIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center" },
+  headerTextWrap: { flex: 1, marginLeft: 12 },
+  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
+  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
+  contentSection: {
+    marginTop: -24,
+    backgroundColor: theme.screenBackground,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    flex: 1,
+    overflow: "hidden",
+  },
+  scrollContent: { padding: 16, paddingBottom: 40, paddingTop: 18 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   empty: { alignItems: "center", paddingVertical: 48 },
   emptyText: { fontSize: 16, fontWeight: "600", color: "#6B7C85", marginTop: 12 },
   emptySub: { fontSize: 14, color: "#9CA3AF", marginTop: 4, textAlign: "center" },
   emptyBtn: { marginTop: 20, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.primary, borderRadius: 12 },
   emptyBtnText: { fontSize: 15, fontWeight: "600", color: "#FFF" },
-  card: { backgroundColor: "#fff", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "#E5E7EB" },
+  card: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)" },
   cardRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
   cardAddress: { flex: 1, fontSize: 15, color: "#1B2B34", marginBottom: 4 },
   defaultBadge: { backgroundColor: "#E0F2FE", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },

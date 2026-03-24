@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,14 +10,19 @@ import {
   Modal,
   FlatList,
   Image,
+  Platform,
+  StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Path } from "react-native-svg";
 import { useCart } from "@/src/context/CartContext";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
 import { theme } from "@/src/theme";
 import ProductRatingsModal from "@/src/components/ProductRatingsModal";
+import { useFocusEffect } from "expo-router";
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -42,12 +47,22 @@ const USE_CASE_OPTIONS = [
   { id: "party", label: "Party & function" },
   { id: "office", label: "Order in office" },
 ];
+const HEADER_DROPLETS = [
+  { left: 18, top: 52, width: 14, height: 20 },
+  { left: 62, top: 24, width: 16, height: 22 },
+  { left: 110, top: 84, width: 12, height: 18 },
+  { right: 118, top: 34, width: 16, height: 22 },
+  { right: 66, top: 78, width: 14, height: 20 },
+  { right: 18, top: 26, width: 18, height: 24 },
+];
 
 const OrderScreen = () => {
   const router = useRouter();
-  const { cartCount, addToCart, setCartForBuyNow } = useCart();
+  const { cartCount, addToCart, setCartForBuyNow, setCheckoutDetails } = useCart();
   const [location, setLocation] = useState("Current location (tap to change)");
   const [searchQuery, setSearchQuery] = useState("");
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
@@ -69,6 +84,33 @@ const OrderScreen = () => {
       .finally(() => setProductsLoading(false));
   }, []);
 
+  const loadSavedAddresses = useCallback(async () => {
+    try {
+      const list = await api.addresses.list();
+      const safe = Array.isArray(list) ? list : [];
+      setSavedAddresses(safe);
+      const defaultEntry = safe.find((a) => a.isDefault) || safe[0] || null;
+      const defaultAddress = defaultEntry?.fullAddress || "";
+      if (defaultAddress && (!location || location.includes("Current location"))) {
+        setLocation(defaultAddress);
+      }
+      if (defaultEntry?.fullAddress && defaultEntry?.phoneNumber) {
+        setCheckoutDetails({
+          address: defaultEntry.fullAddress,
+          receiverPhone: defaultEntry.phoneNumber,
+        });
+      }
+    } catch (_) {
+      setSavedAddresses([]);
+    }
+  }, [location]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadSavedAddresses();
+    }, [loadSavedAddresses])
+  );
+
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [sizeRangeSelected, setSizeRangeSelected] = useState([]);
@@ -79,6 +121,7 @@ const OrderScreen = () => {
 
   const [ratingsModalProduct, setRatingsModalProduct] = useState(null);
   const [showRatingsModal, setShowRatingsModal] = useState(false);
+  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
 
   const toggleCompare = (id) => {
     setProducts((prev) => {
@@ -94,15 +137,7 @@ const OrderScreen = () => {
 
   const comparedSuppliers = useMemo(() => {
     const selected = products.filter((p) => p.compareSelected);
-    const unique = [];
-    const seen = new Set();
-    selected.forEach((p) => {
-      if (!seen.has(p.supplierId)) {
-        seen.add(p.supplierId);
-        unique.push(p);
-      }
-    });
-    return unique.slice(0, 2);
+    return selected.slice(0, 2);
   }, [products]);
 
   const toggleFilterOption = (arr, setArr, id) => {
@@ -149,67 +184,108 @@ const OrderScreen = () => {
 
   const handleBuyNow = (item) => {
     if (!item.inStock) return;
+    const selectedByLocation = savedAddresses.find((a) => (a.fullAddress || "").trim() === (location || "").trim());
+    const fallbackDefault = savedAddresses.find((a) => a.isDefault) || savedAddresses[0] || null;
+    const selectedAddress = selectedByLocation || fallbackDefault;
+    if (selectedAddress?.fullAddress && selectedAddress?.phoneNumber) {
+      setCheckoutDetails({
+        address: selectedAddress.fullAddress,
+        receiverPhone: selectedAddress.phoneNumber,
+      });
+    }
     setCartForBuyNow(item, 1);
     router.push("/checkout");
   };
 
-  // Use one default image for all product cards.
+  const PRODUCT_ASSET_MAP = {
+    "asset://water-camper": require("../../assets/images/Product-icon/Water-Camper.png"),
+    "asset://water-bottle": require("../../assets/images/Product-icon/water-bottle.png"),
+    "asset://plastic-bottle": require("../../assets/images/Product-icon/plastic-bottle.png"),
+    "asset://gallon-bottle": require("../../assets/images/Product-icon/gallon-bottle.png"),
+    "asset://gallon-1": require("../../assets/images/Product-icon/gallon (1).png"),
+    "asset://gallon-2": require("../../assets/images/Product-icon/gallon2.png"),
+    "asset://gallon-3": require("../../assets/images/Product-icon/gallon3.png"),
+    "asset://water-dispenser": require("../../assets/images/Product-icon/water-dispenser.png"),
+    "asset://tank-truck": require("../../assets/images/Product-icon/tank-truck.png"),
+  };
+  // Default icon if product has no assigned image.
   const defaultProductIcon = require("../../assets/images/Product-icon/Water-Camper.png");
+  const getProductImageSource = (item) => {
+    if (item?.imageUrl && PRODUCT_ASSET_MAP[item.imageUrl]) return PRODUCT_ASSET_MAP[item.imageUrl];
+    if (item?.imageUrl) {
+      const raw = String(item.imageUrl).trim();
+      const isSafeRemote = raw.startsWith("http://") || raw.startsWith("https://");
+      const isSafeLocal = raw.startsWith("file://") || raw.startsWith("content://");
+      if (isSafeRemote || isSafeLocal) return { uri: raw };
+    }
+    return defaultProductIcon;
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <BackButton onPress={() => router.back()} iconColor="#1B2B34" style={styles.headerBackBtn} />
-        <Text style={styles.headerTitle}>Order Water</Text>
-        <TouchableOpacity style={styles.cartIconBtn} onPress={() => router.push("/cart")} activeOpacity={0.7}>
-          <Ionicons name="cart-outline" size={24} color="#1B2B34" />
-          {cartCount > 0 && (
-            <View style={styles.cartBadge}>
-              <Text style={styles.cartBadgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity style={styles.locationRow} onPress={() => {}} activeOpacity={0.8}>
-        <Ionicons name="location-outline" size={22} color={theme.primary} />
-        <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
-        <Ionicons name="chevron-down" size={20} color="#6B7C85" />
-      </TouchableOpacity>
-
-      <View style={styles.searchRow}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={20} color="#6B7C85" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search water suppliers or brands"
-            placeholderTextColor="#9CA3AF"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-        <TouchableOpacity style={styles.filterIconBtn} onPress={() => setShowFilterSheet(true)} activeOpacity={0.7}>
-          <Ionicons name="options-outline" size={24} color="#1B2B34" />
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterScrollContent}>
-        {FILTERS.map((f) => (
-          <TouchableOpacity
-            key={f.id}
-            style={[styles.filterChip, activeFilter === f.id && styles.filterChipActive]}
-            onPress={() => setActiveFilter(f.id)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.filterChipInner}>
-              <Text style={[styles.filterChipText, activeFilter === f.id && styles.filterChipTextActive]}>
-                {f.label}
-              </Text>
-            </View>
+      <View style={styles.headerSection}>
+        <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}>
+          <View style={styles.headerOverlay}>
+            {HEADER_DROPLETS.map((d, i) => (
+              <View key={`order-drop-${i}`} style={[styles.dropletWrap, { left: d.left, right: d.right, top: d.top, width: d.width, height: d.height }]}>
+                <Svg width="100%" height="100%" viewBox="0 0 60 80">
+                  <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.28)" />
+                </Svg>
+              </View>
+            ))}
+          </View>
+          <View style={styles.headerTopRow}>
+            <BackButton onPress={() => router.back()} />
+            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
+            <TouchableOpacity style={styles.headerIconBtn} onPress={() => router.push("/cart")} activeOpacity={0.7}>
+              <Ionicons name="cart-outline" size={22} color="#FFFFFF" />
+              {cartCount > 0 && (
+                <View style={styles.cartBadge}>
+                  <Text style={styles.cartBadgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.locationRow} onPress={() => setShowLocationPicker(true)} activeOpacity={0.8}>
+            <Ionicons name="location-outline" size={22} color={theme.primary} />
+            <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
+            <Ionicons name="chevron-down" size={20} color="#6B7C85" />
           </TouchableOpacity>
-        ))}
-      </ScrollView>
+          <View style={styles.searchRow}>
+            <View style={styles.searchBox}>
+              <Ionicons name="search" size={20} color="#6B7C85" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search water suppliers or brands"
+                placeholderTextColor="#9CA3AF"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+            <TouchableOpacity style={styles.filterIconBtn} onPress={() => setShowFilterSheet(true)} activeOpacity={0.7}>
+              <Ionicons name="options-outline" size={24} color="#1B2B34" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterScrollContent}>
+            {FILTERS.map((f) => (
+              <TouchableOpacity
+                key={f.id}
+                style={[styles.filterChip, activeFilter === f.id && styles.filterChipActive]}
+                onPress={() => setActiveFilter(f.id)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.filterChipInner}>
+                  <Text style={[styles.filterChipText, activeFilter === f.id && styles.filterChipTextActive]}>
+                    {f.label}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </LinearGradient>
+      </View>
 
+      <View style={styles.contentSection}>
       <FlatList
         data={filteredAndSortedProducts}
         keyExtractor={(item) => item.id}
@@ -247,9 +323,10 @@ const OrderScreen = () => {
               <View style={styles.cardTitleWrap}>
                 <Text style={styles.productName}>{item.productName}</Text>
                 <Text style={styles.supplierName}>{item.supplierName}</Text>
+                <Text style={styles.priceText}>₹{item.price} / {item.priceUnit}</Text>
               </View>
               <View style={styles.cardIconWrap}>
-                <Image source={defaultProductIcon} style={styles.productIconImage} resizeMode="contain" />
+                <Image source={getProductImageSource(item)} style={styles.productIconImage} resizeMode="contain" />
               </View>
             </View>
             <View style={styles.cardMeta}>
@@ -265,7 +342,6 @@ const OrderScreen = () => {
                 <Text style={styles.viewRatingsText}>View ratings</Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.priceText}>₹{item.price} / {item.priceUnit}</Text>
             <View style={styles.deliveryRow}>
               <Ionicons name="time-outline" size={16} color="#6B7C85" />
               <Text style={styles.deliveryText}>Est. {item.delivery}</Text>
@@ -297,6 +373,7 @@ const OrderScreen = () => {
           </View>
         )}
       />
+      </View>
 
       {comparedSuppliers.length > 0 && (
         <View style={styles.stickyFooter}>
@@ -322,7 +399,7 @@ const OrderScreen = () => {
                 {comparedSuppliers.map((p) => (
                   <View key={p.id} style={styles.compareCard}>
                     <View style={styles.compareCardIcon}>
-                      <Image source={defaultProductIcon} style={styles.compareCardIconImage} resizeMode="contain" />
+                      <Image source={getProductImageSource(p)} style={styles.compareCardIconImage} resizeMode="contain" />
                     </View>
                     <Text style={styles.compareCardName} numberOfLines={2}>{p.supplierName}</Text>
                     <Text style={styles.compareCardProduct} numberOfLines={2}>{p.productName}</Text>
@@ -479,6 +556,68 @@ const OrderScreen = () => {
         </TouchableOpacity>
       </Modal>
 
+      {/* Location picker */}
+      <Modal visible={showLocationPicker} transparent animationType="slide">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowLocationPicker(false)}>
+          <View style={styles.locationSheetContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.filterSheetHeader}>
+              <Text style={styles.filterSheetTitle}>Select location</Text>
+              <TouchableOpacity onPress={() => setShowLocationPicker(false)}><Ionicons name="close" size={24} color="#1B2B34" /></TouchableOpacity>
+            </View>
+            <ScrollView style={styles.locationList}>
+              <TouchableOpacity
+                style={styles.locationOptionRow}
+                onPress={() => {
+                  setLocation("Current location");
+                  setShowLocationPicker(false);
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="navigate-circle-outline" size={20} color={theme.primary} />
+                <Text style={styles.locationOptionText}>Use current location</Text>
+              </TouchableOpacity>
+
+              {savedAddresses.map((a) => (
+                <TouchableOpacity
+                  key={a.id}
+                  style={styles.locationOptionRow}
+                  onPress={() => {
+                    if (!String(a.phoneNumber || "").trim()) {
+                      setShowLocationPicker(false);
+                      alert("Selected address has no phone number. Please update it in Saved Addresses.");
+                      router.push("/saved-addresses");
+                      return;
+                    }
+                    setLocation(a.fullAddress || "Saved address");
+                    setCheckoutDetails({
+                      address: a.fullAddress || "",
+                      receiverPhone: a.phoneNumber || "",
+                    });
+                    setShowLocationPicker(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="location-outline" size={20} color="#1B2B34" />
+                  <Text style={styles.locationOptionText} numberOfLines={2}>{a.fullAddress || "Saved address"}</Text>
+                </TouchableOpacity>
+              ))}
+
+              <TouchableOpacity
+                style={[styles.locationOptionRow, { borderBottomWidth: 0 }]}
+                onPress={() => {
+                  setShowLocationPicker(false);
+                  router.push("/saved-addresses");
+                }}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add-circle-outline" size={20} color={theme.primary} />
+                <Text style={[styles.locationOptionText, { color: theme.primary, fontWeight: "700" }]}>Add address</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <ProductRatingsModal
         visible={showRatingsModal}
         onClose={() => {
@@ -494,53 +633,74 @@ const OrderScreen = () => {
 export default OrderScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground },
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingTop: 14, paddingBottom: 12 },
-  headerBackBtn: { backgroundColor: "#f0f7fcd7", marginRight: 12 },
-  headerTitle: { flex: 1, fontSize: 22, fontWeight: "700", color: "#1B2B34" },
-  cartIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#f0f7fcd7", justifyContent: "center", alignItems: "center", position: "relative" },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
+  headerSection: { height: 286, overflow: "hidden", zIndex: 1 },
+  gradientBackground: { flex: 1, paddingHorizontal: 20, paddingBottom: 10 },
+  headerOverlay: { ...StyleSheet.absoluteFillObject },
+  dropletWrap: { position: "absolute", alignItems: "center", justifyContent: "center" },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
+  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
+  headerIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center", position: "relative" },
   cartBadge: { position: "absolute", top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: theme.primary, justifyContent: "center", alignItems: "center", paddingHorizontal: 4 },
   cartBadgeText: { fontSize: 11, fontWeight: "700", color: "#FFFFFF" },
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0f7fcd7",
-    marginHorizontal: 20,
-    marginBottom: 12,
-    padding: 14,
+    backgroundColor: "rgba(255,255,255,0.78)",
+    marginHorizontal: 0,
+    marginBottom: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    minHeight: 46,
     borderRadius: 16,
     gap: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
   },
   locationText: { flex: 1, fontSize: 15, color: "#1B2B34" },
-  searchRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 20, marginBottom: 8, gap: 10 },
+  searchRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 0, marginBottom: 12, gap: 10, minHeight: 46 },
   searchBox: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 14,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    minHeight: 46,
     gap: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
   },
   searchInput: { flex: 1, fontSize: 15, color: "#1B2B34", padding: 0 },
-  filterIconBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#f0f7fcd7", justifyContent: "center", alignItems: "center" },
-  filterScroll: { marginBottom: 16, flexGrow: 0, paddingTop: 4, paddingBottom: 4 },
-  filterScrollContent: { paddingHorizontal: 20, flexDirection: "row", alignItems: "center", paddingVertical: 10 },
-  filterChip: { borderRadius: 20, backgroundColor: "#f0f7fcd7", marginRight: 10, flexShrink: 0, minHeight: 44, justifyContent: "center", overflow: "hidden" },
+  filterIconBtn: { width: 42, height: 42, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.78)", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.85)" },
+  filterScroll: { height: Platform.OS === "android" ? 52 : 48, marginBottom: 8, flexGrow: 0, paddingTop: 0, paddingBottom: 0 },
+  filterScrollContent: { paddingHorizontal: 0, flexDirection: "row", alignItems: "center", paddingVertical: Platform.OS === "android" ? 6 : 5 },
+  contentSection: {
+    marginTop: -10,
+    backgroundColor: theme.screenBackground,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: 18,
+    flex: 1,
+    overflow: "hidden",
+    zIndex: 3,
+    elevation: 2,
+  },
+  filterChip: { borderRadius: 14, backgroundColor: "rgba(255,255,255,0.88)", marginRight: 8, flexShrink: 0, minHeight: Platform.OS === "android" ? 40 : 38, justifyContent: "center", overflow: "visible", borderWidth: 1, borderColor: "rgba(255,255,255,0.9)" },
   filterChipActive: { backgroundColor: theme.primary },
-  filterChipInner: { paddingHorizontal: 18, paddingVertical: 12, justifyContent: "center", minHeight: 44 },
-  filterChipText: { fontSize: 15, fontWeight: "600", color: "#1B2B34", includeFontPadding: false },
+  filterChipInner: { paddingHorizontal: 12, paddingVertical: Platform.OS === "android" ? 7 : 6, justifyContent: "center", minHeight: Platform.OS === "android" ? 40 : 38 },
+  filterChipText: { fontSize: 12, lineHeight: Platform.OS === "android" ? 16 : 15, fontWeight: "600", color: "#1B2B34", includeFontPadding: false, textAlignVertical: "center" },
   filterChipTextActive: { color: "#FFFFFF" },
   filterSheetContent: {
     backgroundColor: theme.screenBackground,
@@ -582,7 +742,7 @@ const styles = StyleSheet.create({
   filterClearText: { fontSize: 16, fontWeight: "600", color: "#1B2B34" },
   filterApplyBtn: { flex: 1, backgroundColor: theme.primary, paddingVertical: 14, borderRadius: 14, alignItems: "center" },
   filterApplyText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
-  listContent: { paddingHorizontal: 20, paddingBottom: 100 },
+  listContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 100 },
   listContentEmpty: { flexGrow: 1 },
   emptyWrap: { paddingVertical: 40, paddingHorizontal: 24, alignItems: "center", justifyContent: "center" },
   emptyText: { fontSize: 15, color: "#6B7C85", textAlign: "center" },
@@ -590,7 +750,7 @@ const styles = StyleSheet.create({
   retryBtn: { marginTop: 16, backgroundColor: theme.primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 14 },
   retryBtnText: { fontSize: 15, fontWeight: "600", color: "#FFFFFF" },
   card: {
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 20,
     padding: 18,
     marginBottom: 16,
@@ -598,44 +758,81 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
   },
   badge: { alignSelf: "flex-start", backgroundColor: theme.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 10 },
   badgePremium: { backgroundColor: "#8B5CF6" },
   badgeText: { fontSize: 11, fontWeight: "600", color: "#FFFFFF" },
   cardTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  cardTitleWrap: { flex: 1 },
+  cardTitleWrap: { flex: 1, paddingRight: 10 },
   productName: { fontSize: 16, fontWeight: "700", color: "#1B2B34", marginBottom: 4 },
   supplierName: { fontSize: 13, color: "#6B7C85" },
-  cardIconWrap: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center" },
-  productIconImage: { width: 26, height: 26 },
+  cardIconWrap: { width: 66, height: 66, borderRadius: 14, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center", marginTop: 6 },
+  productIconImage: { width: 52, height: 52 },
   cardMeta: { marginTop: 10 },
   ratingText: { fontSize: 13, color: "#1B2B34" },
   viewRatingsLink: { marginTop: 4 },
   viewRatingsText: { fontSize: 12, fontWeight: "700", color: theme.primary },
-  priceText: { fontSize: 15, fontWeight: "700", color: "#1B2B34", marginTop: 8 },
+  priceText: { fontSize: 15, fontWeight: "800", color: theme.primary, marginTop: 8 },
   deliveryRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
   deliveryText: { fontSize: 13, color: "#6B7C85" },
   outOfStock: { fontSize: 13, color: "#EF4444", marginTop: 6, fontWeight: "600" },
   cardActions: { flexDirection: "row", gap: 10, marginTop: 14 },
-  addCartBtn: { flex: 1, backgroundColor: "#10B981", paddingVertical: 12, borderRadius: 12, alignItems: "center" },
-  addCartText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
-  buyNowBtn: { flex: 1, backgroundColor: theme.primary, paddingVertical: 12, borderRadius: 12, alignItems: "center" },
-  buyNowBtnText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
-  unavailableBtn: { flex: 1, backgroundColor: "#E5E7EB", paddingVertical: 12, borderRadius: 12, alignItems: "center" },
-  unavailableText: { fontSize: 14, color: "#6B7C85" },
-  notifyBtn: { flex: 1, backgroundColor: "#10B981", paddingVertical: 12, borderRadius: 12, alignItems: "center" },
-  notifyText: { fontSize: 14, fontWeight: "600", color: "#FFFFFF" },
+  addCartBtn: { flex: 1, backgroundColor: theme.medium, paddingVertical: 13, minHeight: 48, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  addCartText: { fontSize: 14, lineHeight: 18, fontWeight: "600", color: "#FFFFFF" },
+  buyNowBtn: { flex: 1, backgroundColor: theme.primary, paddingVertical: 13, minHeight: 48, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  buyNowBtnText: { fontSize: 14, lineHeight: 18, fontWeight: "600", color: "#FFFFFF" },
+  unavailableBtn: { flex: 1, backgroundColor: "#E5E7EB", paddingVertical: 13, minHeight: 48, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  unavailableText: { fontSize: 14, lineHeight: 18, color: "#6B7C85" },
+  notifyBtn: { flex: 1, backgroundColor: "#10B981", paddingVertical: 13, minHeight: 48, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  notifyText: { fontSize: 14, lineHeight: 18, fontWeight: "600", color: "#FFFFFF" },
   compareRow: { flexDirection: "row", alignItems: "center", marginTop: 12, gap: 8 },
   checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: "#9CA3AF", justifyContent: "center", alignItems: "center" },
   checkboxChecked: { backgroundColor: theme.primary, borderColor: theme.primary },
   compareLabel: { fontSize: 13, color: "#6B7C85" },
-  stickyFooter: { position: "absolute", bottom: 0, left: 0, right: 0, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 28, backgroundColor: "#1E40AF", marginHorizontal: 11 },
+  stickyFooter: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 26,
+    backgroundColor: theme.primary,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.35)",
+    zIndex: 50,
+    elevation: 16,
+  },
   footerLabel: { fontSize: 14, color: "#FFFFFF", fontWeight: "600" },
   compareFooterBtn: { backgroundColor: "#FFFFFF", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  compareFooterBtnText: { fontSize: 14, fontWeight: "700", color: "#1E40AF" },
+  compareFooterBtnText: { fontSize: 14, fontWeight: "700", color: theme.primary },
   footerHint: { position: "absolute", bottom: 4, left: 0, right: 0, textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.9)" },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
+  locationSheetContent: {
+    backgroundColor: theme.screenBackground,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "70%",
+    paddingBottom: 16,
+  },
+  locationList: { maxHeight: 420, paddingHorizontal: 20 },
+  locationOptionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  locationOptionText: { flex: 1, fontSize: 15, color: "#1B2B34" },
   compareModal: {
     backgroundColor: "#E0F2F7",
     borderTopLeftRadius: 24,

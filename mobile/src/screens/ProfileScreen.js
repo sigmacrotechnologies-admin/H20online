@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -9,14 +9,31 @@ import {
   Modal,
   TextInput,
   Image,
+  Platform,
+  StatusBar,
+  Animated,
+  Easing,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import Svg, { Path } from "react-native-svg";
 import { useAuth } from "@/src/context/AuthContext";
 import { useCart } from "@/src/context/CartContext";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
 import { theme } from "@/src/theme";
+
+const HEADER_DROPLETS = [
+  { left: -12, top: 20, width: 18, height: 24, phase: "a" },
+  { left: 14, top: 62, width: 16, height: 22, phase: "b" },
+  { left: 52, top: 28, width: 20, height: 28, phase: "c" },
+  { left: 88, top: 94, width: 14, height: 20, phase: "a" },
+  { right: 110, top: 8, width: 16, height: 22, phase: "a" },
+  { right: 76, top: 66, width: 18, height: 24, phase: "b" },
+  { right: 42, top: 30, width: 22, height: 30, phase: "c" },
+  { right: 8, top: 98, width: 16, height: 22, phase: "a" },
+];
 
 const ProfileScreen = () => {
   const router = useRouter();
@@ -33,8 +50,22 @@ const ProfileScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [walletBalance, setWalletBalance] = useState(0);
+  const lastWalletBalanceRef = useRef(0);
+  const mountedRef = useRef(true);
+  const dropletAnimA = useRef(new Animated.Value(0)).current;
+  const dropletAnimB = useRef(new Animated.Value(0)).current;
+  const dropletAnimC = useRef(new Animated.Value(0)).current;
+  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
 
   // Sync edit fields when user loads or when opening modal
+  React.useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   React.useEffect(() => {
     if (user) {
       setEditName(user.name || "");
@@ -42,6 +73,58 @@ const ProfileScreen = () => {
       setEditPhone(user.phone || "");
     }
   }, [user]);
+
+  React.useEffect(() => {
+    const loop = (value, duration) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(value, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(value, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      );
+    const a = loop(dropletAnimA, 3400), b = loop(dropletAnimB, 4200), c = loop(dropletAnimC, 3800);
+    a.start(); b.start(); c.start();
+    return () => { a.stop(); b.stop(); c.stop(); };
+  }, [dropletAnimA, dropletAnimB, dropletAnimC]);
+  const getDropletAnim = (phase) => phase === "b" ? dropletAnimB : phase === "c" ? dropletAnimC : dropletAnimA;
+
+  const fetchWalletBalance = React.useCallback(async () => {
+    if (!isAuthenticated) {
+      setWalletBalance(0);
+      lastWalletBalanceRef.current = 0;
+      return;
+    }
+    try {
+      const data = await api.wallet.get();
+      const first = Number(data?.balance ?? 0);
+      if (first === 0 && lastWalletBalanceRef.current > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        const retry = await api.wallet.get();
+        const retryBal = Number(retry?.balance ?? 0);
+        if (mountedRef.current) {
+          setWalletBalance(retryBal);
+          lastWalletBalanceRef.current = retryBal;
+        }
+        return;
+      }
+      if (mountedRef.current) {
+        setWalletBalance(first);
+        lastWalletBalanceRef.current = first;
+      }
+    } catch (_) {
+      if (mountedRef.current) {
+        setWalletBalance(lastWalletBalanceRef.current || 0);
+      }
+    }
+  }, [isAuthenticated]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchWalletBalance();
+      const interval = setInterval(fetchWalletBalance, 60 * 1000);
+      return () => clearInterval(interval);
+    }, [fetchWalletBalance])
+  );
 
   const handleLogout = () => {
     logout();
@@ -90,15 +173,50 @@ const ProfileScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <BackButton onPress={() => router.back()} iconColor="#1B2B34" style={styles.headerBackButton} />
-          <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity style={styles.settingsButton} activeOpacity={0.7}>
-            <Ionicons name="settings-outline" size={24} color="#1B2B34" />
-          </TouchableOpacity>
+        <View style={styles.headerSection}>
+          <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}>
+            <View style={styles.headerOverlay}>
+              {HEADER_DROPLETS.map((drop, idx) => {
+                const dropAnim = getDropletAnim(drop.phase);
+                return (
+                  <Animated.View
+                    key={`profile-drop-${idx}`}
+                    style={[styles.dropletWrap, {
+                      left: drop.left, right: drop.right, top: drop.top, width: drop.width, height: drop.height,
+                      opacity: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.32] }),
+                      transform: [
+                        { translateY: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
+                        { scale: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.05] }) },
+                      ],
+                    }]}
+                  >
+                    <Svg width="100%" height="100%" viewBox="0 0 60 80">
+                      <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.3)" />
+                    </Svg>
+                  </Animated.View>
+                );
+              })}
+            </View>
+            <View style={styles.headerTopRow}>
+              <BackButton onPress={() => router.back()} />
+              <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
+              <View style={styles.headerTopSpacer} />
+            </View>
+            <View style={styles.headerCenter}>
+              <View style={styles.headerInfoRow}>
+                <View style={styles.headerIconCircle}>
+                  <Ionicons name="person-outline" size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.headerTextWrap}>
+                  <Text style={styles.headerTitle}>Account Settings</Text>
+                  <Text style={styles.headerSubtitle}>{(user?.name || "User")}, you can manage your personal information here</Text>
+                </View>
+              </View>
+            </View>
+          </LinearGradient>
         </View>
 
+        <View style={styles.contentSection}>
         {/* User info card */}
         <View style={styles.card}>
           <View style={styles.userCardRow}>
@@ -144,8 +262,8 @@ const ProfileScreen = () => {
             <Text style={styles.statLabel}>Points</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>₹45</Text>
-            <Text style={styles.statLabel}>Saved</Text>
+            <Text style={styles.statValue}>₹{Number(walletBalance || 0).toLocaleString()}</Text>
+            <Text style={styles.statLabel}>Wallet</Text>
           </View>
         </View>
 
@@ -244,6 +362,7 @@ const ProfileScreen = () => {
             <Text style={styles.logoutText}>Login</Text>
           </TouchableOpacity>
         )}
+        </View>
       </ScrollView>
 
       {/* Personal Information popup */}
@@ -368,13 +487,23 @@ export default ProfileScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.screenBackground },
-  scrollContent: { paddingBottom: 40, paddingHorizontal: 20, marginLeft: 11, marginRight: 11 },
-  header: { flexDirection: "row", alignItems: "center", paddingTop: 14, paddingBottom: 12, paddingHorizontal: 20, marginBottom: 20 },
-  headerBackButton: { backgroundColor: "#f0f7fcd7", elevation: 2 },
-  headerTitle: { flex: 1, fontSize: 26, fontWeight: "700", color: "#1B2B34", marginLeft: 0 },
-  settingsButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: "#f0f7fcd7", justifyContent: "center", alignItems: "center", elevation: 2 },
+  scrollContent: { paddingBottom: 40 },
+  headerSection: { minHeight: 236, overflow: "hidden", marginBottom: -6 },
+  gradientBackground: { flex: 1, paddingHorizontal: 20, paddingBottom: 34 },
+  headerOverlay: { ...StyleSheet.absoluteFillObject },
+  dropletWrap: { position: "absolute", alignItems: "center", justifyContent: "center" },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 30 },
+  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
+  headerTopSpacer: { width: 40, height: 40 },
+  headerCenter: { alignItems: "flex-start", justifyContent: "center", marginTop: 2, width: "100%" },
+  headerInfoRow: { flexDirection: "row", alignItems: "center" },
+  headerTextWrap: { flex: 1, marginLeft: 12 },
+  headerIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center", marginBottom: 2 },
+  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
+  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
+  contentSection: { marginTop: -22, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20 },
 
-  card: { backgroundColor: "#f0f7fcd7", borderRadius: 20, padding: 20, marginBottom: 16, elevation: 2 },
+  card: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 20, padding: 20, marginBottom: 16, elevation: 0, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)" },
   userCardRow: { flexDirection: "row", alignItems: "center" },
   avatarWrap: { marginRight: 16 },
   avatarCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center" },
@@ -387,7 +516,7 @@ const styles = StyleSheet.create({
   editIconWrap: { padding: 8 },
 
   statsRow: { flexDirection: "row", gap: 12, marginBottom: 24 },
-  statCard: { flex: 1, backgroundColor: "#f0f7fcd7", borderRadius: 20, padding: 16, elevation: 2 },
+  statCard: { flex: 1, backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 20, padding: 16, elevation: 0, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)" },
   statValue: { fontSize: 22, fontWeight: "700", color: theme.primary, marginBottom: 4 },
   statLabel: { fontSize: 13, color: "#6B7C85" },
 

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,15 +10,42 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Image,
+  Platform,
+  StatusBar,
+  Animated,
+  Easing,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
+import Svg, { Path } from "react-native-svg";
 import BackButton from "@/src/components/BackButton";
 import WaterDroplet from "@/src/components/WaterDroplet";
 import { api } from "@/src/api/client";
 import { useAuth } from "@/src/context/AuthContext";
 import { theme } from "@/src/theme";
+
+const HEADER_DROPLETS = [
+  { left: -8, top: 18, width: 16, height: 22, phase: "a" },
+  { left: 22, top: 58, width: 14, height: 20, phase: "b" },
+  { left: 56, top: 20, width: 18, height: 24, phase: "c" },
+  { left: 92, top: 86, width: 14, height: 20, phase: "a" },
+  { left: 132, top: 38, width: 16, height: 22, phase: "b" },
+  { left: 172, top: 102, width: 14, height: 20, phase: "c" },
+  { left: 212, top: 60, width: 16, height: 22, phase: "a" },
+  { left: 24, top: 156, width: 14, height: 20, phase: "c" },
+  { left: 84, top: 188, width: 14, height: 20, phase: "a" },
+  { left: 152, top: 174, width: 16, height: 22, phase: "b" },
+  { right: 154, top: 20, width: 16, height: 22, phase: "c" },
+  { right: 118, top: 68, width: 14, height: 20, phase: "a" },
+  { right: 82, top: 30, width: 16, height: 22, phase: "b" },
+  { right: 46, top: 94, width: 14, height: 20, phase: "c" },
+  { right: 10, top: 54, width: 16, height: 22, phase: "a" },
+  { right: -6, top: 124, width: 14, height: 20, phase: "b" },
+  { right: 92, top: 160, width: 14, height: 20, phase: "c" },
+  { right: 28, top: 188, width: 14, height: 20, phase: "a" },
+];
 
 const SUGGESTED_INTAKE_LITERS = 5;
 
@@ -79,10 +106,27 @@ const WaterIntakeScreen = () => {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingEntryId, setDeletingEntryId] = useState("");
   const [customMl, setCustomMl] = useState("");
   const [weeklySummary, setWeeklySummary] = useState(null);
   const [sizeModal, setSizeModal] = useState(null);
-  const [showMenuModal, setShowMenuModal] = useState(false);
+  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
+  const dropletAnimA = useRef(new Animated.Value(0)).current;
+  const dropletAnimB = useRef(new Animated.Value(0)).current;
+  const dropletAnimC = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = (value, duration) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(value, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(value, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      );
+    const a = loop(dropletAnimA, 3400), b = loop(dropletAnimB, 4200), c = loop(dropletAnimC, 3800);
+    a.start(); b.start(); c.start();
+    return () => { a.stop(); b.stop(); c.stop(); };
+  }, [dropletAnimA, dropletAnimB, dropletAnimC]);
+  const getDropletAnim = (phase) => phase === "b" ? dropletAnimB : phase === "c" ? dropletAnimC : dropletAnimA;
 
   const loadEntries = useCallback(async () => {
     if (!canSave) {
@@ -158,6 +202,29 @@ const WaterIntakeScreen = () => {
     addIntake("total", 1, ml);
   };
 
+  const handleDeleteEntry = (entryId) => {
+    if (!entryId) return;
+    Alert.alert("Delete intake", "Are you sure you want to delete this entry?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setDeletingEntryId(entryId);
+            await api.waterIntake.remove(entryId, selectedDate);
+            await loadEntries();
+            await loadWeeklySummary();
+          } catch (e) {
+            Alert.alert("Error", e.message || "Failed to delete intake entry");
+          } finally {
+            setDeletingEntryId("");
+          }
+        },
+      },
+    ]);
+  };
+
   const totalMl = entries.reduce((s, e) => s + (e.volumeMl || 0), 0);
   const totalLiters = totalMl / 1000;
   const totalLitersDisplay = totalLiters.toFixed(1);
@@ -172,23 +239,55 @@ const WaterIntakeScreen = () => {
             colors={theme.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.gradientBackground}
+            style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}
           >
+            <View style={styles.headerOverlay}>
+              {HEADER_DROPLETS.map((drop, i) => {
+                const dropAnim = getDropletAnim(drop.phase);
+                return (
+                  <Animated.View
+                    key={`wi-drop-${i}`}
+                    style={[styles.dropletWrap, {
+                      left: drop.left,
+                      right: drop.right,
+                      top: drop.top,
+                      width: drop.width,
+                      height: drop.height,
+                      opacity: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.32] }),
+                      transform: [
+                        { translateY: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
+                        { scale: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.05] }) },
+                      ],
+                    }]}
+                  >
+                    <Svg width="100%" height="100%" viewBox="0 0 60 80">
+                      <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.3)" />
+                    </Svg>
+                  </Animated.View>
+                );
+              })}
+            </View>
             <View style={styles.headerTopRow}>
               <BackButton onPress={() => router.back()} />
+              <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
               <TouchableOpacity
                 style={styles.headerMenuBtn}
                 activeOpacity={0.7}
-                onPress={() => setShowMenuModal(true)}
+                onPress={() => router.push("/profile")}
               >
                 <Ionicons name="menu" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
             <View style={styles.headerCenter}>
-              <View style={styles.headerIconCircle}>
-                <Ionicons name="water" size={36} color="#FFFFFF" />
+              <View style={styles.headerInfoRow}>
+                <View style={styles.headerIconCircle}>
+                  <Ionicons name="water" size={28} color="#FFFFFF" />
+                </View>
+                <View style={styles.headerTextWrap}>
+                  <Text style={styles.headerTitle}>Water Intake</Text>
+                  <Text style={styles.headerSubtitle}>Track your hydration and add intake by day</Text>
+                </View>
               </View>
-              <Text style={styles.headerTitle}>Water Intake</Text>
             </View>
           </LinearGradient>
         </View>
@@ -218,7 +317,7 @@ const WaterIntakeScreen = () => {
           {/* Total for selected date - in water droplet */}
           <View style={styles.totalSectionPanel}>
             <Text style={styles.totalLabel}>Total for {selectedDate === todayKey ? "today" : selectedDate} (in liters)</Text>
-            <View style={styles.dropletWrap}>
+            <View style={styles.totalDropletWrap}>
               <WaterDroplet
                 percentage={dropletPct}
                 volumeText={`${totalLitersDisplay} L`}
@@ -316,12 +415,25 @@ const WaterIntakeScreen = () => {
                   const time = e.createdAt ? new Date(e.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "—";
                   const vol = e.volumeMl ? (e.volumeMl >= 1000 ? (e.volumeMl / 1000).toFixed(1) + " L" : e.volumeMl + " ml") : "";
                   const qty = e.quantity > 1 ? ` (${e.quantity})` : "";
+                  const isDeleting = deletingEntryId && String(deletingEntryId) === String(e._id);
                   return (
-                    <View key={idx} style={styles.entryRow}>
+                    <View key={e._id || idx} style={styles.entryRow}>
                       <Ionicons name="time-outline" size={18} color="#6B7C85" />
                       <Text style={styles.entryTime}>{time}</Text>
                       <Text style={styles.entryDetail}>{e.type}{qty}</Text>
                       <Text style={styles.entryVol}>{vol}</Text>
+                      <TouchableOpacity
+                        style={styles.entryDeleteBtn}
+                        onPress={() => handleDeleteEntry(e._id)}
+                        disabled={!e._id || !!isDeleting}
+                        activeOpacity={0.7}
+                      >
+                        {isDeleting ? (
+                          <ActivityIndicator size="small" color="#EF4444" />
+                        ) : (
+                          <Ionicons name="close" size={18} color="#EF4444" />
+                        )}
+                      </TouchableOpacity>
                     </View>
                   );
                 })}
@@ -329,53 +441,6 @@ const WaterIntakeScreen = () => {
           )}
         </View>
       </ScrollView>
-
-      <Modal visible={showMenuModal} transparent animationType="fade">
-        <TouchableOpacity
-          style={styles.menuModalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowMenuModal(false)}
-        >
-          <View style={styles.menuModalContent} onStartShouldSetResponder={() => true}>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => { setShowMenuModal(false); router.push("/profile"); }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="person-outline" size={22} color="#1B2B34" />
-              <Text style={styles.menuModalItemText}>Profile</Text>
-              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => { setShowMenuModal(false); router.push("/order-history"); }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="receipt-outline" size={22} color="#1B2B34" />
-              <Text style={styles.menuModalItemText}>Order History</Text>
-              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => { setShowMenuModal(false); router.push("/water-intake"); }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="water-outline" size={22} color="#1B2B34" />
-              <Text style={styles.menuModalItemText}>Water Intake</Text>
-              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => { setShowMenuModal(false); router.push("/dashboard"); }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="home-outline" size={22} color="#1B2B34" />
-              <Text style={styles.menuModalItemText}>Dashboard</Text>
-              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
 
       {/* Size selection modal */}
       <Modal visible={!!sizeModal} transparent animationType="slide">
@@ -412,20 +477,24 @@ const WaterIntakeScreen = () => {
 export default WaterIntakeScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
   scrollContent: { paddingBottom: 40 },
-  headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 200, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 24, paddingHorizontal: 36, paddingBottom: 36 },
-  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 0 },
+  headerSection: { minHeight: 236, overflow: "hidden" },
+  gradientBackground: { flex: 1, paddingHorizontal: 20, paddingBottom: 34 },
+  headerOverlay: { ...StyleSheet.absoluteFillObject },
+  dropletWrap: { position: "absolute", alignItems: "center", justifyContent: "center" },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 30 },
+  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
   headerMenuBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" },
-  headerCenter: { alignItems: "center", justifyContent: "center", marginTop: -14, width: "100%" },
-  headerIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center", marginBottom: 6 },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF", textAlign: "center", paddingBottom: 32 },
+  headerCenter: { alignItems: "flex-start", justifyContent: "center", marginTop: -8, width: "100%" },
+  headerInfoRow: { flexDirection: "row", alignItems: "center" },
+  headerTextWrap: { marginLeft: 12, flex: 1 },
+  headerIconCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center", marginBottom: 0 },
+  headerTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF" },
+  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
 
   contentSection: {
     marginTop: -16,
-    marginLeft: 2,
-    marginRight: 2,
     backgroundColor: theme.screenBackground,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -436,31 +505,32 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
-    elevation: 8,
+    elevation: 0,
   },
   sectionLabel: { fontSize: 15, fontWeight: "600", color: "#1B2B34", marginBottom: 10 },
   calendarRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20 },
   calendarCol: {
     flex: 1,
     alignItems: "center",
-    paddingVertical: 12,
+    justifyContent: "center",
+    paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     marginHorizontal: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 0,
   },
   calendarColSelected: { backgroundColor: theme.primary },
-  calendarWeekday: { fontSize: 12, fontWeight: "600", color: "#6B7C85", marginBottom: 4 },
+  calendarWeekday: { fontSize: 11, fontWeight: "600", color: "#6B7C85", marginBottom: 3 },
   calendarDateNum: { fontSize: 16, fontWeight: "700", color: "#1B2B34" },
   calendarTextSelected: { color: "#FFFFFF" },
   todayDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#FFFFFF", marginTop: 4, opacity: 0.9 },
 
   totalSectionPanel: {
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 16,
     paddingVertical: 20,
     paddingHorizontal: 16,
@@ -472,22 +542,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 0,
   },
   totalLabel: { fontSize: 14, color: "#6B7C85", marginBottom: 12, textAlign: "center" },
-  dropletWrap: { alignItems: "center", justifyContent: "center", paddingBottom: 16, overflow: "visible" },
+  totalDropletWrap: { alignItems: "center", justifyContent: "center", paddingBottom: 16, overflow: "visible" },
 
   threeTilesRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
   infoTile: {
     flex: 1,
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 16,
     padding: 14,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 0,
   },
   infoTileTitle: { fontSize: 12, fontWeight: "600", color: "#6B7C85", marginTop: 8 },
   infoTileValue: { fontSize: 18, fontWeight: "800", color: theme.primary, marginTop: 2 },
@@ -496,14 +566,14 @@ const styles = StyleSheet.create({
   typesRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginBottom: 24 },
   typeTile: {
     width: "47%",
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 16,
     padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 0,
   },
   typeIconWrap: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center", marginBottom: 8 },
   typeLabel: { fontSize: 15, fontWeight: "700", color: "#1B2B34", marginBottom: 8 },
@@ -520,7 +590,7 @@ const styles = StyleSheet.create({
   },
   mlInput: {
     flex: 1,
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,
@@ -530,7 +600,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 0,
   },
   addBtn: { backgroundColor: theme.primary, paddingVertical: 14, paddingHorizontal: 24, borderRadius: 12 },
   addBtnDisabled: { opacity: 0.7 },
@@ -539,29 +609,32 @@ const styles = StyleSheet.create({
   loader: { marginVertical: 20 },
   emptyText: { fontSize: 14, color: "#6B7C85", fontStyle: "italic", marginVertical: 12 },
   entriesList: {
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 16,
     padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 0,
   },
   entryRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: "#E5E7EB", gap: 10 },
   entryTime: { fontSize: 14, fontWeight: "600", color: "#1B2B34", minWidth: 70 },
   entryDetail: { flex: 1, fontSize: 14, color: "#6B7C85", textTransform: "capitalize" },
   entryVol: { fontSize: 14, fontWeight: "600", color: theme.primary },
-
-  menuModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-start", paddingTop: 60, paddingRight: 20, alignItems: "flex-end" },
-  menuModalContent: { backgroundColor: "#FFFFFF", borderRadius: 16, paddingVertical: 8, minWidth: 220, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8 },
-  menuModalItem: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 18 },
-  menuModalItemText: { flex: 1, fontSize: 16, fontWeight: "600", color: "#1B2B34", marginLeft: 12 },
+  entryDeleteBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(239,68,68,0.08)",
+  },
 
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   modalContent: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   modalTitle: { fontSize: 18, fontWeight: "700", color: "#1B2B34", marginBottom: 16 },
-  sizeOption: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 16, paddingHorizontal: 16, backgroundColor: "#f0f7fcd7", borderRadius: 12, marginBottom: 10 },
+  sizeOption: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 16, paddingHorizontal: 16, backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)" },
   sizeOptionLabel: { fontSize: 16, fontWeight: "600", color: "#1B2B34" },
   sizeOptionMl: { fontSize: 14, color: theme.primary, fontWeight: "600" },
   modalCancel: { marginTop: 12, alignItems: "center" },
