@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TextInput, Platform, Image, StatusBar, Keyboard } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,6 +8,7 @@ import { api } from "@/src/api/client";
 import { theme } from "@/src/theme";
 
 const POLL_INTERVAL_MS = 5000;
+const INPUT_BAR_HEIGHT = 72;
 
 function formatMessageTime(dateStr) {
   if (!dateStr) return "";
@@ -20,6 +21,9 @@ function formatMessageTime(dateStr) {
 
 export default function SupplierSupportScreen() {
   const router = useRouter();
+  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
+  const androidBottomInset = Platform.OS === "android" ? 18 : 0;
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
@@ -37,6 +41,20 @@ export default function SupplierSupportScreen() {
       return () => clearInterval(interval);
     }, [])
   );
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const onShow = Keyboard.addListener(showEvent, (e) => {
+      setKeyboardHeight(e?.endCoordinates?.height || 0);
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 120);
+    });
+    const onHide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
 
   const send = async () => {
     const trimmed = text.trim();
@@ -56,23 +74,30 @@ export default function SupplierSupportScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.headerPanel}>
-        <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradientBackground}>
-          <View style={styles.headerRow}>
+        <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}>
+          <View style={styles.headerTopRow}>
             <BackButton onPress={() => router.back()} />
-            <View style={styles.headerCenter}>
-              <Text style={styles.headerTitle}>Support</Text>
-              <Text style={styles.headerSubtitle}>Chat with admin</Text>
+            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
+            <View style={styles.headerTopSpacer} />
+          </View>
+          <View style={styles.headerInfoRow}>
+            <View style={styles.headerIconCircle}>
+              <Ionicons name="chatbubble-ellipses-outline" size={22} color="#FFFFFF" />
             </View>
-            <View style={{ width: 40 }} />
+            <View style={styles.headerTextWrap}>
+              <Text style={styles.headerTitle}>Support</Text>
+              <Text style={styles.headerSubtitle}>Chat with admin for quick help</Text>
+            </View>
           </View>
         </LinearGradient>
       </View>
-      <KeyboardAvoidingView style={styles.chatWrap} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={80}>
+      <View style={styles.chatWrap}>
         <ScrollView
           ref={scrollRef}
           style={styles.messageList}
-          contentContainerStyle={styles.messageListContent}
+          contentContainerStyle={[styles.messageListContent, { paddingBottom: INPUT_BAR_HEIGHT + 28 }]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
         >
           {loading ? (
@@ -101,7 +126,15 @@ export default function SupplierSupportScreen() {
             })
           )}
         </ScrollView>
-        <View style={styles.inputWrap}>
+        <View
+          style={[
+            styles.inputWrap,
+            {
+              bottom: Math.max(0, keyboardHeight - (Platform.OS === "android" ? androidBottomInset : 0)),
+              paddingBottom: 12 + androidBottomInset,
+            },
+          ]}
+        >
           <TextInput
             style={styles.input}
             value={text}
@@ -115,31 +148,35 @@ export default function SupplierSupportScreen() {
             <Ionicons name="send" size={20} color="#FFF" />
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
-  headerPanel: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 120, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 14, paddingBottom: 16, paddingHorizontal: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headerCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF" },
-  headerSubtitle: { fontSize: 12, color: "rgba(255,255,255,0.85)", marginTop: 2 },
-  chatWrap: { flex: 1, marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: theme.screenBackground, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden" },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
+  headerPanel: { minHeight: 236, overflow: "hidden" },
+  gradientBackground: { flex: 1, paddingBottom: 28, paddingHorizontal: 20 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 22 },
+  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
+  headerTopSpacer: { width: 40, height: 40 },
+  headerInfoRow: { flexDirection: "row", alignItems: "center" },
+  headerIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center" },
+  headerTextWrap: { flex: 1, marginLeft: 12 },
+  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
+  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
+  chatWrap: { flex: 1, marginTop: -16, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, overflow: "hidden" },
   messageList: { flex: 1 },
-  messageListContent: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 16 },
+  messageListContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 },
   emptyState: { alignItems: "center", paddingVertical: 48 },
   emptyText: { fontSize: 16, color: "#64748B", marginTop: 12, fontWeight: "500" },
   emptySubtext: { fontSize: 14, color: "#94A3B8", marginTop: 4 },
   bubbleWrap: { marginBottom: 12 },
   bubbleWrapLeft: { alignItems: "flex-start" },
   bubbleWrapRight: { alignItems: "flex-end" },
-  bubble: { maxWidth: "82%", paddingVertical: 12, paddingHorizontal: 16, borderRadius: 18 },
+  bubble: { maxWidth: "84%", paddingVertical: 12, paddingHorizontal: 16, borderRadius: 18, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)" },
   bubbleMe: { backgroundColor: theme.primary, borderBottomRightRadius: 4 },
-  bubbleThem: { backgroundColor: "#FFFFFF", borderBottomLeftRadius: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  bubbleThem: { backgroundColor: "rgba(255,255,255,0.78)", borderBottomLeftRadius: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
   bubbleSender: { fontSize: 11, fontWeight: "600", marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 },
   bubbleSenderMe: { color: "rgba(255,255,255,0.9)" },
   bubbleSenderThem: { color: "#64748B" },
@@ -147,8 +184,8 @@ const styles = StyleSheet.create({
   bubbleTime: { fontSize: 11, marginTop: 6 },
   bubbleTimeMe: { color: "rgba(255,255,255,0.8)" },
   bubbleTimeThem: { color: "#94A3B8" },
-  inputWrap: { flexDirection: "row", alignItems: "flex-end", padding: 12, paddingBottom: 20, backgroundColor: "#FFFFFF", borderTopWidth: 1, borderTopColor: "#E2E8F0", gap: 10 },
-  input: { flex: 1, backgroundColor: theme.screenBackground, borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12, paddingRight: 16, fontSize: 15, color: "#1E293B", maxHeight: 100 },
+  inputWrap: { position: "absolute", left: 0, right: 0, flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 14, paddingTop: 12, backgroundColor: "rgba(255,255,255,0.82)", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.9)", gap: 10 },
+  input: { flex: 1, backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 22, paddingHorizontal: 18, paddingVertical: 12, paddingRight: 16, fontSize: 15, color: "#1E293B", maxHeight: 100, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)" },
   sendBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.primary, justifyContent: "center", alignItems: "center" },
   sendBtnDisabled: { opacity: 0.6 },
 });

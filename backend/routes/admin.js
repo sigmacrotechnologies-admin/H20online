@@ -508,6 +508,7 @@ router.get("/plans", async (req, res) => {
             _id: pp._id.toString(),
             planId: pp.planId.toString(),
             productId: pp.productId || null,
+            imageUrl: pp.imageUrl || "",
           })),
         };
       })
@@ -543,7 +544,7 @@ router.put("/plan-products/:id", async (req, res) => {
     if (!id) return res.status(400).json({ error: "Invalid plan product id" });
     const pp = await PlanProduct.findById(id);
     if (!pp) return res.status(404).json({ error: "Plan product not found" });
-    const { productId, productKey, productLabel, priceDaily, priceWeekly, priceMonthly } = req.body;
+    const { productId, productKey, productLabel, imageUrl, priceDaily, priceWeekly, priceMonthly } = req.body;
     if (productId !== undefined) pp.productId = productId === "" || productId == null ? undefined : String(productId).trim();
     if (productKey != null && typeof productKey === "string") {
       const key = productKey.trim();
@@ -554,12 +555,13 @@ router.put("/plan-products/:id", async (req, res) => {
       }
     }
     if (productLabel != null && typeof productLabel === "string") pp.productLabel = productLabel.trim();
+    if (imageUrl !== undefined) pp.imageUrl = imageUrl == null ? "" : String(imageUrl).trim();
     if (priceDaily != null && !Number.isNaN(Number(priceDaily))) pp.priceDaily = Number(priceDaily);
     if (priceWeekly != null && !Number.isNaN(Number(priceWeekly))) pp.priceWeekly = Number(priceWeekly);
     if (priceMonthly != null && !Number.isNaN(Number(priceMonthly))) pp.priceMonthly = Number(priceMonthly);
     await pp.save();
     const out = pp.toObject();
-    res.json({ ...out, id: out._id.toString(), _id: out._id.toString(), productId: out.productId || null });
+    res.json({ ...out, id: out._id.toString(), _id: out._id.toString(), productId: out.productId || null, imageUrl: out.imageUrl || "" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -567,7 +569,7 @@ router.put("/plan-products/:id", async (req, res) => {
 
 router.post("/plan-products", async (req, res) => {
   try {
-    const { planId, productId, productKey, productLabel, priceDaily, priceWeekly, priceMonthly } = req.body;
+    const { planId, productId, productKey, productLabel, imageUrl, priceDaily, priceWeekly, priceMonthly } = req.body;
     const planObjId = toObjectId(planId);
     if (!planObjId) return res.status(400).json({ error: "Invalid plan id" });
     const plan = await Plan.findById(planObjId);
@@ -587,12 +589,13 @@ router.post("/plan-products", async (req, res) => {
       productId: productId && String(productId).trim() ? String(productId).trim() : undefined,
       productKey: key,
       productLabel: label,
+      imageUrl: imageUrl && String(imageUrl).trim() ? String(imageUrl).trim() : "",
       priceDaily: daily,
       priceWeekly: weekly,
       priceMonthly: monthly,
     });
     const out = pp.toObject();
-    res.status(201).json({ ...out, id: out._id.toString(), _id: out._id.toString(), productId: out.productId || null });
+    res.status(201).json({ ...out, id: out._id.toString(), _id: out._id.toString(), productId: out.productId || null, imageUrl: out.imageUrl || "" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

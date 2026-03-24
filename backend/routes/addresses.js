@@ -22,6 +22,7 @@ router.get("/", async (req, res) => {
       city: a.city || "",
       state: a.state || "",
       pinCode: a.pinCode || "",
+      phoneNumber: a.phoneNumber || "",
       fullAddress: a.fullAddress || "",
       isDefault: !!a.isDefault,
     })));
@@ -32,7 +33,9 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { houseNumber, locality, city, state, pinCode, isDefault } = req.body;
+    const { houseNumber, locality, city, state, pinCode, phoneNumber, isDefault } = req.body;
+    const phone = phoneNumber && String(phoneNumber).trim() ? String(phoneNumber).trim() : "";
+    if (!phone) return res.status(400).json({ error: "Phone number is required" });
     const doc = {
       userId: req.user._id,
       houseNumber: houseNumber && String(houseNumber).trim() ? String(houseNumber).trim() : "",
@@ -40,6 +43,7 @@ router.post("/", async (req, res) => {
       city: city && String(city).trim() ? String(city).trim() : "",
       state: state && String(state).trim() ? String(state).trim() : "",
       pinCode: pinCode && String(pinCode).trim() ? String(pinCode).trim() : "",
+      phoneNumber: phone,
     };
     const parts = [doc.houseNumber, doc.locality, doc.city, doc.state, doc.pinCode].filter(Boolean);
     doc.fullAddress = parts.join(", ");
@@ -58,6 +62,7 @@ router.post("/", async (req, res) => {
       city: a.city || "",
       state: a.state || "",
       pinCode: a.pinCode || "",
+      phoneNumber: a.phoneNumber || "",
       fullAddress: a.fullAddress || "",
       isDefault: !!a.isDefault,
     });
@@ -72,12 +77,14 @@ router.put("/:id", async (req, res) => {
     if (!id) return res.status(400).json({ error: "Invalid address id" });
     const addr = await SavedAddress.findOne({ _id: id, userId: req.user._id });
     if (!addr) return res.status(404).json({ error: "Address not found" });
-    const { houseNumber, locality, city, state, pinCode, isDefault } = req.body;
+    const { houseNumber, locality, city, state, pinCode, phoneNumber, isDefault } = req.body;
     if (houseNumber !== undefined) addr.houseNumber = houseNumber && String(houseNumber).trim() ? String(houseNumber).trim() : "";
     if (locality !== undefined) addr.locality = locality && String(locality).trim() ? String(locality).trim() : "";
     if (city !== undefined) addr.city = city && String(city).trim() ? String(city).trim() : "";
     if (state !== undefined) addr.state = state && String(state).trim() ? String(state).trim() : "";
     if (pinCode !== undefined) addr.pinCode = pinCode && String(pinCode).trim() ? String(pinCode).trim() : "";
+    if (phoneNumber !== undefined) addr.phoneNumber = phoneNumber && String(phoneNumber).trim() ? String(phoneNumber).trim() : "";
+    if (!addr.phoneNumber || !String(addr.phoneNumber).trim()) return res.status(400).json({ error: "Phone number is required" });
     if (isDefault) {
       await SavedAddress.updateMany({ userId: req.user._id }, { isDefault: false });
       addr.isDefault = true;
@@ -93,6 +100,7 @@ router.put("/:id", async (req, res) => {
       city: a.city || "",
       state: a.state || "",
       pinCode: a.pinCode || "",
+      phoneNumber: a.phoneNumber || "",
       fullAddress: a.fullAddress || "",
       isDefault: !!a.isDefault,
     });

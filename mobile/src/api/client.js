@@ -55,6 +55,7 @@ export const api = {
     ordersAccepted: () => request("/api/supplier/orders/accepted"),
     ordersHistory: (params) => request("/api/supplier/orders/history?" + new URLSearchParams(params || {}).toString()),
     acceptOrder: (orderId, body) => request("/api/supplier/orders/" + orderId + "/accept", { method: "PATCH", body: JSON.stringify(body) }),
+    rejectOrder: (orderId, body) => request("/api/supplier/orders/" + orderId + "/reject", { method: "PATCH", body: JSON.stringify(body || {}) }),
     assignRider: (orderId, body) => request("/api/supplier/orders/" + orderId + "/assign-rider", { method: "PATCH", body: JSON.stringify(body) }),
     cancelOrder: (orderId) => request("/api/supplier/orders/" + orderId + "/cancel", { method: "PATCH" }),
     financials: () => request("/api/supplier/financials"),
@@ -93,6 +94,7 @@ export const api = {
     },
     get: (id) => request("/api/products/" + id),
     create: (body) => request("/api/products", { method: "POST", body: JSON.stringify(body) }),
+    update: (id, body) => request("/api/products/" + id, { method: "PUT", body: JSON.stringify(body) }),
     delete: (id) => request("/api/products/" + id, { method: "DELETE" }),
   },
   orders: {
@@ -124,6 +126,13 @@ export const api = {
   waterIntake: {
     get: (date) => request("/api/water-intake" + (date ? "?date=" + encodeURIComponent(date) : "")),
     add: (body) => request("/api/water-intake", { method: "POST", body: JSON.stringify(body) }),
+    remove: (entryId, date) =>
+      request(
+        "/api/water-intake/" +
+          encodeURIComponent(entryId) +
+          (date ? "?date=" + encodeURIComponent(date) : ""),
+        { method: "DELETE" }
+      ),
     summary: (from, to) => {
       let path = "/api/water-intake/summary";
       const params = [];

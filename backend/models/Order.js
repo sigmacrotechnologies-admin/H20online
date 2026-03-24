@@ -40,6 +40,7 @@ const orderSchema = new mongoose.Schema(
     paymentMethod: { type: String, default: "card" },
     status: { type: String, enum: ["in_progress", "delivered", "cancelled"], default: "in_progress" },
     address: { type: String, default: "" },
+    orderType: { type: String, enum: ["instant", "scheduled"], default: "instant" },
     scheduledAt: Date,
     receiverName: String,
     receiverPhone: String,

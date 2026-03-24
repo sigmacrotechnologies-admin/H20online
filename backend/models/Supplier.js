@@ -29,6 +29,8 @@ const supplierSchema = new mongoose.Schema(
     documentBusinessLicenseVerified: { type: Boolean, default: false },
     tentativeVerificationTime: { type: String, default: "24-48 hours" },
     commissionPercentage: { type: Number, default: 20 }, // platform fee %; supplier gets (100 - commission)%
+    bonusAmount: { type: Number, default: 0 },
+    bonusLabel: { type: String, default: "H2O Online extra benefit", trim: true },
   },
   { timestamps: true }
 );

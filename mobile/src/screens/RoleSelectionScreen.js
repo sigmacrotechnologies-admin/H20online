@@ -1,6 +1,8 @@
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, ScrollView, Alert } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, ScrollView, Alert, Platform, StatusBar, Animated, Easing } from "react-native";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Path } from "react-native-svg";
 import { theme } from "@/src/theme";
 
 const roles = [
@@ -19,9 +21,61 @@ const COMING_SOON_MESSAGES = {
   Institute: "Institute feature is coming soon.",
 };
 
+const HEADER_DROPLETS = [
+  { left: -12, top: 20, width: 18, height: 24, phase: "a" },
+  { left: 14, top: 62, width: 16, height: 22, phase: "b" },
+  { left: 52, top: 28, width: 20, height: 28, phase: "c" },
+  { left: 88, top: 94, width: 14, height: 20, phase: "a" },
+  { left: 124, top: 44, width: 22, height: 30, phase: "b" },
+  { left: 164, top: 12, width: 16, height: 22, phase: "c" },
+  { left: 206, top: 74, width: 18, height: 24, phase: "a" },
+  { left: 34, top: 150, width: 18, height: 24, phase: "c" },
+  { right: 146, top: 36, width: 20, height: 28, phase: "c" },
+  { right: 110, top: 8, width: 16, height: 22, phase: "a" },
+  { right: 76, top: 66, width: 18, height: 24, phase: "b" },
+  { right: 42, top: 30, width: 22, height: 30, phase: "c" },
+  { right: 8, top: 98, width: 16, height: 22, phase: "a" },
+  { right: 62, top: 154, width: 18, height: 24, phase: "b" },
+  { right: -10, top: 18, width: 18, height: 24, phase: "b" },
+  { left: 20, top: 220, width: 16, height: 22, phase: "a" },
+  { left: 86, top: 266, width: 18, height: 24, phase: "b" },
+  { left: 146, top: 312, width: 16, height: 22, phase: "c" },
+  { left: 204, top: 246, width: 18, height: 24, phase: "a" },
+  { right: 132, top: 226, width: 16, height: 22, phase: "b" },
+  { right: 70, top: 286, width: 18, height: 24, phase: "c" },
+  { right: 14, top: 338, width: 16, height: 22, phase: "a" },
+  { left: 44, top: 404, width: 18, height: 24, phase: "b" },
+  { left: 122, top: 470, width: 16, height: 22, phase: "c" },
+  { right: 96, top: 430, width: 18, height: 24, phase: "a" },
+  { right: 22, top: 516, width: 16, height: 22, phase: "b" },
+  { left: 12, top: 578, width: 18, height: 24, phase: "c" },
+  { left: 174, top: 612, width: 16, height: 22, phase: "a" },
+  { right: 48, top: 650, width: 18, height: 24, phase: "b" },
+];
+
 const RoleSelectionScreen = ({ onReplayLoading }) => {
   const router = useRouter();
   const [selectedRole, setSelectedRole] = useState(roles[0]);
+  const scrollRef = useRef(null);
+  const [actionAnchorY, setActionAnchorY] = useState(0);
+  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
+  const dropletAnimA = useRef(new Animated.Value(0)).current;
+  const dropletAnimB = useRef(new Animated.Value(0)).current;
+  const dropletAnimC = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = (value, duration) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(value, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(value, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      );
+    const a = loop(dropletAnimA, 3400), b = loop(dropletAnimB, 4200), c = loop(dropletAnimC, 3800);
+    a.start(); b.start(); c.start();
+    return () => { a.stop(); b.stop(); c.stop(); };
+  }, [dropletAnimA, dropletAnimB, dropletAnimC]);
+  const getDropletAnim = (phase) => (phase === "b" ? dropletAnimB : phase === "c" ? dropletAnimC : dropletAnimA);
 
   const handleContinue = () => {
     if (selectedRole.comingSoon) {
@@ -57,102 +111,140 @@ const RoleSelectionScreen = ({ onReplayLoading }) => {
     router.push({ pathname: "/login", params: { role: roleParam } });
   };
 
+  const handleSelectRole = (role) => {
+    setSelectedRole(role);
+    if (scrollRef.current && actionAnchorY > 0) {
+      scrollRef.current.scrollTo({ y: Math.max(0, actionAnchorY - 36), animated: true });
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+      <LinearGradient
+        colors={["#33AFC1", "#63CDE3", "#A9E9F6"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.backgroundGradient}
       >
-        {/* Top Icon - tap to replay loading screen */}
-        <TouchableOpacity
-          style={styles.iconContainer}
-          onPress={onReplayLoading}
-          activeOpacity={0.9}
-        >
-          <Image source={require("../../assets/images/H2-Logo.png")} style={styles.logo} resizeMode="contain" />
-        </TouchableOpacity>
-
-        {/* Header */}
-        <Text style={styles.title}>Welcome to H2Online</Text>
-        <Text style={styles.subtitle}>
-          Select your role to access the ecosystem
-        </Text>
-
-        {/* Role Grid (tiles) */}
-        <View style={styles.grid}>
-          {roles.map((role) => {
-            const isSelected = selectedRole.title === role.title;
+        <View style={styles.headerOverlay}>
+          {HEADER_DROPLETS.map((drop, idx) => {
+            const dropAnim = getDropletAnim(drop.phase);
             return (
-              <TouchableOpacity
-                key={role.id}
-                style={[styles.card, isSelected && styles.selectedCard]}
-                onPress={() => setSelectedRole(role)}
-                activeOpacity={0.8}
+              <Animated.View
+                key={`role-drop-${idx}`}
+                style={[
+                  styles.dropletWrap,
+                  {
+                    left: drop.left,
+                    right: drop.right,
+                    top: drop.top,
+                    width: drop.width,
+                    height: drop.height,
+                    opacity: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.32] }),
+                    transform: [
+                      { translateY: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
+                      { scale: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.05] }) },
+                    ],
+                  },
+                ]}
               >
-                <View style={styles.cardIconCircle}>
-                  <Text style={styles.cardIcon}>{role.icon}</Text>
-                </View>
-                <Text style={styles.cardTitle}>{role.title}</Text>
-                <Text style={styles.cardSubtitle}>{role.subtitle}</Text>
-                {isSelected && <View style={styles.tick} />}
-              </TouchableOpacity>
+                <Svg width="100%" height="100%" viewBox="0 0 60 80">
+                  <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.3)" />
+                </Svg>
+              </Animated.View>
             );
           })}
         </View>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scrollView}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: 26 + androidTopInset }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Top Icon - tap to replay loading screen */}
+          <TouchableOpacity
+            style={styles.iconContainer}
+            onPress={onReplayLoading}
+            activeOpacity={0.9}
+          >
+            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.logo} resizeMode="contain" />
+          </TouchableOpacity>
 
-        {/* Partner tile: three options; others: login + signup */}
-        {selectedRole.title === "Partner" ? (
-          <>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.loginButton]}
-              onPress={() => handleLogin("Supplier")}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.loginButtonText}>Login as supplier</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.loginButton]}
-              onPress={() => handleLogin("Delivery partner")}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.loginButtonText}>Login as partner</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.signupButton]}
-              activeOpacity={0.9}
-              onPress={handleContinue}
-            >
-              <Text style={styles.signupButtonText}>Sign up as partner or supplier →</Text>
-            </TouchableOpacity>
-          </>
-        ) : (
-          <>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.loginButton]}
-              onPress={() => handleLogin(selectedRole.title)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.loginButtonText}>{getLoginButtonText()}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.signupButton]}
-              activeOpacity={0.9}
-              onPress={handleContinue}
-            >
-              <Text style={styles.signupButtonText}>{getSignupButtonText()} →</Text>
-            </TouchableOpacity>
-          </>
-        )}
+          {/* Role Grid (tiles) */}
+          <View style={styles.grid}>
+            {roles.map((role) => {
+              const isSelected = selectedRole.title === role.title;
+              return (
+                <TouchableOpacity
+                  key={role.id}
+                  style={[styles.card, isSelected && styles.selectedCard]}
+                  onPress={() => handleSelectRole(role)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.cardIconCircle}>
+                    <Text style={styles.cardIcon}>{role.icon}</Text>
+                  </View>
+                  <Text style={styles.cardTitle}>{role.title}</Text>
+                  <Text style={styles.cardSubtitle}>{role.subtitle}</Text>
+                  {isSelected && <View style={styles.tick} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
-        {/* Footer */}
-        <Text style={styles.footer}>
-          By continuing, you agree to our{" "}
-          <Text style={styles.link}>Terms</Text> &{" "}
-          <Text style={styles.link}>Privacy Policy</Text>
-        </Text>
-      </ScrollView>
+          {/* Partner tile: three options; others: login + signup */}
+          {selectedRole.title === "Partner" ? (
+            <View onLayout={(e) => setActionAnchorY(e.nativeEvent.layout.y)}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.loginButton]}
+                onPress={() => handleLogin("Supplier")}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.loginButtonText}>Login as supplier</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.loginButton]}
+                onPress={() => handleLogin("Delivery partner")}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.loginButtonText}>Login as partner</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.signupButton]}
+                activeOpacity={0.9}
+                onPress={handleContinue}
+              >
+                <Text style={styles.signupButtonText}>Sign up as partner or supplier →</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View onLayout={(e) => setActionAnchorY(e.nativeEvent.layout.y)}>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.loginButton]}
+                onPress={() => handleLogin(selectedRole.title)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.loginButtonText}>{getLoginButtonText()}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.signupButton]}
+                activeOpacity={0.9}
+                onPress={handleContinue}
+              >
+                <Text style={styles.signupButtonText}>{getSignupButtonText()} →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Footer */}
+          <Text style={styles.footer}>
+            By continuing, you agree to our{" "}
+            <Text style={styles.link}>Terms</Text> &{" "}
+            <Text style={styles.link}>Privacy Policy</Text>
+          </Text>
+        </ScrollView>
+      </LinearGradient>
     </SafeAreaView>
   );
 };
@@ -164,6 +256,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.background,
   },
+  backgroundGradient: {
+    flex: 1,
+  },
+  headerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  dropletWrap: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   scrollView: {
     flex: 1,
   },
@@ -173,17 +276,14 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     alignSelf: "center",
-    marginTop: 10,
-    marginBottom: 10,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    padding: 1,
-    borderRadius: 50,
-    elevation: 2,
+    marginTop: 16,
+    marginBottom: 14,
   },
 
   logo: {
-    width: 80,
-    height: 80,
+    width: 238,
+    height: 68,
+    marginBottom: 14,
   },
 
   icon: {
@@ -222,13 +322,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     marginBottom: 16,
     alignItems: "center",
-    elevation: 2,
+    elevation: 0,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.85)",
   },
 
   selectedCard: {
     borderWidth: 2,
     borderColor: theme.medium,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "rgba(255,255,255,0.9)",
   },
 
   cardIconCircle: {
@@ -271,10 +373,12 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: "center",
     justifyContent: "center",
-    elevation: 3,
+    elevation: 0,
     marginLeft: 11,
     marginRight: 11,
     minHeight: 52,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
   },
 
   loginButton: {

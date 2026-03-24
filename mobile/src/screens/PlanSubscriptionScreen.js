@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -9,11 +9,17 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
+  Image,
+  Platform,
+  StatusBar,
+  Animated,
+  Easing,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import BackButton from "@/src/components/BackButton";
+import Svg, { Path } from "react-native-svg";
 import { api } from "@/src/api/client";
 import { theme } from "@/src/theme";
 
@@ -28,6 +34,26 @@ const FREQUENCIES = [
   { key: "daily", label: "Daily" },
   { key: "weekly", label: "Weekly" },
   { key: "monthly", label: "Monthly" },
+];
+const HEADER_DROPLETS = [
+  { left: -8, top: 18, width: 16, height: 22, phase: "a" },
+  { left: 22, top: 58, width: 14, height: 20, phase: "b" },
+  { left: 56, top: 20, width: 18, height: 24, phase: "c" },
+  { left: 92, top: 86, width: 14, height: 20, phase: "a" },
+  { left: 132, top: 38, width: 16, height: 22, phase: "b" },
+  { left: 172, top: 102, width: 14, height: 20, phase: "c" },
+  { left: 212, top: 60, width: 16, height: 22, phase: "a" },
+  { left: 24, top: 156, width: 14, height: 20, phase: "c" },
+  { left: 84, top: 188, width: 14, height: 20, phase: "a" },
+  { left: 152, top: 174, width: 16, height: 22, phase: "b" },
+  { right: 154, top: 20, width: 16, height: 22, phase: "c" },
+  { right: 118, top: 68, width: 14, height: 20, phase: "a" },
+  { right: 82, top: 30, width: 16, height: 22, phase: "b" },
+  { right: 46, top: 94, width: 14, height: 20, phase: "c" },
+  { right: 10, top: 54, width: 16, height: 22, phase: "a" },
+  { right: -6, top: 124, width: 14, height: 20, phase: "b" },
+  { right: 92, top: 160, width: 14, height: 20, phase: "c" },
+  { right: 28, top: 188, width: 14, height: 20, phase: "a" },
 ];
 
 // Preferred delivery time: hour (1-12), minute (00, 15, 30, 45), AM/PM — dropdown only, no manual input
@@ -119,6 +145,23 @@ const PlanSubscriptionScreen = () => {
   const [activePlansDropdownOpen, setActivePlansDropdownOpen] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
+  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
+  const dropletAnimA = useRef(new Animated.Value(0)).current;
+  const dropletAnimB = useRef(new Animated.Value(0)).current;
+  const dropletAnimC = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = (value, duration) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(value, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(value, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      );
+    const a = loop(dropletAnimA, 3400), b = loop(dropletAnimB, 4200), c = loop(dropletAnimC, 3800);
+    a.start(); b.start(); c.start();
+    return () => { a.stop(); b.stop(); c.stop(); };
+  }, [dropletAnimA, dropletAnimB, dropletAnimC]);
+  const getDropletAnim = (phase) => phase === "b" ? dropletAnimB : phase === "c" ? dropletAnimC : dropletAnimA;
 
   const fetchActiveSubscriptions = useCallback(async () => {
     try {
@@ -332,23 +375,51 @@ const PlanSubscriptionScreen = () => {
             colors={theme.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.gradientBackground}
+            style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}
           >
+            <View style={styles.headerOverlay}>
+              {HEADER_DROPLETS.map((drop, idx) => {
+                const dropAnim = getDropletAnim(drop.phase);
+                return (
+                  <Animated.View
+                    key={`plan-drop-${idx}`}
+                    style={[styles.dropletWrap, {
+                      left: drop.left, right: drop.right, top: drop.top, width: drop.width, height: drop.height,
+                      opacity: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.32] }),
+                      transform: [
+                        { translateY: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
+                        { scale: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.05] }) },
+                      ],
+                    }]}
+                  >
+                    <Svg width="100%" height="100%" viewBox="0 0 60 80">
+                      <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.3)" />
+                    </Svg>
+                  </Animated.View>
+                );
+              })}
+            </View>
             <View style={styles.headerTopRow}>
               <BackButton onPress={() => router.back()} />
+              <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
               <TouchableOpacity
                 style={styles.headerMenuBtn}
                 activeOpacity={0.7}
-                onPress={() => setShowMenuModal(true)}
+                onPress={() => router.push("/profile")}
               >
                 <Ionicons name="menu" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
             <View style={styles.headerCenter}>
-              <View style={styles.headerIconCircle}>
-                <Ionicons name="document-text-outline" size={36} color="#FFFFFF" />
+              <View style={styles.headerInfoRow}>
+                <View style={styles.headerIconCircle}>
+                  <Ionicons name="document-text-outline" size={24} color="#FFFFFF" />
+                </View>
+                <View style={styles.headerTextWrap}>
+                  <Text style={styles.headerTitle}>My Plan</Text>
+                  <Text style={styles.headerSubtitle}>Select or add a new or modify your plan here</Text>
+                </View>
               </View>
-              <Text style={styles.headerTitle}>My Plan</Text>
             </View>
           </LinearGradient>
         </View>
@@ -832,19 +903,23 @@ const PlanSubscriptionScreen = () => {
 export default PlanSubscriptionScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
   scrollContent: { paddingBottom: 40 },
-  headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 200, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 24, paddingHorizontal: 36, paddingBottom: 36 },
-  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 0 },
+  headerSection: { minHeight: 236, overflow: "hidden" },
+  gradientBackground: { flex: 1, paddingHorizontal: 20, paddingBottom: 34 },
+  headerOverlay: { ...StyleSheet.absoluteFillObject },
+  dropletWrap: { position: "absolute", alignItems: "center", justifyContent: "center" },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 30 },
+  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
   headerMenuBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" },
-  headerCenter: { alignItems: "center", justifyContent: "center", marginTop: -14, width: "100%" },
-  headerIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center", marginBottom: 6 },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF", textAlign: "center", paddingBottom: 32 },
+  headerCenter: { alignItems: "flex-start", justifyContent: "center", marginTop: 2, width: "100%" },
+  headerInfoRow: { flexDirection: "row", alignItems: "center" },
+  headerTextWrap: { flex: 1, marginLeft: 12 },
+  headerIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center", marginBottom: 2 },
+  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
+  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
   contentSection: {
     marginTop: -16,
-    marginLeft: 2,
-    marginRight: 2,
     backgroundColor: theme.screenBackground,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -855,11 +930,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.08,
     shadowRadius: 16,
-    elevation: 8,
+    elevation: 0,
   },
   sectionLabel: { fontSize: 15, fontWeight: "700", color: "#1B2B34", marginBottom: 10 },
   activePlansCard: {
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingBottom: 12,
@@ -868,7 +943,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 0,
   },
   activePlansDropdown: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 4 },
   activePlansDropdownText: { flex: 1, fontSize: 15, fontWeight: "600", color: "#1B2B34" },
@@ -879,14 +954,14 @@ const styles = StyleSheet.create({
   planTile: {
     width: "48%",
     minWidth: 140,
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 16,
     padding: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 0,
   },
   planTileSelected: {
     backgroundColor: theme.primary,
@@ -901,7 +976,7 @@ const styles = StyleSheet.create({
   comingSoonBadge: { fontSize: 11, color: theme.primary, marginTop: 6, fontWeight: "600" },
   comingSoonBadgeWhite: { color: "rgba(255,255,255,0.9)" },
   comingSoonCard: {
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 20,
     padding: 32,
     alignItems: "center",
@@ -910,7 +985,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 0,
   },
   comingSoonTitle: { fontSize: 18, fontWeight: "700", color: "#1B2B34", marginTop: 12 },
   comingSoonText: { fontSize: 14, color: "#6B7C85", marginTop: 8, textAlign: "center" },
@@ -920,7 +995,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 18,
     borderRadius: 12,
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
   },
   freqChipSelected: {
     backgroundColor: theme.primary,
@@ -941,7 +1016,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   productCard: {
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 8,
@@ -951,7 +1026,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 0,
     flex: 1,
   },
   productCardSelected: {
@@ -978,7 +1053,7 @@ const styles = StyleSheet.create({
   quantityBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.selectedTint, justifyContent: "center", alignItems: "center" },
   quantityValue: { fontSize: 18, fontWeight: "700", color: "#1B2B34", minWidth: 32, textAlign: "center" },
   rangeToggles: { flexDirection: "row", gap: 8, marginBottom: 12 },
-  rangeBtn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: "#f0f7fcd7" },
+  rangeBtn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.78)" },
   rangeBtnSelected: { backgroundColor: theme.primary },
   rangeBtnText: { fontSize: 13, fontWeight: "600", color: "#1B2B34" },
   rangeBtnTextSelected: { color: "#FFFFFF" },
@@ -993,7 +1068,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 0,
   },
   calendarNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
   calendarNavBtn: { padding: 8 },
@@ -1002,7 +1077,7 @@ const styles = StyleSheet.create({
   weekdayHead: { flex: 1, fontSize: 11, fontWeight: "600", color: "#6B7C85", textAlign: "center" },
   calendarGrid: { flexDirection: "row", flexWrap: "wrap" },
   calendarDay: { width: "14.28%", aspectRatio: 1, justifyContent: "center", alignItems: "center", padding: 2 },
-  calendarDayInner: { width: "78%", aspectRatio: 1, borderRadius: 999, justifyContent: "center", alignItems: "center", alignSelf: "center" },
+  calendarDayInner: { width: 34, height: 34, borderRadius: 17, justifyContent: "center", alignItems: "center", alignSelf: "center", overflow: "hidden" },
   calendarDayInnerSelected: { backgroundColor: theme.primary },
   calendarDayInnerPast: { opacity: 0.35 },
   calendarDayText: { fontSize: 13, fontWeight: "600", color: "#1B2B34" },
@@ -1010,7 +1085,7 @@ const styles = StyleSheet.create({
   calendarDayTextPast: { color: "#9CA3AF" },
   hint: { fontSize: 13, color: "#6B7C85", marginBottom: 8 },
   deliveryTimeInput: {
-    backgroundColor: "#f0f7fcd7",
+    backgroundColor: "rgba(255,255,255,0.78)",
     borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
@@ -1020,20 +1095,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E5E7EB",
   },
-  noAddressBox: { backgroundColor: "#f0f7fcd7", borderRadius: 12, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: "#E5E7EB", alignItems: "center" },
+  noAddressBox: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 12, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)", alignItems: "center" },
   noAddressText: { fontSize: 14, color: "#6B7C85", textAlign: "center", marginTop: 8 },
   noAddressBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: theme.primary, borderRadius: 10 },
   noAddressBtnText: { fontSize: 14, fontWeight: "600", color: "#FFF" },
   weeklySection: { marginBottom: 20 },
   weekdayChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  weekdayChip: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: "#f0f7fcd7" },
+  weekdayChip: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.78)" },
   weekdayChipSelected: { backgroundColor: theme.primary },
   weekdayChipText: { fontSize: 13, fontWeight: "600", color: "#1B2B34" },
   weekdayChipTextSelected: { color: "#FFFFFF" },
   weeksStepper: { flexDirection: "row", alignItems: "center", gap: 16 },
   monthlySection: { marginBottom: 20 },
   monthlyDaysRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  monthlyDayChip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: "#f0f7fcd7" },
+  monthlyDayChip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.78)" },
   monthlyDayChipSelected: { backgroundColor: theme.primary },
   monthlyDayChipText: { fontSize: 14, fontWeight: "600", color: "#1B2B34" },
   monthlyDayChipTextSelected: { color: "#FFFFFF" },
@@ -1046,7 +1121,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 12,
-    elevation: 6,
+    elevation: 0,
   },
   summaryRow: { flexDirection: "row", alignItems: "center" },
   summaryIcon: { marginRight: 12 },

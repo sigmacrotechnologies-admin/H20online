@@ -42,6 +42,8 @@ router.get("/orders/incoming", async (req, res) => {
         myTotal,
         total: o.total,
         status: o.status,
+        orderType: o.orderType || "instant",
+        scheduledAt: o.scheduledAt || null,
         createdAt: o.createdAt,
         address: o.address,
         receiverName: o.receiverName,
@@ -85,6 +87,8 @@ router.get("/orders/history", async (req, res) => {
         myTotal,
         total: o.total,
         status: o.status,
+        orderType: o.orderType || "instant",
+        scheduledAt: o.scheduledAt || null,
         createdAt: o.createdAt,
         address: o.address,
         customerName: o.userId?.name,
@@ -112,7 +116,13 @@ router.patch("/orders/:id/accept", async (req, res) => {
     const { eta, remarks, deliveryPartnerId, requestedFleetType } = req.body;
     resp.status = "accepted";
     resp.deliveryStage = "accepted";
-    if (eta != null && typeof eta === "string") resp.eta = eta.trim();
+    if (eta != null && typeof eta === "string") {
+      const normalizedEta = eta.trim();
+      if (normalizedEta && !/^\d{1,2}h\s+[0-5]?\dm$/i.test(normalizedEta)) {
+        return res.status(400).json({ error: "ETA must be in '<hours>h <minutes>m' format" });
+      }
+      resp.eta = normalizedEta;
+    }
     if (remarks != null && typeof remarks === "string") resp.remarks = remarks.trim();
     if (requestedFleetType != null && typeof requestedFleetType === "string") resp.requestedFleetType = requestedFleetType.trim();
     if (deliveryPartnerId && toObjectId(deliveryPartnerId)) {
@@ -126,6 +136,38 @@ router.patch("/orders/:id/accept", async (req, res) => {
     await order.save();
     const o = order.toObject();
     res.json({ id: o._id.toString(), supplierResponses: o.supplierResponses });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch("/orders/:id/reject", async (req, res) => {
+  try {
+    const supplierId = await getSupplierId(req.user._id);
+    if (!supplierId) return res.status(403).json({ error: "Supplier profile required" });
+    const orderId = toObjectId(req.params.id);
+    if (!orderId) return res.status(400).json({ error: "Invalid order id" });
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    const resp = (order.supplierResponses || []).find((r) => String(r.supplierId) === String(supplierId));
+    if (!resp) return res.status(404).json({ error: "Order not found for this supplier" });
+    if (resp.status !== "pending") return res.status(400).json({ error: "Order already responded" });
+
+    const { remarks } = req.body || {};
+    resp.status = "rejected";
+    if (remarks != null && typeof remarks === "string") resp.remarks = remarks.trim();
+
+    const responses = order.supplierResponses || [];
+    const hasAccepted = responses.some((r) => r.status === "accepted");
+    const hasPending = responses.some((r) => r.status === "pending");
+    if (!hasAccepted && !hasPending) {
+      order.status = "cancelled";
+    }
+
+    await order.save();
+    const o = order.toObject();
+    res.json({ id: o._id.toString(), status: o.status, supplierResponses: o.supplierResponses });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -155,6 +197,8 @@ router.get("/orders/accepted", async (req, res) => {
         myTotal,
         total: o.total,
         status: o.status,
+        orderType: o.orderType || "instant",
+        scheduledAt: o.scheduledAt || null,
         createdAt: o.createdAt,
         address: o.address,
         receiverName: o.receiverName,
@@ -234,8 +278,9 @@ router.patch("/orders/:id/cancel", async (req, res) => {
 
 router.get("/financials", async (req, res) => {
   try {
-    const supplierId = await getSupplierId(req.user._id);
-    if (!supplierId) return res.status(403).json({ error: "Supplier profile required" });
+    const supplier = await Supplier.findOne({ userId: req.user._id }).lean();
+    if (!supplier) return res.status(403).json({ error: "Supplier profile required" });
+    const supplierId = supplier._id;
     const orders = await Order.find({ "items.supplierId": supplierId, status: { $ne: "cancelled" } }).lean();
     let totalRevenue = 0;
     const orderCount = orders.length;
@@ -245,13 +290,16 @@ router.get("/financials", async (req, res) => {
     }
     const platformDeductionPercent = 30;
     const platformDeduction = totalRevenue * (platformDeductionPercent / 100);
-    const netEarnings = totalRevenue - platformDeduction;
+    const bonusAmount = Number(supplier.bonusAmount || 0);
+    const netEarnings = totalRevenue - platformDeduction + bonusAmount;
     res.json({
       totalRevenue,
       platformDeductionPercent,
       platformDeduction,
       netEarnings,
       orderCount,
+      bonusAmount,
+      bonusLabel: supplier.bonusLabel || "H2O Online extra benefit",
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
