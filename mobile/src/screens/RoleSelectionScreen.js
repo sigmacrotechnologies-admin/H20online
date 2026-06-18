@@ -2,16 +2,18 @@ import React, { useEffect, useRef, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, ScrollView, Alert, Platform, StatusBar, Animated, Easing } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import Svg, { Path } from "react-native-svg";
+import AppLogo from "@/src/components/AppLogo";
 import { theme } from "@/src/theme";
 
 const roles = [
-  { id: 1, title: "Customer", subtitle: "Home delivery & tracking", icon: "👤" },
-  { id: 2, title: "Partner", subtitle: "Manage orders & logistics", icon: "🚚" },
-  { id: 4, title: "Corporate", subtitle: "Office supply analytics", icon: "🏢", comingSoon: true },
-  { id: 5, title: "Restaurant", subtitle: "Hospitality solutions", icon: "🍽️", comingSoon: true },
-  { id: 6, title: "Event Org", subtitle: "Large volume planning", icon: "📅", comingSoon: true },
-  { id: 7, title: "Institute", subtitle: "Campus monitoring", icon: "🎓", comingSoon: true },
+  { id: 1, title: "Customer", subtitle: "Home delivery & tracking", icon: "person-outline" },
+  { id: 2, title: "Partner", subtitle: "Manage orders & logistics", icon: "storefront-outline" },
+  { id: 4, title: "Corporate", subtitle: "Office supply analytics", icon: "business-outline", comingSoon: true },
+  { id: 5, title: "Restaurant", subtitle: "Hospitality solutions", icon: "restaurant-outline", comingSoon: true },
+  { id: 6, title: "Event Org", subtitle: "Large volume planning", icon: "calendar-outline", comingSoon: true },
+  { id: 7, title: "Institute", subtitle: "Campus monitoring", icon: "school-outline", comingSoon: true },
 ];
 
 const COMING_SOON_MESSAGES = {
@@ -120,144 +122,224 @@ const RoleSelectionScreen = ({ onReplayLoading }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={["#33AFC1", "#63CDE3", "#A9E9F6"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.backgroundGradient}
-      >
-        <View style={styles.headerOverlay}>
-          {HEADER_DROPLETS.map((drop, idx) => {
-            const dropAnim = getDropletAnim(drop.phase);
-            return (
-              <Animated.View
-                key={`role-drop-${idx}`}
-                style={[
-                  styles.dropletWrap,
-                  {
-                    left: drop.left,
-                    right: drop.right,
-                    top: drop.top,
-                    width: drop.width,
-                    height: drop.height,
-                    opacity: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.32] }),
-                    transform: [
-                      { translateY: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
-                      { scale: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.05] }) },
-                    ],
-                  },
-                ]}
-              >
-                <Svg width="100%" height="100%" viewBox="0 0 60 80">
-                  <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.3)" />
-                </Svg>
-              </Animated.View>
-            );
-          })}
-        </View>
-        <ScrollView
-          ref={scrollRef}
-          style={styles.scrollView}
-          contentContainerStyle={[styles.scrollContent, { paddingTop: 26 + androidTopInset }]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+      <View style={[styles.headerSection, { height: (Platform.OS === "android" ? 196 : 184) + androidTopInset }]}>
+        <LinearGradient
+          colors={theme.gradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.headerGradient, { paddingTop: 12 + androidTopInset }]}
         >
-          {/* Top Icon - tap to replay loading screen */}
-          <TouchableOpacity
-            style={styles.iconContainer}
-            onPress={onReplayLoading}
-            activeOpacity={0.9}
-          >
-            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.logo} resizeMode="contain" />
-          </TouchableOpacity>
+          <View style={styles.headerOverlay} pointerEvents="none">
+            {HEADER_DROPLETS.map((drop, idx) => {
+              const dropAnim = getDropletAnim(drop.phase);
+              return (
+                <Animated.View
+                  key={`role-drop-${idx}`}
+                  style={[
+                    styles.dropletWrap,
+                    {
+                      left: drop.left,
+                      right: drop.right,
+                      top: drop.top,
+                      width: drop.width,
+                      height: drop.height,
+                      opacity: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.14, 0.28] }),
+                      transform: [
+                        { translateY: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -8] }) },
+                        { scale: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.04] }) },
+                      ],
+                    },
+                  ]}
+                >
+                  <Svg width="100%" height="100%" viewBox="0 0 60 80">
+                    <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.28)" />
+                  </Svg>
+                </Animated.View>
+              );
+            })}
+          </View>
 
-          {/* Role Grid (tiles) */}
+          <TouchableOpacity style={styles.logoHero} onPress={onReplayLoading} activeOpacity={0.9}>
+            <AppLogo size="hero" />
+            <Text style={styles.brandTagline}>Pure water, delivered smart</Text>
+          </TouchableOpacity>
+        </LinearGradient>
+      </View>
+
+      <ScrollView
+        ref={scrollRef}
+        style={styles.contentScroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.contentPanel}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Choose your role</Text>
+            <Text style={styles.sectionSubtitle}>Select how you want to use H2Online</Text>
+          </View>
+
           <View style={styles.grid}>
             {roles.map((role) => {
               const isSelected = selectedRole.title === role.title;
               return (
                 <TouchableOpacity
                   key={role.id}
-                  style={[styles.card, isSelected && styles.selectedCard]}
+                  style={styles.cardWrap}
                   onPress={() => handleSelectRole(role)}
-                  activeOpacity={0.8}
+                  activeOpacity={0.88}
                 >
-                  <View style={styles.cardIconCircle}>
-                    <Text style={styles.cardIcon}>{role.icon}</Text>
-                  </View>
-                  <Text style={styles.cardTitle}>{role.title}</Text>
-                  <Text style={styles.cardSubtitle}>{role.subtitle}</Text>
-                  {isSelected && <View style={styles.tick} />}
+                  {isSelected ? (
+                    <LinearGradient
+                      colors={[theme.medium, theme.accent]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.cardGradientBorder}
+                    >
+                      <View style={styles.cardInner}>
+                        <RoleCardContent role={role} isSelected />
+                      </View>
+                    </LinearGradient>
+                  ) : (
+                    <View style={[styles.card, role.comingSoon && styles.cardMuted]}>
+                      <RoleCardContent role={role} isSelected={false} />
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          {/* Partner tile: three options; others: login + signup */}
+          <View style={styles.selectedBanner}>
+            <LinearGradient
+              colors={["rgba(51,175,193,0.12)", "rgba(30,143,177,0.08)"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.selectedBannerGradient}
+            >
+              <View style={styles.selectedBannerIcon}>
+                <Ionicons name={selectedRole.icon} size={18} color={theme.accent} />
+              </View>
+              <View style={styles.selectedBannerText}>
+                <Text style={styles.selectedBannerLabel}>Selected profile</Text>
+                <Text style={styles.selectedBannerValue}>{selectedRole.title}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={theme.accent} />
+            </LinearGradient>
+          </View>
+
           {selectedRole.title === "Partner" ? (
             <View onLayout={(e) => setActionAnchorY(e.nativeEvent.layout.y)}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.loginButton]}
-                onPress={() => handleLogin("Supplier")}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.loginButtonText}>Login as supplier</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.loginButton]}
-                onPress={() => handleLogin("Delivery partner")}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.loginButtonText}>Login as partner</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.signupButton]}
-                activeOpacity={0.9}
-                onPress={handleContinue}
-              >
-                <Text style={styles.signupButtonText}>Sign up as partner or supplier →</Text>
-              </TouchableOpacity>
+              <ActionButton label="Login as supplier" onPress={() => handleLogin("Supplier")} variant="outline" />
+              <ActionButton label="Login as partner" onPress={() => handleLogin("Delivery partner")} variant="outline" />
+              <ActionButton label="Sign up as partner or supplier" onPress={handleContinue} variant="primary" />
             </View>
           ) : (
             <View onLayout={(e) => setActionAnchorY(e.nativeEvent.layout.y)}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.loginButton]}
-                onPress={() => handleLogin(selectedRole.title)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.loginButtonText}>{getLoginButtonText()}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.signupButton]}
-                activeOpacity={0.9}
-                onPress={handleContinue}
-              >
-                <Text style={styles.signupButtonText}>{getSignupButtonText()} →</Text>
-              </TouchableOpacity>
+              <ActionButton label={getLoginButtonText()} onPress={() => handleLogin(selectedRole.title)} variant="outline" />
+              <ActionButton label={getSignupButtonText()} onPress={handleContinue} variant="primary" />
             </View>
           )}
 
-          {/* Footer */}
           <Text style={styles.footer}>
             By continuing, you agree to our{" "}
             <Text style={styles.link}>Terms</Text> &{" "}
             <Text style={styles.link}>Privacy Policy</Text>
           </Text>
-        </ScrollView>
-      </LinearGradient>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
+
+function RoleCardContent({ role, isSelected }) {
+  return (
+    <>
+      {isSelected && (
+        <LinearGradient
+          colors={[theme.medium, theme.accent]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+          style={styles.cardAccentBar}
+        />
+      )}
+      <View style={styles.cardTopRow}>
+        <LinearGradient
+          colors={isSelected ? [theme.medium, theme.accent] : ["rgba(51,175,193,0.16)", "rgba(30,143,177,0.1)"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.cardIconCircle}
+        >
+          <Ionicons name={role.icon} size={24} color={isSelected ? "#FFFFFF" : theme.accent} />
+        </LinearGradient>
+        {isSelected ? (
+          <View style={styles.selectedBadge}>
+            <Ionicons name="checkmark" size={13} color="#FFFFFF" />
+          </View>
+        ) : role.comingSoon ? (
+          <View style={styles.comingSoonPill}>
+            <Text style={styles.comingSoonText}>Soon</Text>
+          </View>
+        ) : (
+          <Ionicons name="chevron-forward" size={16} color="rgba(107,124,133,0.45)" />
+        )}
+      </View>
+      <Text style={[styles.cardTitle, isSelected && styles.cardTitleSelected]}>{role.title}</Text>
+      <Text style={styles.cardSubtitle} numberOfLines={2}>
+        {role.subtitle}
+      </Text>
+      {!role.comingSoon && (
+        <View style={styles.cardFooter}>
+          <View style={[styles.statusDot, isSelected && styles.statusDotActive]} />
+          <Text style={[styles.cardFooterText, isSelected && styles.cardFooterTextActive]}>
+            {isSelected ? "Ready to continue" : "Tap to select"}
+          </Text>
+        </View>
+      )}
+    </>
+  );
+}
+
+function ActionButton({ label, onPress, variant }) {
+  if (variant === "primary") {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.9} style={styles.actionWrap}>
+        <LinearGradient
+          colors={[theme.medium, theme.accent]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.primaryButton}
+        >
+          <Text style={styles.primaryButtonText}>{label}</Text>
+          <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <TouchableOpacity style={styles.outlineButton} onPress={onPress} activeOpacity={0.85}>
+      <Text style={styles.outlineButtonText}>{label}</Text>
+      <Ionicons name="log-in-outline" size={18} color={theme.accent} />
+    </TouchableOpacity>
+  );
+}
 
 export default RoleSelectionScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.background,
+    backgroundColor: theme.screenBackground,
   },
-  backgroundGradient: {
+  headerSection: {
+    overflow: "hidden",
+  },
+  headerGradient: {
     flex: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 36,
+    justifyContent: "center",
   },
   headerOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -267,149 +349,313 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  scrollView: {
+  logoHero: {
+    alignItems: "center",
+    zIndex: 2,
+  },
+  logoGlass: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.34)",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#0B3A4A",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.18,
+        shadowRadius: 16,
+      },
+      android: { elevation: 0 },
+    }),
+  },
+  logo: {
+    width: 210,
+    height: 58,
+  },
+  brandTagline: {
+    marginTop: 12,
+    fontSize: 13,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.94)",
+    letterSpacing: 0.3,
+  },
+  contentScroll: {
     flex: 1,
+    marginTop: -30,
   },
   scrollContent: {
+    paddingBottom: Platform.OS === "android" ? 36 : 24,
+  },
+  contentPanel: {
+    backgroundColor: "#F8FCFD",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    paddingTop: 28,
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 12,
+    minHeight: "100%",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.9)",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#0B3A4A",
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      android: { elevation: 0 },
+    }),
   },
-  iconContainer: {
-    alignSelf: "center",
-    marginTop: 16,
-    marginBottom: 14,
+  sectionHeader: {
+    marginBottom: 18,
   },
-
-  logo: {
-    width: 238,
-    height: 68,
-    marginBottom: 14,
-  },
-
-  icon: {
-    fontSize: 28,
-  },
-
-  title: {
-    fontSize: 26,
+  sectionTitle: {
+    fontSize: 22,
     fontWeight: "700",
-    textAlign: "center",
     color: theme.textPrimary,
-    marginTop: 10,
+    letterSpacing: -0.4,
   },
-
-  subtitle: {
-    textAlign: "center",
-    color: theme.textSecondary,
-    marginTop: 6,
-    marginBottom: 25,
+  sectionSubtitle: {
     fontSize: 14,
+    color: theme.textMuted,
+    marginTop: 5,
   },
-
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
+    width: "100%",
   },
-
-  card: {
-    // Keep 2 columns even on smaller phones by sizing relative to available width
-    // (ScrollView already applies `paddingHorizontal: 20`, so two ~48% cards fit).
+  cardWrap: {
     width: "48%",
-    backgroundColor: "rgba(255,255,255,0.75)",
-    borderRadius: 20,
-    paddingVertical: 20,
-    paddingHorizontal: 18,
-    marginBottom: 16,
-    alignItems: "center",
-    elevation: 0,
+    maxWidth: "48%",
+    marginBottom: 14,
+  },
+  cardGradientBorder: {
+    borderRadius: 24,
+    padding: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: theme.accent,
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.22,
+        shadowRadius: 16,
+      },
+      android: { elevation: 0 },
+    }),
+  },
+  card: {
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
+    borderColor: "rgba(214,234,242,0.95)",
+    minHeight: 162,
+    overflow: "hidden",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#0B3A4A",
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+      },
+      android: { elevation: 0 },
+    }),
   },
-
-  selectedCard: {
-    borderWidth: 2,
-    borderColor: theme.medium,
-    backgroundColor: "rgba(255,255,255,0.9)",
+  cardMuted: {
+    opacity: 0.82,
   },
-
+  cardInner: {
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    minHeight: 158,
+    overflow: "hidden",
+  },
+  cardAccentBar: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: 22,
+    borderBottomLeftRadius: 22,
+    zIndex: 1,
+  },
+  cardTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingLeft: 18,
+  },
   cardIconCircle: {
-    backgroundColor: "rgba(51,175,193,0.2)",
-    padding: 12,
-    borderRadius: 14,
-    marginBottom: 10,
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
-
-  cardIcon: {
-    fontSize: 20,
+  selectedBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.medium,
+    alignItems: "center",
+    justifyContent: "center",
   },
-
   cardTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     color: theme.textPrimary,
+    paddingHorizontal: 18,
+    marginTop: 14,
+    letterSpacing: -0.2,
   },
-
+  cardTitleSelected: {
+    color: theme.accent,
+  },
   cardSubtitle: {
     fontSize: 12,
     color: theme.textMuted,
-    textAlign: "center",
-    marginTop: 4,
+    paddingHorizontal: 18,
+    marginTop: 5,
+    lineHeight: 17,
+    minHeight: 34,
   },
-
-  tick: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingTop: 10,
+    paddingBottom: 14,
+    gap: 6,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: "rgba(107,124,133,0.35)",
+  },
+  statusDotActive: {
     backgroundColor: theme.medium,
   },
-
-  actionButton: {
-    marginTop: 12,
-    paddingVertical: 16,
-    borderRadius: 30,
+  cardFooterText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.textMuted,
+  },
+  cardFooterTextActive: {
+    color: theme.accent,
+  },
+  comingSoonPill: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 20,
+    backgroundColor: "rgba(51,175,193,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(51,175,193,0.2)",
+  },
+  comingSoonText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: theme.accent,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  selectedBanner: {
+    marginTop: 6,
+    marginBottom: 8,
+    borderRadius: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(51,175,193,0.18)",
+  },
+  selectedBannerGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  selectedBannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.85)",
     alignItems: "center",
     justifyContent: "center",
-    elevation: 0,
-    marginLeft: 11,
-    marginRight: 11,
+    marginRight: 12,
+  },
+  selectedBannerText: {
+    flex: 1,
+  },
+  selectedBannerLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  selectedBannerValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: theme.textPrimary,
+    marginTop: 2,
+  },
+  actionWrap: {
+    marginTop: 10,
+  },
+  outlineButton: {
+    marginTop: 10,
     minHeight: 52,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: "rgba(51,175,193,0.35)",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-
-  loginButton: {
-    backgroundColor: theme.medium,
-  },
-
-  loginButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
+  outlineButtonText: {
+    fontSize: 15,
     fontWeight: "600",
+    color: theme.accent,
   },
-
-  signupButton: {
-    backgroundColor: theme.accent,
+  primaryButton: {
+    minHeight: 54,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    ...Platform.select({
+      ios: {
+        shadowColor: theme.accent,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.24,
+        shadowRadius: 10,
+      },
+      android: { elevation: 0 },
+    }),
   },
-
-  signupButtonText: {
+  primaryButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    flex: 1,
+    paddingRight: 8,
   },
-
   footer: {
     textAlign: "center",
     fontSize: 12,
     color: theme.textMuted,
-    marginTop: 15,
+    marginTop: 18,
+    lineHeight: 18,
   },
-
   link: {
     color: theme.link,
-    fontWeight: "500",
+    fontWeight: "600",
   },
 });

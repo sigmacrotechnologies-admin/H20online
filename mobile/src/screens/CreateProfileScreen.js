@@ -5,18 +5,22 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   Switch,
   Modal,
   Image,
-  ActivityIndicator,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
-import BackButton, { backButtonContainerStyle } from "@/src/components/BackButton";
+import {
+  ModernScreenShell,
+  ModernInput,
+  ModernPrimaryButton,
+  modern,
+} from "@/src/components/modern";
 import { theme } from "@/src/theme";
 
 let ImagePicker;
@@ -33,6 +37,55 @@ const plans = [
   { id: 4, name: "Premium Plan" },
 ];
 
+const activityLevels = [
+  { level: "low", icon: "bed-outline", label: "Low" },
+  { level: "moderate", icon: "walk-outline", label: "Moderate" },
+  { level: "high", icon: "fitness-outline", label: "High" },
+];
+
+function SectionCard({ icon, title, subtitle, children }) {
+  return (
+    <View style={styles.sectionCard}>
+      <View style={styles.sectionHeader}>
+        <LinearGradient colors={[theme.medium, theme.accent]} style={styles.sectionIcon}>
+          <Ionicons name={icon} size={18} color="#FFFFFF" />
+        </LinearGradient>
+        <View style={styles.sectionHeaderText}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
+        </View>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function PasswordField({ label, value, onChangeText, placeholder, show, onToggleShow, onSubmitEditing }) {
+  return (
+    <View style={modern.inputSection}>
+      <Text style={modern.label}>{label}</Text>
+      <View style={styles.passwordRow}>
+        <Ionicons name="lock-closed-outline" size={20} color="#6B7C85" style={modern.inputIcon} />
+        <TextInput
+          style={styles.passwordInput}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor="#9CA3AF"
+          secureTextEntry={!show}
+          autoCapitalize="none"
+          returnKeyType="done"
+          blurOnSubmit
+          onSubmitEditing={onSubmitEditing}
+        />
+        <TouchableOpacity style={styles.eyeBtn} onPress={onToggleShow} activeOpacity={0.7}>
+          <Ionicons name={show ? "eye-off-outline" : "eye-outline"} size={20} color={theme.textMuted} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 const CreateProfileScreen = () => {
   const router = useRouter();
   const { register } = useAuth();
@@ -41,6 +94,8 @@ const CreateProfileScreen = () => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("male");
   const [activityLevel, setActivityLevel] = useState("moderate");
@@ -89,8 +144,6 @@ const CreateProfileScreen = () => {
     } catch (_) {}
   };
 
-  const handleBack = () => router.back();
-
   const handleContinue = async () => {
     setError("");
     const name = fullName.trim();
@@ -137,6 +190,7 @@ const CreateProfileScreen = () => {
         gender: gender || undefined,
         activityLevel: activityLevel || undefined,
         familyMembers: familyMembers ?? undefined,
+        avatarUrl: avatarUri || undefined,
       });
       router.replace("/dashboard");
     } catch (err) {
@@ -146,11 +200,6 @@ const CreateProfileScreen = () => {
     }
   };
 
-  const decreaseFamilyMembers = () => {
-    if (familyMembers > 0) setFamilyMembers(familyMembers - 1);
-  };
-  const increaseFamilyMembers = () => setFamilyMembers(familyMembers + 1);
-
   const isContinueEnabled =
     fullName.trim().length > 0 &&
     email.trim().length > 0 &&
@@ -159,232 +208,199 @@ const CreateProfileScreen = () => {
     password.trim() === confirmPassword.trim() &&
     (!registerWithPlan || selectedPlan !== null);
 
-  const activityLevels = [
-    { level: "low", icon: "bed-outline", label: "Low" },
-    { level: "moderate", icon: "walk-outline", label: "Moderate" },
-    { level: "high", icon: "fitness-outline", label: "High" },
-  ];
-
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Avatar Section with Gradient */}
-        <View style={styles.avatarSection}>
-          <LinearGradient
-            colors={theme.gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.gradientBackground}
-          >
-            <View style={[styles.headerOverlay, backButtonContainerStyle]}>
-              <BackButton onPress={handleBack} />
-            </View>
-
-            <View style={styles.avatarContainer}>
-              <TouchableOpacity style={styles.avatarButton} onPress={() => setShowAvatarPicker(true)} activeOpacity={0.8}>
-                {avatarUri ? (
-                  <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Ionicons name="person" size={50} color="#06B6D4" />
-                    <View style={styles.cameraIcon}>
-                      <Ionicons name="camera" size={16} color="#FFFFFF" />
-                    </View>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-        </View>
-
-        {/* Content panel with curved top (same as dashboard) */}
-        <View style={styles.contentPanel}>
-        <Text style={styles.title}>Create Profile</Text>
-        <Text style={styles.subtitle}>Tell us a bit about yourself for personalized hydration goals.</Text>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.label}>Full Name</Text>
-          <View style={styles.inputContainer}>
-            <Ionicons name="person-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-            <TextInput style={styles.input} value={fullName} onChangeText={setFullName} placeholderTextColor="#9CA3AF" />
-          </View>
-        </View>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.label}>Email ID</Text>
-          <View style={styles.inputContainer}>
-            <Ionicons name="mail-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-            <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Enter your email" placeholderTextColor="#9CA3AF" keyboardType="email-address" autoCapitalize="none" />
-          </View>
-        </View>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.label}>Phone Number</Text>
-          <View style={styles.inputContainer}>
-            <Ionicons name="call-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-            <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Enter your phone number" placeholderTextColor="#9CA3AF" keyboardType="phone-pad" />
-          </View>
-        </View>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.label}>Password (min 6 characters)</Text>
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Enter password"
-              placeholderTextColor="#9CA3AF"
-              secureTextEntry
-              returnKeyType="done"
-              blurOnSubmit={true}
-            />
-          </View>
-        </View>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.label}>Confirm Password</Text>
-          <View style={styles.inputContainer}>
-            <Ionicons name="lock-closed-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="Confirm password"
-              placeholderTextColor="#9CA3AF"
-              secureTextEntry
-              returnKeyType="done"
-              blurOnSubmit={true}
-              onSubmitEditing={handleContinue}
-            />
-          </View>
-        </View>
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        <View style={styles.row}>
-          <View style={styles.halfWidth}>
-            <Text style={styles.label}>Age</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="calendar-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-              <TextInput style={styles.input} value={age} onChangeText={setAge} keyboardType="numeric" placeholderTextColor="#9CA3AF" />
-            </View>
-          </View>
-          <View style={styles.halfWidth}>
-            <Text style={styles.label}>Gender</Text>
-            <View style={styles.genderContainer}>
-              <TouchableOpacity style={styles.genderButton} onPress={() => setGender("male")} activeOpacity={0.8}>
-                {gender === "male" ? (
-                  <LinearGradient colors={["#2DD4BF", "#14B8A6"]} style={styles.genderButtonGradient}>
-                    <Ionicons name="man" size={22} color="#FFFFFF" />
-                  </LinearGradient>
-                ) : (
-                  <View style={styles.genderButtonUnselected}><Ionicons name="man-outline" size={22} color="#9CA3AF" /></View>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.genderButton} onPress={() => setGender("female")} activeOpacity={0.8}>
-                {gender === "female" ? (
-                  <LinearGradient colors={["#2DD4BF", "#14B8A6"]} style={styles.genderButtonGradient}>
-                    <Ionicons name="woman" size={22} color="#FFFFFF" />
-                  </LinearGradient>
-                ) : (
-                  <View style={styles.genderButtonUnselected}><Ionicons name="woman-outline" size={22} color="#9CA3AF" /></View>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.label}>Activity Level</Text>
-          <View style={styles.activityContainer}>
-            {activityLevels.map((item) => (
-              <TouchableOpacity key={item.level} style={styles.activityButton} onPress={() => setActivityLevel(item.level)} activeOpacity={0.8}>
-                {activityLevel === item.level ? (
-                  <LinearGradient colors={["#2DD4BF", "#14B8A6"]} style={styles.activityButtonGradient}>
-                    <Ionicons name={item.icon} size={24} color="#FFFFFF" />
-                    <Text style={styles.activityButtonTextSelected}>{item.label}</Text>
-                  </LinearGradient>
-                ) : (
-                  <View style={styles.activityButtonUnselected}>
-                    <Ionicons name={item.icon} size={24} color="#6B7C85" />
-                    <Text style={styles.activityButtonText}>{item.label}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.inputSection}>
-          <View style={styles.planToggleRow}>
-            <Text style={styles.label}>Register with plan</Text>
-            <Switch value={registerWithPlan} onValueChange={setRegisterWithPlan} trackColor={{ false: "#D1D5DB", true: theme.primary }} thumbColor="#FFFFFF" />
-          </View>
-          {registerWithPlan && (
-            <>
-              <TouchableOpacity style={styles.dropdownButton} onPress={() => setShowPlanDropdown(true)} activeOpacity={0.8}>
-                <View style={styles.dropdownButtonContent}>
-                  <Ionicons name="card-outline" size={20} color="#6B7C85" style={styles.inputIcon} />
-                  <Text style={[styles.dropdownButtonText, !selectedPlan && styles.dropdownButtonTextPlaceholder]}>
-                    {selectedPlan ? selectedPlan.name : "Select a plan"}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-down" size={20} color="#6B7C85" />
-              </TouchableOpacity>
-            </>
+    <ModernScreenShell
+      title="Create your profile"
+      subtitle="Join H2Online for personalized hydration"
+      icon="person-add-outline"
+      headerHeight={200}
+    >
+      <View style={styles.avatarCard}>
+        <TouchableOpacity style={styles.avatarButton} onPress={() => setShowAvatarPicker(true)} activeOpacity={0.88}>
+          {avatarUri ? (
+            <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+          ) : (
+            <LinearGradient colors={[theme.medium, theme.accent]} style={styles.avatarPlaceholder}>
+              <Ionicons name="person" size={42} color="#FFFFFF" />
+            </LinearGradient>
           )}
-          {!registerWithPlan && (
-            <Text style={styles.planLaterMessage}>You can select a plan later as well on your dashboard.</Text>
-          )}
-        </View>
-
-        <View style={styles.inputSection}>
-          <Text style={styles.label}>Family Members</Text>
-          <Text style={styles.hintText}>Used for household estimates</Text>
-          <View style={styles.stepperContainer}>
-            <TouchableOpacity style={styles.stepperButton} onPress={decreaseFamilyMembers} activeOpacity={0.7}>
-              <Text style={styles.stepperButtonText}>-</Text>
-            </TouchableOpacity>
-            <Text style={styles.stepperValue}>{familyMembers}</Text>
-            <TouchableOpacity style={styles.stepperButton} onPress={increaseFamilyMembers} activeOpacity={0.7}>
-              <Text style={styles.stepperButtonText}>+</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.deviceCard}>
-          <Ionicons name="watch-outline" size={28} color="#9333EA" />
-          <View style={styles.deviceTextContainer}>
-            <Text style={styles.deviceTitle}>Connect Device</Text>
-            <Text style={styles.deviceSubtitle}>Smart Watch or Bottle</Text>
-          </View>
-          <Switch value={connectDevice} onValueChange={setConnectDevice} trackColor={{ false: "#D1D5DB", true: "#9333EA" }} thumbColor="#FFFFFF" />
-        </View>
-
-        <TouchableOpacity style={[styles.continueButton, (!isContinueEnabled || loading) && styles.continueButtonDisabled]} onPress={handleContinue} activeOpacity={isContinueEnabled && !loading ? 0.9 : 1} disabled={!isContinueEnabled || loading}>
-          <View style={styles.buttonContent}>
-            {loading ? <ActivityIndicator color="#FFFFFF" size="small" /> : <><Text style={isContinueEnabled && !loading ? styles.buttonText : styles.buttonTextDisabled}>Sign up & Continue</Text><Text style={isContinueEnabled && !loading ? styles.buttonArrow : styles.buttonArrowDisabled}>→</Text></>}
+          <View style={styles.cameraBadge}>
+            <Ionicons name="camera" size={14} color="#FFFFFF" />
           </View>
         </TouchableOpacity>
+        <Text style={styles.avatarHint}>Add a profile photo</Text>
+        <Text style={styles.avatarSubhint}>Optional — helps personalize your experience</Text>
+      </View>
+
+      <SectionCard icon="id-card-outline" title="Account details" subtitle="Your login credentials">
+        <ModernInput label="Full name" icon="person-outline" value={fullName} onChangeText={setFullName} placeholder="Your full name" />
+        <ModernInput
+          label="Email address"
+          icon="mail-outline"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="you@example.com"
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        <ModernInput
+          label="Phone number"
+          icon="call-outline"
+          value={phone}
+          onChangeText={setPhone}
+          placeholder="Your mobile number"
+          keyboardType="phone-pad"
+        />
+        <PasswordField
+          label="Password (min 6 characters)"
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Create a password"
+          show={showPassword}
+          onToggleShow={() => setShowPassword((v) => !v)}
+        />
+        <PasswordField
+          label="Confirm password"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          placeholder="Re-enter password"
+          show={showConfirmPassword}
+          onToggleShow={() => setShowConfirmPassword((v) => !v)}
+          onSubmitEditing={handleContinue}
+        />
+      </SectionCard>
+
+      <SectionCard icon="fitness-outline" title="About you" subtitle="For hydration goal estimates">
+        <View style={styles.row}>
+          <View style={[styles.halfWidth, styles.halfWidthLeft]}>
+            <ModernInput label="Age" icon="calendar-outline" value={age} onChangeText={setAge} keyboardType="numeric" placeholder="Years" />
+          </View>
+          <View style={styles.halfWidth}>
+            <Text style={modern.label}>Gender</Text>
+            <View style={styles.genderRow}>
+              {[
+                { key: "male", icon: "man", outline: "man-outline" },
+                { key: "female", icon: "woman", outline: "woman-outline" },
+              ].map((item) => (
+                <TouchableOpacity key={item.key} style={styles.genderBtn} onPress={() => setGender(item.key)} activeOpacity={0.85}>
+                  {gender === item.key ? (
+                    <LinearGradient colors={[theme.medium, theme.accent]} style={styles.genderBtnInner}>
+                      <Ionicons name={item.icon} size={22} color="#FFFFFF" />
+                    </LinearGradient>
+                  ) : (
+                    <View style={styles.genderBtnUnselected}>
+                      <Ionicons name={item.outline} size={22} color={theme.textMuted} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
         </View>
-      </ScrollView>
+
+        <Text style={[modern.label, { marginTop: 4 }]}>Activity level</Text>
+        <View style={styles.activityRow}>
+          {activityLevels.map((item) => {
+            const selected = activityLevel === item.level;
+            return (
+              <TouchableOpacity key={item.level} style={styles.activityBtn} onPress={() => setActivityLevel(item.level)} activeOpacity={0.85}>
+                {selected ? (
+                  <LinearGradient colors={[theme.medium, theme.accent]} style={styles.activityBtnInner}>
+                    <Ionicons name={item.icon} size={22} color="#FFFFFF" />
+                    <Text style={styles.activityTextSelected}>{item.label}</Text>
+                  </LinearGradient>
+                ) : (
+                  <View style={styles.activityBtnUnselected}>
+                    <Ionicons name={item.icon} size={22} color={theme.textMuted} />
+                    <Text style={styles.activityText}>{item.label}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </SectionCard>
+
+      <SectionCard icon="card-outline" title="Subscription" subtitle="Optional at signup">
+        <View style={styles.toggleRow}>
+          <Text style={styles.toggleLabel}>Register with a plan</Text>
+          <Switch value={registerWithPlan} onValueChange={setRegisterWithPlan} trackColor={{ false: "#D1D5DB", true: theme.primary }} thumbColor="#FFFFFF" />
+        </View>
+        {registerWithPlan ? (
+          <TouchableOpacity style={styles.dropdownBtn} onPress={() => setShowPlanDropdown(true)} activeOpacity={0.85}>
+            <Ionicons name="layers-outline" size={20} color={theme.textMuted} />
+            <Text style={[styles.dropdownText, !selectedPlan && styles.dropdownPlaceholder]}>
+              {selectedPlan ? selectedPlan.name : "Select a plan"}
+            </Text>
+            <Ionicons name="chevron-down" size={18} color={theme.textMuted} />
+          </TouchableOpacity>
+        ) : (
+          <Text style={styles.planLater}>You can choose a plan later from your dashboard.</Text>
+        )}
+      </SectionCard>
+
+      <SectionCard icon="people-outline" title="Household" subtitle="Used for delivery estimates">
+        <View style={styles.stepper}>
+          <TouchableOpacity style={styles.stepperBtn} onPress={() => familyMembers > 0 && setFamilyMembers(familyMembers - 1)} activeOpacity={0.7}>
+            <Ionicons name="remove" size={20} color={theme.accent} />
+          </TouchableOpacity>
+          <View style={styles.stepperValueWrap}>
+            <Text style={styles.stepperValue}>{familyMembers}</Text>
+            <Text style={styles.stepperLabel}>family members</Text>
+          </View>
+          <TouchableOpacity style={styles.stepperBtn} onPress={() => setFamilyMembers(familyMembers + 1)} activeOpacity={0.7}>
+            <Ionicons name="add" size={20} color={theme.accent} />
+          </TouchableOpacity>
+        </View>
+      </SectionCard>
+
+      <View style={styles.deviceCard}>
+        <LinearGradient colors={["#A855F7", "#7C3AED"]} style={styles.deviceIcon}>
+          <Ionicons name="watch-outline" size={22} color="#FFFFFF" />
+        </LinearGradient>
+        <View style={styles.deviceText}>
+          <Text style={styles.deviceTitle}>Connect device</Text>
+          <Text style={styles.deviceSubtitle}>Smart watch or smart bottle</Text>
+        </View>
+        <Switch value={connectDevice} onValueChange={setConnectDevice} trackColor={{ false: "#D1D5DB", true: "#9333EA" }} thumbColor="#FFFFFF" />
+      </View>
+
+      {error ? (
+        <View style={styles.errorBanner}>
+          <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
+          <Text style={styles.errorBannerText}>{error}</Text>
+        </View>
+      ) : null}
+
+      <ModernPrimaryButton
+        label="Create account & continue"
+        onPress={handleContinue}
+        disabled={!isContinueEnabled}
+        loading={loading}
+        icon="arrow-forward"
+      />
+
+      <TouchableOpacity style={styles.loginFooter} onPress={() => router.replace({ pathname: "/login", params: { role: "Customer" } })} activeOpacity={0.85}>
+        <Text style={styles.loginFooterText}>Already have an account?</Text>
+        <Text style={styles.loginFooterAction}>Sign in as customer →</Text>
+      </TouchableOpacity>
 
       <Modal visible={showAvatarPicker} transparent animationType="slide" onRequestClose={() => setShowAvatarPicker(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowAvatarPicker(false)}>
-          <View style={styles.modalContent}>
+          <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Avatar</Text>
-              <TouchableOpacity onPress={() => setShowAvatarPicker(false)}><Ionicons name="close" size={24} color="#1B2B34" /></TouchableOpacity>
+              <Text style={styles.modalTitle}>Profile photo</Text>
+              <TouchableOpacity onPress={() => setShowAvatarPicker(false)}>
+                <Ionicons name="close" size={24} color={theme.textPrimary} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.avatarOption} onPress={pickImage}>
-              <Ionicons name="image-outline" size={24} color={theme.primary} />
-              <Text style={styles.avatarOptionText}>Choose from Gallery</Text>
+            <TouchableOpacity style={styles.modalOption} onPress={pickImage}>
+              <Ionicons name="image-outline" size={22} color={theme.accent} />
+              <Text style={styles.modalOptionText}>Choose from gallery</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.avatarOption} onPress={takePhoto}>
-              <Ionicons name="camera-outline" size={24} color={theme.primary} />
-              <Text style={styles.avatarOptionText}>Take Photo</Text>
+            <TouchableOpacity style={styles.modalOption} onPress={takePhoto}>
+              <Ionicons name="camera-outline" size={22} color={theme.accent} />
+              <Text style={styles.modalOptionText}>Take a photo</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -392,96 +408,228 @@ const CreateProfileScreen = () => {
 
       <Modal visible={showPlanDropdown} transparent animationType="slide" onRequestClose={() => setShowPlanDropdown(false)}>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPlanDropdown(false)}>
-          <View style={styles.modalContent}>
+          <View style={styles.modalSheet}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Plan</Text>
-              <TouchableOpacity onPress={() => setShowPlanDropdown(false)}><Ionicons name="close" size={24} color="#1B2B34" /></TouchableOpacity>
-            </View>
-            {plans.map((plan) => (
-              <TouchableOpacity
-                key={plan.id}
-                style={[styles.planOption, selectedPlan?.id === plan.id && styles.planOptionSelected]}
-                onPress={() => { setSelectedPlan(plan); setShowPlanDropdown(false); }}
-              >
-                <Text style={styles.planName}>{plan.name}</Text>
-                {selectedPlan?.id === plan.id && <Ionicons name="checkmark-circle" size={24} color={theme.primary} />}
+              <Text style={styles.modalTitle}>Select plan</Text>
+              <TouchableOpacity onPress={() => setShowPlanDropdown(false)}>
+                <Ionicons name="close" size={24} color={theme.textPrimary} />
               </TouchableOpacity>
-            ))}
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {plans.map((plan) => (
+                <TouchableOpacity
+                  key={plan.id}
+                  style={[styles.planOption, selectedPlan?.id === plan.id && styles.planOptionSelected]}
+                  onPress={() => {
+                    setSelectedPlan(plan);
+                    setShowPlanDropdown(false);
+                  }}
+                >
+                  <Text style={styles.planName}>{plan.name}</Text>
+                  {selectedPlan?.id === plan.id ? <Ionicons name="checkmark-circle" size={22} color={theme.accent} /> : null}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
-    </SafeAreaView>
+    </ModernScreenShell>
   );
 };
 
 export default CreateProfileScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
-  scrollContent: { paddingBottom: 30 },
-  avatarSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 220, overflow: "hidden", position: "relative" },
-  gradientBackground: { flex: 1, position: "relative", paddingTop: 50, paddingBottom: 24 },
-  headerOverlay: { flexDirection: "row", alignItems: "center" },
-  avatarContainer: { alignItems: "center", justifyContent: "center", marginTop: 20 },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20, overflow: "hidden" },
-  avatarButton: { width: 120, height: 120 },
-  avatarImage: { width: "100%", height: "100%", borderRadius: 20, backgroundColor: "rgba(255, 255, 255, 0.9)", borderWidth: 3, borderColor: "rgba(255, 255, 255, 0.9)", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 5 },
-  avatarPlaceholder: { width: "90%", height: "90%", borderRadius: 100, backgroundColor: "rgba(255, 255, 255, 0.9)", 
-    justifyContent: "center", alignItems: "center", borderWidth: 3, borderColor: "rgba(255, 255, 255, 0.9)", 
-    position: "relative", shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, 
-    shadowOpacity: 0.15, shadowRadius: 12, elevation: 5 },
-  cameraIcon: { position: "absolute", bottom: 8, right: 8, width: 32, height: 32, borderRadius: 16, backgroundColor: "#06B6D4", justifyContent: "center", alignItems: "center", borderWidth: 2, borderColor: "#FFFFFF", elevation: 4 },
-  title: { fontSize: 26, fontWeight: "700", textAlign: "center", color: "#1B2B34", marginTop: 0, marginBottom: 8 },
-  subtitle: { textAlign: "center", color: "#6B7C85", marginTop: 6, marginBottom: 25, fontSize: 14 },
-  inputSection: { marginBottom: 20 },
-  label: { fontSize: 15, fontWeight: "600", color: "#1B2B34", marginBottom: 10 },
-  hintText: { fontSize: 12, color: "#7A8A93", marginBottom: 10 },
-  inputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255, 255, 255, 0.7)", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.8)", elevation: 3 },
-  inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: "#1B2B34", padding: 0 },
-  otpContainer: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
-  otpBox: { flex: 1, backgroundColor: "rgba(255, 255, 255, 0.7)", borderRadius: 16, paddingVertical: 14, fontSize: 20, fontWeight: "600", textAlign: "center", color: "#1B2B34", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.8)", elevation: 3 },
-  row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20, gap: 12 },
-  halfWidth: { flex: 1 },
-  genderContainer: { flexDirection: "row", gap: 10 },
-  genderButton: { width: 54, height: 54, borderRadius: 12, overflow: "hidden" },
-  genderButtonUnselected: { width: "100%", height: "100%", backgroundColor: "rgba(255, 255, 255, 0.7)", justifyContent: "center", alignItems: "center", borderRadius: 12, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.8)", elevation: 3 },
-  genderButtonGradient: { width: "100%", height: "100%", justifyContent: "center", alignItems: "center" },
-  activityContainer: { flexDirection: "row", gap: 12 },
-  activityButton: { flex: 1, aspectRatio: 1, borderRadius: 16, overflow: "hidden", borderWidth: 1.5, borderColor: "rgba(255, 255, 255, 0.8)", elevation: 3 },
-  activityButtonGradient: { width: "100%", height: "100%", justifyContent: "center", alignItems: "center", padding: 12, gap: 6 },
-  activityButtonUnselected: { width: "100%", height: "100%", backgroundColor: "rgba(255, 255, 255, 0.7)", justifyContent: "center", alignItems: "center", padding: 12, gap: 6 },
-  activityButtonText: { fontSize: 12, fontWeight: "600", color: "#6B7C85", textAlign: "center" },
-  activityButtonTextSelected: { fontSize: 12, fontWeight: "600", color: "#FFFFFF", textAlign: "center" },
-  dropdownButton: { backgroundColor: "rgba(255, 255, 255, 0.7)", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.8)", elevation: 3 },
-  dropdownButtonContent: { flexDirection: "row", alignItems: "center", flex: 1 },
-  dropdownButtonText: { fontSize: 16, color: "#1B2B34" },
-  dropdownButtonTextPlaceholder: { color: "#9CA3AF" },
-  stepperContainer: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255, 255, 255, 0.7)", borderRadius: 16, paddingVertical: 10, paddingHorizontal: 16, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.8)", elevation: 3 },
-  stepperButton: { width: 32, height: 32, justifyContent: "center", alignItems: "center" },
-  stepperButtonText: { fontSize: 22, color: "#6B7C85", fontWeight: "600" },
-  stepperValue: { flex: 1, textAlign: "center", fontSize: 18, fontWeight: "700", color: "#1B2B34" },
-  deviceCard: { backgroundColor: "rgba(255, 255, 255, 0.7)", borderRadius: 20, padding: 20, marginBottom: 24, flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.8)", elevation: 3 },
-  deviceTextContainer: { flex: 1, marginLeft: 16 },
-  deviceTitle: { fontSize: 17, fontWeight: "700", color: "#1B2B34", marginBottom: 4 },
-  deviceSubtitle: { fontSize: 13, color: "#6B7C85" },
-  continueButton: { marginTop: 20, backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 30, alignItems: "center", elevation: 3 },
-  continueButtonDisabled: { backgroundColor: "#EEF3F7", elevation: 1 },
-  buttonContent: { flexDirection: "row", alignItems: "center", gap: 8 },
-  buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
-  buttonTextDisabled: { color: "#8A9AA3", fontSize: 16, fontWeight: "600" },
-  buttonArrow: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
-  buttonArrowDisabled: { color: "#8A9AA3", fontSize: 16, fontWeight: "600" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)", justifyContent: "flex-end" },
-  modalContent: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "70%" },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
-  planOption: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderRadius: 12, backgroundColor: "#f0f7fcd7", marginBottom: 12 },
-  planOptionSelected: { backgroundColor: theme.selectedTint, borderWidth: 2, borderColor: theme.primaryLight },
-  planName: { fontSize: 16, fontWeight: "600", color: "#1B2B34", flex: 1 },
-  planToggleRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
-  planLaterMessage: { fontSize: 13, color: "#6B7C85", fontStyle: "italic", marginTop: 6 },
-  errorText: { fontSize: 14, color: "#DC2626", marginBottom: 12, fontWeight: "500" },
-  avatarOption: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 12, backgroundColor: "#f0f7fcd7", marginBottom: 12, gap: 12 },
-  avatarOptionText: { fontSize: 16, fontWeight: "600", color: "#1B2B34" },
+  avatarCard: { alignItems: "center", marginBottom: 18 },
+  avatarButton: { width: 108, height: 108, position: "relative" },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 28,
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 10 },
+      android: { elevation: 0 },
+    }),
+  },
+  avatarPlaceholder: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
+  },
+  cameraBadge: {
+    position: "absolute",
+    bottom: 2,
+    right: 2,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: theme.accent,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+  },
+  avatarHint: { fontSize: 16, fontWeight: "700", color: theme.textPrimary, marginTop: 12 },
+  avatarSubhint: { fontSize: 13, color: theme.textMuted, marginTop: 4 },
+  sectionCard: {
+    ...modern.card,
+    marginBottom: 14,
+  },
+  sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 16, gap: 12 },
+  sectionIcon: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  sectionHeaderText: { flex: 1 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: theme.textPrimary },
+  sectionSubtitle: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  passwordRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 8 },
+      android: { elevation: 0 },
+    }),
+  },
+  passwordInput: {
+    flex: 1,
+    fontSize: 16,
+    color: theme.textPrimary,
+    padding: 0,
+    ...(Platform.OS === "android" ? { includeFontPadding: false } : {}),
+  },
+  eyeBtn: { padding: 4, marginLeft: 8 },
+  row: { flexDirection: "row", marginBottom: 4 },
+  halfWidth: { flex: 1, minWidth: 0 },
+  halfWidthLeft: { marginRight: 10 },
+  genderRow: { flexDirection: "row", gap: 10 },
+  genderBtn: { width: 54, height: 54, borderRadius: 14, overflow: "hidden" },
+  genderBtnInner: { flex: 1, alignItems: "center", justifyContent: "center" },
+  genderBtnUnselected: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+    borderRadius: 14,
+  },
+  activityRow: { flexDirection: "row", gap: 8, marginBottom: 4 },
+  activityBtn: { flex: 1, minHeight: 88, borderRadius: 16, overflow: "hidden" },
+  activityBtnInner: { flex: 1, alignItems: "center", justifyContent: "center", padding: 10, gap: 6 },
+  activityBtnUnselected: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 10,
+    gap: 6,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+    borderRadius: 16,
+  },
+  activityText: { fontSize: 12, fontWeight: "600", color: theme.textMuted },
+  activityTextSelected: { fontSize: 12, fontWeight: "600", color: "#FFFFFF" },
+  toggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  toggleLabel: { fontSize: 15, fontWeight: "600", color: theme.textPrimary },
+  dropdownBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  dropdownText: { flex: 1, fontSize: 15, color: theme.textPrimary, fontWeight: "500" },
+  dropdownPlaceholder: { color: "#9CA3AF" },
+  planLater: { fontSize: 13, color: theme.textMuted, lineHeight: 18 },
+  stepper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  stepperBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stepperValueWrap: { flex: 1, alignItems: "center" },
+  stepperValue: { fontSize: 24, fontWeight: "800", color: theme.textPrimary },
+  stepperLabel: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  deviceCard: {
+    ...modern.card,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 16,
+  },
+  deviceIcon: { width: 44, height: 44, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  deviceText: { flex: 1 },
+  deviceTitle: { fontSize: 15, fontWeight: "700", color: theme.textPrimary },
+  deviceSubtitle: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "rgba(220,38,38,0.08)",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    gap: 8,
+  },
+  errorBannerText: { flex: 1, fontSize: 13, color: "#DC2626", fontWeight: "500", lineHeight: 18 },
+  loginFooter: { alignItems: "center", paddingVertical: 18, marginTop: 4 },
+  loginFooterText: { fontSize: 13, color: theme.textMuted },
+  loginFooterAction: { fontSize: 15, fontWeight: "700", color: theme.link, marginTop: 4 },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  modalSheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: "70%",
+  },
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: theme.textPrimary },
+  modalOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: "rgba(51,175,193,0.08)",
+    marginBottom: 10,
+  },
+  modalOptionText: { fontSize: 15, fontWeight: "600", color: theme.textPrimary },
+  planOption: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: "rgba(51,175,193,0.06)",
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  planOptionSelected: { borderColor: theme.primaryLight, backgroundColor: theme.selectedTint },
+  planName: { fontSize: 15, fontWeight: "600", color: theme.textPrimary, flex: 1 },
 });

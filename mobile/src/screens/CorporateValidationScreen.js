@@ -46,7 +46,7 @@ const CorporateValidationScreen = () => {
           style={styles.gradientBackground}
         >
           <View style={[styles.headerOverlay, backButtonContainerStyle]}>
-            <BackButton onPress={() => router.back()} />
+            <BackButton />
           </View>
         </LinearGradient>
       </View>
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
   headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 100, overflow: "hidden" },
   gradientBackground: { flex: 1, paddingTop: 14, paddingHorizontal: 20 },
   headerOverlay: { flexDirection: "row", alignItems: "center" },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 32, paddingHorizontal: 20 },
+  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#F8FCFD", borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 32, paddingHorizontal: 20 },
   iconWrap: { alignSelf: "center", marginBottom: 16 },
   title: { fontSize: 24, fontWeight: "700", textAlign: "center", color: "#1B2B34", marginBottom: 8 },
   subtitle: { textAlign: "center", color: "#6B7C85", marginBottom: 24, fontSize: 14 },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,42 +8,49 @@ import {
   ScrollView,
   Linking,
   ActivityIndicator,
-  Image,
   Platform,
   StatusBar,
-  Animated,
-  Easing,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import Svg, { Path } from "react-native-svg";
+import AppLogo from "@/src/components/AppLogo";
 import BackButton from "@/src/components/BackButton";
+import DropletOverlay from "@/src/components/modern/DropletOverlay";
 import { useCart } from "@/src/context/CartContext";
 import { getOrderId, getOrderIdShort } from "@/src/utils/orderId";
 import { api } from "@/src/api/client";
 import { theme } from "@/src/theme";
 
-const HEADER_DROPLETS = [
-  { left: -8, top: 18, width: 16, height: 22, phase: "a" },
-  { left: 22, top: 58, width: 14, height: 20, phase: "b" },
-  { left: 56, top: 20, width: 18, height: 24, phase: "c" },
-  { left: 92, top: 86, width: 14, height: 20, phase: "a" },
-  { left: 132, top: 38, width: 16, height: 22, phase: "b" },
-  { left: 172, top: 102, width: 14, height: 20, phase: "c" },
-  { left: 212, top: 60, width: 16, height: 22, phase: "a" },
-  { left: 24, top: 156, width: 14, height: 20, phase: "c" },
-  { left: 84, top: 188, width: 14, height: 20, phase: "a" },
-  { left: 152, top: 174, width: 16, height: 22, phase: "b" },
-  { right: 154, top: 20, width: 16, height: 22, phase: "c" },
-  { right: 118, top: 68, width: 14, height: 20, phase: "a" },
-  { right: 82, top: 30, width: 16, height: 22, phase: "b" },
-  { right: 46, top: 94, width: 14, height: 20, phase: "c" },
-  { right: 10, top: 54, width: 16, height: 22, phase: "a" },
-  { right: -6, top: 124, width: 14, height: 20, phase: "b" },
-  { right: 92, top: 160, width: 14, height: 20, phase: "c" },
-  { right: 28, top: 188, width: 14, height: 20, phase: "a" },
-];
+function SectionCard({ icon, title, subtitle, children }) {
+  return (
+    <View style={styles.sectionCard}>
+      <View style={styles.sectionHeader}>
+        <LinearGradient colors={[theme.medium, theme.accent]} style={styles.sectionIcon}>
+          <Ionicons name={icon} size={18} color="#FFFFFF" />
+        </LinearGradient>
+        <View style={styles.sectionHeaderText}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
+        </View>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function DetailRow({ icon, label, value }) {
+  if (!value) return null;
+  return (
+    <View style={styles.detailRow}>
+      <Ionicons name={icon} size={16} color={theme.accent} />
+      <View style={styles.detailTextWrap}>
+        {label ? <Text style={styles.detailLabel}>{label}</Text> : null}
+        <Text style={styles.detailValue}>{value}</Text>
+      </View>
+    </View>
+  );
+}
 
 const statusLabel = (order) => {
   if (!order) return "—";
@@ -54,8 +61,7 @@ const statusLabel = (order) => {
   if (stage === "delivered") return "Delivered";
   if (stage === "picked_up") return "Picked up";
   if (accepted) {
-    // Delivery partner might be assigned before pickup happens.
-    if (stage === "accepted" && accepted.deliveryPartnerName) return "Delivery partner assigned";
+    if (stage === "accepted" && accepted.deliveryPartnerName) return "Partner assigned";
     return "Accepted";
   }
   return "Waiting for supplier";
@@ -69,25 +75,8 @@ export default function TrackOrderScreen() {
   const { orders } = useCart();
   const [order, setOrder] = useState(null);
   const [selectedOrderId, setSelectedOrderId] = useState(initialOrderId || null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
-  const dropletAnimA = useRef(new Animated.Value(0)).current;
-  const dropletAnimB = useRef(new Animated.Value(0)).current;
-  const dropletAnimC = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = (value, duration) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(value, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(value, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        ])
-      );
-    const a = loop(dropletAnimA, 3400), b = loop(dropletAnimB, 4200), c = loop(dropletAnimC, 3800);
-    a.start(); b.start(); c.start();
-    return () => { a.stop(); b.stop(); c.stop(); };
-  }, [dropletAnimA, dropletAnimB, dropletAnimC]);
-  const getDropletAnim = (phase) => phase === "b" ? dropletAnimB : phase === "c" ? dropletAnimC : dropletAnimA;
 
   const resolveOrderMongoId = (candidate) => {
     if (candidate == null) return null;
@@ -96,7 +85,6 @@ export default function TrackOrderScreen() {
       const mongoId = o?.id ?? o?._id;
       return mongoId === c || o?.orderId === c || String(o?._id) === c;
     });
-    // API expects Mongo _id; order list returns `id` = Mongo _id.
     return found ? String(found.id ?? found._id ?? found.orderId ?? c) : c;
   };
 
@@ -125,14 +113,11 @@ export default function TrackOrderScreen() {
     setLoading(true);
     api.orders
       .get(id)
-      .then((data) => {
-        setOrder(data || null);
-      })
+      .then((data) => setOrder(data || null))
       .catch(() => setOrder(null))
       .finally(() => setLoading(false));
   }, [selectedOrderId, initialOrderId]);
 
-  // Poll for updates when viewing an order
   useEffect(() => {
     const id = initialOrderId || selectedOrderId;
     if (!id) return;
@@ -142,15 +127,10 @@ export default function TrackOrderScreen() {
     return () => clearInterval(interval);
   }, [selectedOrderId, initialOrderId]);
 
-  const handleViewOrderHistory = () => {
-    router.push("/order-history");
-  };
-
   const selectedOrderFromList = selectedOrderId
     ? (recentOrders || []).find((o) => String(o?.id ?? o?._id) === String(selectedOrderId)) || null
     : null;
 
-  // Prefer fully fetched order (`order`) but fall back to list order so details show immediately.
   const displayOrder = order || selectedOrderFromList;
 
   const accepted = (displayOrder?.supplierResponses || []).find((r) => r.status === "accepted");
@@ -164,738 +144,440 @@ export default function TrackOrderScreen() {
   const supplierPhone = supplier?.phone || null;
   const supplierRating = typeof supplier?.rating === "number" && supplier.rating > 0 ? supplier.rating : null;
 
-  const dropdownOrder = displayOrder;
-
   const pickupStepLabel =
     stage === "picked_up" || stage === "delivered"
       ? `Picked up by ${riderName || "delivery partner"}`
       : accepted && riderName
-      ? `Delivery partner assigned: ${riderName}`
-      : accepted
-      ? "Waiting for delivery partner to get assigned"
-      : "Waiting for delivery partner";
+        ? `Partner assigned: ${riderName}`
+        : accepted
+          ? "Waiting for delivery partner"
+          : "Waiting for delivery partner";
 
   const steps = [
-    {
-      key: "placed",
-      label: "Order placed",
-      icon: "cart",
-      done: true,
-    },
+    { key: "placed", label: "Order placed", icon: "cart-outline", done: true },
     {
       key: "accepted",
-      label: accepted ? "Accepted by supplier" : "Waiting for supplier to accept",
-      icon: "checkmark-circle",
+      label: accepted ? "Accepted by supplier" : "Waiting for supplier",
+      icon: "checkmark-circle-outline",
       done: !!accepted,
     },
     {
       key: "picked_up",
       label: pickupStepLabel,
-      icon: "cube",
+      icon: "cube-outline",
       done: stage === "picked_up" || stage === "delivered",
     },
-    {
-      key: "delivered",
-      label: "Delivery completed",
-      icon: "flag",
-      done: isDelivered,
-    },
+    { key: "delivered", label: "Delivery completed", icon: "flag-outline", done: isDelivered },
   ];
+
+  const progressPct = Math.round((steps.filter((s) => s.done).length / steps.length) * 100);
+  const productLabel =
+    displayOrder?.productLabel ||
+    displayOrder?.items?.[0]?.productName ||
+    "Water delivery";
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.headerSection}>
-        <LinearGradient
-          colors={theme.gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}
-        >
-          <View style={styles.headerOverlay}>
-            {HEADER_DROPLETS.map((drop, idx) => {
-              const dropAnim = getDropletAnim(drop.phase);
-              return (
-                <Animated.View
-                  key={`track-drop-${idx}`}
-                  style={[styles.dropletWrap, {
-                    left: drop.left, right: drop.right, top: drop.top, width: drop.width, height: drop.height,
-                    opacity: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.32] }),
-                    transform: [
-                      { translateY: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
-                      { scale: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.05] }) },
-                    ],
-                  }]}
-                >
-                  <Svg width="100%" height="100%" viewBox="0 0 60 80">
-                    <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.3)" />
-                  </Svg>
-                </Animated.View>
-              );
-            })}
-          </View>
-          <View style={styles.headerTopRow}>
-            <BackButton onPress={() => router.back()} />
-            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
-            <TouchableOpacity
-              style={styles.headerMenuBtn}
-              activeOpacity={0.7}
-              onPress={() => router.push("/profile")}
-            >
-              <Ionicons name="menu" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.headerCenter}>
-            <View style={styles.headerInfoRow}>
-              <View style={styles.headerIconCircle}>
-                <Ionicons name="time-outline" size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.headerTextWrap}>
-                <Text style={styles.headerTitle}>Track Order</Text>
-                <Text style={styles.headerSubtitle}>Track live status and delivery timeline</Text>
-              </View>
+      <View style={styles.pageBody}>
+        <View style={styles.headerSection}>
+          <LinearGradient
+            colors={theme.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.gradientBackground, { paddingTop: 12 + androidTopInset }]}
+          >
+            <DropletOverlay />
+            <View style={styles.headerTopRow}>
+              <BackButton />
+              <AppLogo size="header" />
+              <TouchableOpacity style={styles.headerMenuBtn} activeOpacity={0.85} onPress={() => router.push("/profile")}>
+                <Ionicons name="menu" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
-          </View>
-        </LinearGradient>
-      </View>
+            <Text style={styles.headerTitle}>Track order</Text>
+            <Text style={styles.headerSubtitle}>Live status and delivery timeline</Text>
+          </LinearGradient>
+        </View>
 
-      <View style={styles.contentSection}>
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={true}
-          keyboardShouldPersistTaps="handled"
-        >
-        {recentOrders.length === 0 && !singleOrderMode ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.noOrders}>No orders to track.</Text>
-            <TouchableOpacity
-              style={styles.actionBtnOutline}
-              onPress={handleViewOrderHistory}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.actionBtnOutlineText}>View order history</Text>
-            </TouchableOpacity>
-          </View>
-        ) : loading && !displayOrder ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color={theme.primary} />
-            <Text style={styles.loadingText}>Loading order…</Text>
-          </View>
-        ) : (
-          <>
-            {!singleOrderMode && recentOrders.length > 1 && (
-              <View style={styles.dropdownWrap}>
-                <Text style={styles.dropdownLabel}>Select order</Text>
-                <TouchableOpacity
-                  style={styles.dropdown}
-                  onPress={() => setDropdownOpen(!dropdownOpen)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.dropdownText} numberOfLines={1}>
-                    Order #{getOrderIdShort(dropdownOrder || { id: selectedOrderId })} – {statusLabel(dropdownOrder)}
-                  </Text>
-                  <Ionicons
-                    name={dropdownOpen ? "chevron-up" : "chevron-down"}
-                    size={20}
-                    color="#6B7C85"
-                  />
+        <View style={styles.contentSection}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {recentOrders.length === 0 && !singleOrderMode ? (
+              <View style={styles.emptyState}>
+                <LinearGradient colors={[theme.medium, theme.accent]} style={styles.emptyIcon}>
+                  <Ionicons name="bicycle-outline" size={28} color="#FFFFFF" />
+                </LinearGradient>
+                <Text style={styles.emptyTitle}>No orders to track</Text>
+                <Text style={styles.emptySub}>Place an order or check your order history</Text>
+                <TouchableOpacity style={styles.outlineBtn} onPress={() => router.push("/order-history")} activeOpacity={0.85}>
+                  <Text style={styles.outlineBtnText}>View order history</Text>
                 </TouchableOpacity>
-                {dropdownOpen && (
-                  <View style={styles.dropdownList}>
-                    <ScrollView
-                      nestedScrollEnabled
-                      style={styles.dropdownListScroll}
-                      showsVerticalScrollIndicator={true}
-                    >
+              </View>
+            ) : loading && !displayOrder ? (
+              <View style={styles.loadingWrap}>
+                <ActivityIndicator size="large" color={theme.accent} />
+                <Text style={styles.loadingText}>Loading order…</Text>
+              </View>
+            ) : displayOrder ? (
+              <>
+                <View style={styles.summaryBanner}>
+                  <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.summaryBannerGradient}>
+                    <View style={styles.summaryBannerIcon}>
+                      <Ionicons name={isDelivered ? "checkmark-circle" : "bicycle"} size={22} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.summaryBannerText}>
+                      <Text style={styles.summaryBannerLabel}>Order #{getOrderIdShort(displayOrder)}</Text>
+                      <Text style={styles.summaryBannerValue} numberOfLines={1}>{statusLabel(displayOrder)}</Text>
+                      <Text style={styles.summaryBannerMeta} numberOfLines={1}>{productLabel}</Text>
+                    </View>
+                    {eta ? (
+                      <View style={styles.etaChip}>
+                        <Text style={styles.etaChipLabel}>ETA</Text>
+                        <Text style={styles.etaChipValue}>{eta}</Text>
+                      </View>
+                    ) : (
+                      <View style={styles.etaChip}>
+                        <Text style={styles.etaChipValue}>{progressPct}%</Text>
+                        <Text style={styles.etaChipLabel}>Done</Text>
+                      </View>
+                    )}
+                  </LinearGradient>
+                </View>
+
+                <View style={styles.progressTrack}>
+                  <LinearGradient
+                    colors={[theme.medium, theme.accent]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[styles.progressFill, { width: `${progressPct}%` }]}
+                  />
+                </View>
+
+                {!singleOrderMode && recentOrders.length > 1 ? (
+                  <SectionCard icon="list-outline" title="Select order" subtitle="Switch between active deliveries">
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
                       {recentOrders.map((o) => {
                         const id = o?.id ?? o?._id ?? getOrderId(o);
                         const selected = id && String(id) === String(selectedOrderId);
                         return (
-                          <TouchableOpacity
-                            key={id || getOrderId(o) || String(Math.random())}
-                            style={[styles.dropdownItem, selected && styles.dropdownItemSelected]}
-                            onPress={() => {
-                              setSelectedOrderId(id);
-                              setDropdownOpen(false);
-                            }}
-                            activeOpacity={0.8}
-                          >
-                            <Text style={styles.dropdownItemText} numberOfLines={1}>
-                              Order #{getOrderIdShort(o)}
-                            </Text>
-                            <Text style={styles.dropdownItemStatus}>{statusLabel(o)}</Text>
+                          <TouchableOpacity key={id || getOrderId(o)} onPress={() => setSelectedOrderId(id)} activeOpacity={0.88}>
+                            {selected ? (
+                              <LinearGradient colors={[theme.medium, theme.accent]} style={styles.orderChip}>
+                                <Text style={styles.orderChipTextSelected}>#{getOrderIdShort(o)}</Text>
+                                <Text style={styles.orderChipSubSelected}>{statusLabel(o)}</Text>
+                              </LinearGradient>
+                            ) : (
+                              <View style={styles.orderChipMuted}>
+                                <Text style={styles.orderChipText}>#{getOrderIdShort(o)}</Text>
+                                <Text style={styles.orderChipSub}>{statusLabel(o)}</Text>
+                              </View>
+                            )}
                           </TouchableOpacity>
                         );
                       })}
                     </ScrollView>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {displayOrder && (
-              <>
-                <View style={styles.orderSummaryCard}>
-                  <Text style={styles.orderSummaryTitle}>
-                    Order #{getOrderIdShort(displayOrder)}
-                  </Text>
-                  <Text style={styles.orderSummaryStatus}>
-                    {statusLabel(displayOrder)}
-                  </Text>
-                  <View style={styles.orderSummaryRow}>
-                    <Ionicons name="location-outline" size={16} color="#6B7C85" />
-                    <Text style={styles.orderSummaryText} numberOfLines={2}>
-                      {displayOrder.address || "No address set"}
-                    </Text>
-                  </View>
-                  {(displayOrder.receiverName || displayOrder.receiverPhone) && (
-                    <View style={styles.orderSummaryRow}>
-                      <Ionicons name="person-outline" size={16} color="#6B7C85" />
-                      <Text style={styles.orderSummaryText} numberOfLines={1}>
-                        {displayOrder.receiverName || "Receiver"}{" "}
-                        {displayOrder.receiverPhone ? `• ${displayOrder.receiverPhone}` : ""}
-                      </Text>
-                    </View>
-                  )}
-                  {supplier && (
-                    <View style={styles.orderSummaryRow}>
-                      <Ionicons name="business-outline" size={16} color="#6B7C85" />
-                      <Text style={styles.orderSummaryText} numberOfLines={1}>
-                        {supplier.name || "Supplier"}
-                        {supplierRating != null && ` • ⭐ ${supplierRating.toFixed(1)}`}
-                        {supplierPhone ? ` • ${supplierPhone}` : ""}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {Array.isArray(displayOrder?.items) && displayOrder.items.length > 0 ? (
-                  <View style={styles.itemsCard}>
-                    <Text style={styles.itemsTitle}>Order items</Text>
-                    {(displayOrder.items || []).map((item, idx) => {
-                      const qty = item.qty || 1;
-                      const unitPrice = item.price || 0;
-                      const lineTotal = unitPrice * qty;
-                      return (
-                        <View key={idx} style={styles.itemRow}>
-                          <View style={styles.itemRowLeft}>
-                            <Text style={styles.itemName} numberOfLines={1}>
-                              {item.productName || "Item"}
-                            </Text>
-                            {item.supplierName ? (
-                              <Text style={styles.itemSub} numberOfLines={1}>
-                                {item.supplierName}
-                              </Text>
-                            ) : null}
-                          </View>
-                          <Text style={styles.itemMeta}>
-                            x{qty} • ₹{lineTotal}
-                          </Text>
-                        </View>
-                      );
-                    })}
-                  </View>
+                  </SectionCard>
                 ) : null}
 
-                <View style={styles.trackCard}>
-                  <Text style={styles.trackStatus}>
-                    {isDelivered ? "Delivered" : accepted ? "Supplier accepted" : "Waiting for supplier to accept"}
-                  </Text>
-                  {eta ? <Text style={styles.trackEta}>ETA: {eta}</Text> : null}
-                  {accepted?.remarks ? <Text style={styles.trackRemarks}>{accepted.remarks}</Text> : null}
-
-                  {supplier ? (
-                    <View style={styles.infoBlock}>
-                      <Text style={styles.infoLabel}>Supplier</Text>
-                      <Text style={styles.infoLine}>
-                        {supplier.name || "Supplier"}
-                        {supplierRating != null && ` • ⭐ ${supplierRating.toFixed(1)}`}
-                      </Text>
-                      {supplierPhone ? <Text style={[styles.infoSub, styles.highlightLine]}>Phone: {supplierPhone}</Text> : null}
-                    </View>
-                  ) : null}
-
-                  {accepted && (riderName || riderPhone) ? (
-                    <View style={styles.infoBlock}>
-                      <Text style={styles.infoLabel}>Delivery partner</Text>
-                      <Text style={[styles.infoLine, styles.highlightLine]}>{riderName || "Delivery partner"}</Text>
-                      {riderPhone ? <Text style={[styles.infoSub, styles.highlightLine]}>Phone: {riderPhone}</Text> : null}
-                    </View>
-                  ) : accepted ? (
-                    <View style={styles.infoBlock}>
-                      <Text style={styles.infoLabel}>Delivery partner</Text>
-                      <Text style={styles.infoSub}>Waiting for delivery partner assignment</Text>
-                    </View>
-                  ) : null}
-                </View>
-
-                <View style={styles.timeline}>
+                <SectionCard icon="git-network-outline" title="Delivery timeline" subtitle="Step-by-step progress">
                   {steps.map((step, index) => (
                     <View key={step.key} style={styles.timelineRow}>
                       <View style={styles.timelineLeft}>
-                        <View
-                          style={[styles.timelineDot, step.done && styles.timelineDotDone]}
-                        >
-                          {step.done ? (
-                            <Ionicons name="checkmark" size={18} color="#FFF" />
-                          ) : (
-                            <Ionicons name={step.icon} size={18} color="#9CA3AF" />
-                          )}
-                        </View>
-                        {index < steps.length - 1 && (
-                          <View
-                            style={[
-                              styles.timelineLine,
-                              step.done && styles.timelineLineDone,
-                            ]}
-                          />
+                        {step.done ? (
+                          <LinearGradient colors={["#059669", "#10B981"]} style={styles.timelineDot}>
+                            <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                          </LinearGradient>
+                        ) : (
+                          <View style={styles.timelineDotPending}>
+                            <Ionicons name={step.icon} size={16} color={theme.textMuted} />
+                          </View>
                         )}
+                        {index < steps.length - 1 ? (
+                          <View style={[styles.timelineLine, step.done && styles.timelineLineDone]} />
+                        ) : null}
                       </View>
                       <View style={styles.timelineRight}>
-                        <Text
-                          style={[
-                            styles.timelineLabel,
-                            step.done && styles.timelineLabelDone,
-                          ]}
-                        >
-                          {step.label}
-                        </Text>
+                        <Text style={[styles.timelineLabel, step.done && styles.timelineLabelDone]}>{step.label}</Text>
                       </View>
                     </View>
                   ))}
-                </View>
+                </SectionCard>
 
-                <View style={styles.mapPlaceholder}>
-                  <Ionicons name="map-outline" size={48} color="#9CA3AF" />
-                  <Text style={styles.mapText}>Map view (integrate later)</Text>
-                </View>
+                <SectionCard icon="location-outline" title="Delivery details" subtitle="Address and receiver">
+                  <DetailRow icon="location-outline" value={displayOrder.address || "No address set"} />
+                  {(displayOrder.receiverName || displayOrder.receiverPhone) && (
+                    <DetailRow
+                      icon="person-outline"
+                      value={`${displayOrder.receiverName || "Receiver"}${displayOrder.receiverPhone ? ` · ${displayOrder.receiverPhone}` : ""}`}
+                    />
+                  )}
+                </SectionCard>
+
+                {Array.isArray(displayOrder?.items) && displayOrder.items.length > 0 ? (
+                  <SectionCard icon="cube-outline" title="Order items" subtitle={`${displayOrder.items.length} item(s)`}>
+                    {displayOrder.items.map((item, idx) => {
+                      const qty = item.qty || 1;
+                      const lineTotal = (item.price || 0) * qty;
+                      return (
+                        <View key={idx} style={[styles.itemRow, idx < displayOrder.items.length - 1 && styles.itemRowBorder]}>
+                          <View style={styles.itemLeft}>
+                            <Text style={styles.itemName} numberOfLines={1}>{item.productName || "Item"}</Text>
+                            {item.supplierName ? <Text style={styles.itemSub} numberOfLines={1}>{item.supplierName}</Text> : null}
+                          </View>
+                          <Text style={styles.itemPrice}>x{qty} · ₹{lineTotal}</Text>
+                        </View>
+                      );
+                    })}
+                  </SectionCard>
+                ) : null}
+
+                {(supplier || riderName || riderPhone) ? (
+                  <SectionCard icon="people-outline" title="Contacts" subtitle="Supplier and delivery partner">
+                    {supplier ? (
+                      <View style={styles.contactCard}>
+                        <View style={styles.contactIconWrap}>
+                          <Ionicons name="business-outline" size={18} color={theme.accent} />
+                        </View>
+                        <View style={styles.contactInfo}>
+                          <Text style={styles.contactLabel}>Supplier</Text>
+                          <Text style={styles.contactName} numberOfLines={1}>
+                            {supplier.name || "Supplier"}
+                            {supplierRating != null ? ` · ⭐ ${supplierRating.toFixed(1)}` : ""}
+                          </Text>
+                        </View>
+                        {supplierPhone ? (
+                          <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL(`tel:${supplierPhone}`)} activeOpacity={0.85}>
+                            <Ionicons name="call" size={16} color="#FFFFFF" />
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
+                    ) : null}
+                    {accepted ? (
+                      <View style={[styles.contactCard, supplier && styles.contactCardSpaced]}>
+                        <View style={styles.contactIconWrap}>
+                          <Ionicons name="bicycle-outline" size={18} color={theme.accent} />
+                        </View>
+                        <View style={styles.contactInfo}>
+                          <Text style={styles.contactLabel}>Delivery partner</Text>
+                          <Text style={styles.contactName} numberOfLines={1}>
+                            {riderName || "Waiting for assignment"}
+                          </Text>
+                        </View>
+                        {riderPhone ? (
+                          <TouchableOpacity style={styles.callBtn} onPress={() => Linking.openURL(`tel:${riderPhone}`)} activeOpacity={0.85}>
+                            <Ionicons name="call" size={16} color="#FFFFFF" />
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
+                    ) : null}
+                    {accepted?.remarks ? (
+                      <Text style={styles.remarksText}>Note: {accepted.remarks}</Text>
+                    ) : null}
+                  </SectionCard>
+                ) : null}
+
                 {riderPhone ? (
-                  <TouchableOpacity
-                    style={styles.actionBtn}
-                    onPress={() => Linking.openURL("tel:" + riderPhone)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="call-outline" size={22} color="#FFFFFF" />
-                    <Text style={styles.actionBtnText}>Call delivery partner</Text>
+                  <TouchableOpacity onPress={() => Linking.openURL(`tel:${riderPhone}`)} activeOpacity={0.88}>
+                    <LinearGradient colors={[theme.medium, theme.accent]} style={styles.primaryBtn}>
+                      <Ionicons name="call-outline" size={20} color="#FFFFFF" />
+                      <Text style={styles.primaryBtnText}>Call delivery partner</Text>
+                    </LinearGradient>
                   </TouchableOpacity>
                 ) : null}
+
+                <TouchableOpacity style={styles.outlineBtn} onPress={() => router.push("/order-history")} activeOpacity={0.85}>
+                  <Text style={styles.outlineBtnText}>View order history</Text>
+                </TouchableOpacity>
               </>
-            )}
-
-            <View style={styles.bottomPadding} />
-          </>
-        )}
-        </ScrollView>
+            ) : null}
+          </ScrollView>
+        </View>
       </View>
-
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.screenBackground,
-    paddingHorizontal: 0,
-  },
-  headerSection: { minHeight: 236, overflow: "hidden" },
-  gradientBackground: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 34,
-  },
-  headerOverlay: { ...StyleSheet.absoluteFillObject },
-  dropletWrap: { position: "absolute", alignItems: "center", justifyContent: "center" },
-  headerTopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 30,
-  },
-  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
+  container: { flex: 1, backgroundColor: theme.screenBackground },
+  pageBody: { flex: 1 },
+  headerSection: { flexShrink: 0, overflow: "hidden" },
+  gradientBackground: { paddingHorizontal: 20, paddingBottom: 32 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18, zIndex: 2 },
   headerMenuBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 14,
     backgroundColor: "rgba(255,255,255,0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.34)",
     justifyContent: "center",
     alignItems: "center",
   },
-  headerCenter: { alignItems: "flex-start", justifyContent: "center", marginTop: 2, width: "100%" },
-  headerInfoRow: { flexDirection: "row", alignItems: "center" },
-  headerTextWrap: { marginLeft: 12, flex: 1 },
-  headerIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 2,
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
+  headerTitle: { fontSize: 26, fontWeight: "800", color: "#FFFFFF", letterSpacing: -0.5 },
+  headerSubtitle: { fontSize: 14, color: "rgba(255,255,255,0.92)", marginTop: 6, lineHeight: 20 },
+
   contentSection: {
-    marginTop: -30,
-    backgroundColor: theme.screenBackground,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 14,
-    paddingHorizontal: 20,
     flex: 1,
+    marginTop: -24,
+    backgroundColor: theme.contentPanelBackground,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.9)",
+    overflow: "hidden",
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      android: { elevation: 0 },
+    }),
+  },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40 },
+
+  summaryBanner: { borderRadius: 18, overflow: "hidden", marginBottom: 12 },
+  summaryBannerGradient: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
+  summaryBannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  summaryBannerText: { flex: 1, minWidth: 0 },
+  summaryBannerLabel: { fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.85)", textTransform: "uppercase", letterSpacing: 0.4 },
+  summaryBannerValue: { fontSize: 18, fontWeight: "800", color: "#FFFFFF", marginTop: 2 },
+  summaryBannerMeta: { fontSize: 12, color: "rgba(255,255,255,0.9)", marginTop: 4 },
+  etaChip: {
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.24)",
+  },
+  etaChipLabel: { fontSize: 10, fontWeight: "600", color: "rgba(255,255,255,0.88)" },
+  etaChipValue: { fontSize: 14, fontWeight: "800", color: "#FFFFFF", marginTop: 2 },
+
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(51,175,193,0.15)",
+    marginBottom: 16,
     overflow: "hidden",
   },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-    backgroundColor: theme.screenBackground,
-  },
-  headerBackBtn: {
-    backgroundColor: "rgba(255,255,255,0.78)",
-    marginRight: 12,
-  },
-  title: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1B2B34",
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
-  orderSummaryCard: {
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 18,
+  progressFill: { height: "100%", borderRadius: 3 },
+
+  sectionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
     padding: 16,
     marginBottom: 16,
-  },
-  orderSummaryTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#1B2B34",
-    marginBottom: 4,
-  },
-  orderSummaryStatus: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#059669",
-    marginBottom: 10,
-  },
-  orderSummaryRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 4,
-    gap: 6,
-  },
-  orderSummaryText: {
-    flex: 1,
-    fontSize: 13,
-    color: "#4B5563",
-  },
-  itemsCard: {
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 0,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
+    borderColor: "rgba(214,234,242,0.95)",
   },
-  itemsTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#1B2B34",
-    marginBottom: 10,
-  },
-  itemRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-    gap: 10,
-  },
-  itemRowLeft: {
-    flex: 1,
-    minWidth: 0,
-  },
-  itemName: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#1B2B34",
-  },
-  itemSub: {
-    fontSize: 12,
-    color: "#6B7C85",
-    marginTop: 2,
-  },
-  itemMeta: {
-    fontSize: 13,
-    color: "#1B2B34",
-    fontWeight: "600",
-    textAlign: "right",
-    flexShrink: 0,
-  },
-  emptyState: {
-    paddingVertical: 40,
-  },
-  noOrders: {
-    fontSize: 16,
-    color: "#6B7C85",
-    marginBottom: 20,
-  },
-  loadingWrap: {
-    paddingVertical: 48,
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 15,
-    color: "#6B7C85",
-  },
-  dropdownWrap: {
-    marginBottom: 20,
-  },
-  dropdownLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#6B7C85",
-    marginBottom: 8,
-  },
-  dropdown: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 0,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
-  },
-  dropdownText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#1B2B34",
-    flex: 1,
-  },
-  dropdownList: {
-    marginTop: 6,
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    maxHeight: 220,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  dropdownListScroll: {
-    maxHeight: 218,
-  },
-  dropdownItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 14,
+  sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 14, gap: 12 },
+  sectionIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  sectionHeaderText: { flex: 1 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: theme.textPrimary },
+  sectionSubtitle: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+
+  chipRow: { gap: 10, paddingRight: 4 },
+  orderChip: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, minWidth: 110 },
+  orderChipMuted: {
+    borderRadius: 14,
     paddingHorizontal: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  dropdownItemSelected: {
-    backgroundColor: theme.selectedTint,
-  },
-  dropdownItemText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#1B2B34",
-    flex: 1,
-  },
-  dropdownItemStatus: {
-    fontSize: 13,
-    color: "#6B7C85",
-  },
-  trackCard: {
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 0,
+    paddingVertical: 10,
+    minWidth: 110,
+    backgroundColor: theme.contentPanelBackground,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
+    borderColor: "rgba(214,234,242,0.95)",
   },
-  trackStatus: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#059669",
-  },
-  trackEta: {
-    fontSize: 15,
-    color: "#1B2B34",
-    marginTop: 4,
-  },
-  trackRemarks: {
-    fontSize: 14,
-    color: "#6B7C85",
-    marginTop: 4,
-  },
-  infoBlock: {
-    marginTop: 12,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-  },
-  infoLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#6B7C85",
-    marginBottom: 4,
-  },
-  infoLine: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#1B2B34",
-  },
-  infoSub: {
-    fontSize: 13,
-    color: "#6B7C85",
-    marginTop: 4,
-  },
-  highlightLine: {
-    color: theme.primary,
-  },
-  trackPending: {
-    fontSize: 15,
-    color: "#6B7C85",
-  },
-  timeline: {
-    marginBottom: 16,
-  },
-  timelineRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 4,
-  },
-  timelineLeft: {
-    alignItems: "center",
-    width: 32,
-  },
-  timelineDot: {
+  orderChipTextSelected: { fontSize: 14, fontWeight: "800", color: "#FFFFFF" },
+  orderChipSubSelected: { fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.88)", marginTop: 2 },
+  orderChipText: { fontSize: 14, fontWeight: "700", color: theme.textPrimary },
+  orderChipSub: { fontSize: 11, color: theme.textMuted, marginTop: 2 },
+
+  timelineRow: { flexDirection: "row", alignItems: "flex-start", marginBottom: 4 },
+  timelineLeft: { width: 36, alignItems: "center" },
+  timelineDot: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  timelineDotPending: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#E5E7EB",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  timelineDotDone: {
-    backgroundColor: "#10B981",
-  },
-  timelineLine: {
-    width: 2,
-    flex: 1,
-    minHeight: 24,
-    backgroundColor: "#E5E7EB",
-    marginVertical: 2,
-  },
-  timelineLineDone: {
-    backgroundColor: "#10B981",
-  },
-  timelineRight: {
-    flex: 1,
-    marginLeft: 12,
-    paddingTop: 4,
-  },
-  timelineLabel: {
-    fontSize: 14,
-    color: "#6B7C85",
-    fontWeight: "500",
-  },
-  timelineLabelDone: {
-    color: "#1B2B34",
-    fontWeight: "600",
-  },
-  mapPlaceholder: {
-    height: 140,
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 0,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
-  },
-  mapText: {
-    fontSize: 13,
-    color: "#6B7C85",
-    marginTop: 8,
-  },
-  actionBtn: {
-    flexDirection: "row",
+    backgroundColor: "rgba(51,175,193,0.1)",
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
-    backgroundColor: theme.primary,
-    paddingVertical: 14,
-    borderRadius: 14,
-    marginBottom: 10,
   },
-  actionBtnText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  actionBtnOutline: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: "rgba(255,255,255,0.78)",
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: theme.primary,
-    marginBottom: 10,
-  },
-  actionBtnOutlineText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.primary,
-  },
-  bottomPadding: {
+  timelineLine: { width: 2, height: 28, backgroundColor: "rgba(51,175,193,0.15)", marginVertical: 4 },
+  timelineLineDone: { backgroundColor: "#10B981" },
+  timelineRight: { flex: 1, marginLeft: 10, paddingTop: 6, paddingBottom: 8 },
+  timelineLabel: { fontSize: 14, color: theme.textMuted, fontWeight: "500", lineHeight: 20 },
+  timelineLabelDone: { color: theme.textPrimary, fontWeight: "700" },
+
+  detailRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 12 },
+  detailTextWrap: { flex: 1 },
+  detailLabel: { fontSize: 11, fontWeight: "600", color: theme.textMuted, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 2 },
+  detailValue: { fontSize: 14, color: theme.textPrimary, lineHeight: 20 },
+
+  itemRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10, gap: 10 },
+  itemRowBorder: { borderBottomWidth: 1, borderBottomColor: "rgba(214,234,242,0.95)" },
+  itemLeft: { flex: 1, minWidth: 0 },
+  itemName: { fontSize: 14, fontWeight: "700", color: theme.textPrimary },
+  itemSub: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  itemPrice: { fontSize: 13, fontWeight: "700", color: theme.accent },
+
+  contactCard: { flexDirection: "row", alignItems: "center", gap: 12 },
+  contactCardSpaced: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "rgba(214,234,242,0.95)" },
+  contactIconWrap: {
+    width: 40,
     height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
   },
+  contactInfo: { flex: 1, minWidth: 0 },
+  contactLabel: { fontSize: 11, fontWeight: "600", color: theme.textMuted, textTransform: "uppercase", letterSpacing: 0.3 },
+  contactName: { fontSize: 14, fontWeight: "700", color: theme.textPrimary, marginTop: 2 },
+  callBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: theme.accent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  remarksText: { fontSize: 13, color: theme.textMuted, marginTop: 12, lineHeight: 19, fontStyle: "italic" },
+
+  primaryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  primaryBtnText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
+  outlineBtn: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: theme.accent,
+    backgroundColor: "#FFFFFF",
+    marginBottom: 8,
+  },
+  outlineBtnText: { fontSize: 15, fontWeight: "700", color: theme.link },
+
+  emptyState: { alignItems: "center", paddingVertical: 48, paddingHorizontal: 20 },
+  emptyIcon: { width: 64, height: 64, borderRadius: 20, alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  emptyTitle: { fontSize: 18, fontWeight: "800", color: theme.textPrimary },
+  emptySub: { fontSize: 14, color: theme.textMuted, marginTop: 6, textAlign: "center" },
+  loadingWrap: { alignItems: "center", paddingVertical: 48 },
+  loadingText: { marginTop: 12, fontSize: 14, color: theme.textMuted },
 });

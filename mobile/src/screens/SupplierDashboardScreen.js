@@ -1,54 +1,45 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   TextInput,
   Image,
-  Platform,
-  StatusBar,
-  Animated,
-  Easing,
   Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import Svg, { Path } from "react-native-svg";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api/client";
-import BackButton from "@/src/components/BackButton";
+import SupplierScreenShell from "@/src/components/supplier/SupplierScreenShell";
+import {
+  SectionCard,
+  GradientButton,
+  FilterChip,
+  SupplierPageHeader,
+  ui,
+} from "@/src/components/supplier/supplierUi";
 import { theme } from "@/src/theme";
 
 const TILES = [
-  { key: "incoming", title: "Incoming orders", subtitle: "Accept & set ETA", icon: "cart-outline", route: "supplier-incoming-orders", badge: true },
-  { key: "history", title: "Order history", subtitle: "Past orders & filters", icon: "time-outline", route: "supplier-order-history" },
-  { key: "products", title: "My products", subtitle: "Add or remove products", icon: "cube-outline", route: "supplier-products" },
-  { key: "addProduct", title: "Add product", subtitle: "New product to catalog", icon: "add-circle-outline", route: "supplier-dashboard", action: "addProduct" },
-  { key: "financials", title: "Financials", subtitle: "Orders, revenue, earnings", icon: "stats-chart-outline", route: "supplier-financials" },
-  { key: "wallet", title: "Wallet", subtitle: "Balance & transactions", icon: "wallet-outline", route: "supplier-wallet" },
-  { key: "support", title: "Support", subtitle: "Message admin", icon: "chatbubble-ellipses-outline", route: "supplier-support" },
+  { key: "incoming", title: "Incoming orders", subtitle: "Accept & set ETA", icon: "cart-outline", route: "supplier-incoming-orders", badge: true, accent: "#DC2626" },
+  { key: "history", title: "Order history", subtitle: "Past orders & filters", icon: "time-outline", route: "supplier-order-history", accent: theme.accent },
+  { key: "products", title: "My products", subtitle: "Add or remove products", icon: "cube-outline", route: "supplier-products", accent: "#7C3AED" },
+  { key: "addProduct", title: "Add product", subtitle: "New product to catalog", icon: "add-circle-outline", route: "supplier-dashboard", action: "addProduct", accent: "#059669" },
+  { key: "financials", title: "Financials", subtitle: "Orders, revenue, earnings", icon: "stats-chart-outline", route: "supplier-financials", accent: "#D97706" },
+  { key: "wallet", title: "Wallet", subtitle: "Balance & transactions", icon: "wallet-outline", route: "supplier-wallet", accent: "#0E7490" },
+  { key: "support", title: "Support", subtitle: "Message admin", icon: "chatbubble-ellipses-outline", route: "supplier-support", accent: "#6366F1" },
 ];
-const HEADER_DROPLETS = [
-  { left: -12, top: 20, width: 18, height: 24, phase: "a" },
-  { left: 14, top: 62, width: 16, height: 22, phase: "b" },
-  { left: 52, top: 28, width: 20, height: 28, phase: "c" },
-  { left: 88, top: 94, width: 14, height: 20, phase: "a" },
-  { left: 124, top: 44, width: 22, height: 30, phase: "b" },
-  { left: 164, top: 12, width: 16, height: 22, phase: "c" },
-  { left: 206, top: 74, width: 18, height: 24, phase: "a" },
-  { left: 34, top: 150, width: 18, height: 24, phase: "c" },
-  { right: 146, top: 36, width: 20, height: 28, phase: "c" },
-  { right: 110, top: 8, width: 16, height: 22, phase: "a" },
-  { right: 76, top: 66, width: 18, height: 24, phase: "b" },
-  { right: 42, top: 30, width: 22, height: 30, phase: "c" },
-  { right: 8, top: 98, width: 16, height: 22, phase: "a" },
-  { right: 62, top: 154, width: 18, height: 24, phase: "b" },
-  { right: -10, top: 18, width: 18, height: 24, phase: "b" },
-];
+
+function getInitials(name) {
+  const parts = String(name || "S").trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "S";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
 
 const SupplierDashboardScreen = () => {
   const router = useRouter();
@@ -57,24 +48,6 @@ const SupplierDashboardScreen = () => {
   const [todayDeliveredCount, setTodayDeliveredCount] = useState(0);
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [showAddProduct, setShowAddProduct] = useState(false);
-  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
-  const dropletAnimA = useRef(new Animated.Value(0)).current;
-  const dropletAnimB = useRef(new Animated.Value(0)).current;
-  const dropletAnimC = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const loop = (value, duration) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(value, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(value, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        ])
-      );
-    const a = loop(dropletAnimA, 3400), b = loop(dropletAnimB, 4200), c = loop(dropletAnimC, 3800);
-    a.start(); b.start(); c.start();
-    return () => { a.stop(); b.stop(); c.stop(); };
-  }, [dropletAnimA, dropletAnimB, dropletAnimC]);
-  const getDropletAnim = (phase) => phase === "b" ? dropletAnimB : phase === "c" ? dropletAnimC : dropletAnimA;
 
   useEffect(() => {
     api.supplier.ordersIncoming().then((list) => setIncomingCount(list?.length || 0)).catch(() => {});
@@ -115,104 +88,138 @@ const SupplierDashboardScreen = () => {
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerPanel}>
-          <LinearGradient
-            colors={theme.gradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}
-          >
-            <View style={styles.headerOverlay}>
-              {HEADER_DROPLETS.map((drop, idx) => {
-                const dropAnim = getDropletAnim(drop.phase);
-                return (
-                  <Animated.View
-                    key={`supplier-drop-${idx}`}
-                    style={[styles.dropletWrap, {
-                      left: drop.left, right: drop.right, top: drop.top, width: drop.width, height: drop.height,
-                      opacity: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.32] }),
-                      transform: [
-                        { translateY: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
-                        { scale: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.05] }) },
-                      ],
-                    }]}
-                  >
-                    <Svg width="100%" height="100%" viewBox="0 0 60 80">
-                      <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.3)" />
-                    </Svg>
-                  </Animated.View>
-                );
-              })}
-            </View>
-            <View style={styles.headerTopRow}>
-              <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
-              <View style={styles.headerTopSpacer} />
-            </View>
-            <View style={styles.headerInfoRow}>
-              <View style={styles.headerIconCircle}>
-                <Ionicons name="storefront-outline" size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.headerTextWrap}>
-                <Text style={styles.headerTitle}>Supplier Dashboard</Text>
-                <Text style={styles.welcomeText}>{user?.name || "Supplier"}</Text>
-              </View>
-            </View>
-            <View style={styles.todayStatsRow}>
-              <View style={styles.todayStatCard}>
-                <View style={styles.todayStatIcon}>
-                  <Ionicons name="cash-outline" size={15} color="#065F46" />
-                </View>
-                <View style={styles.todayStatTextWrap}>
-                  <Text style={styles.todayStatLabel}>Today's earnings</Text>
-                  <Text style={styles.todayStatValue}>₹{Number(todayEarnings || 0).toLocaleString()}</Text>
-                </View>
-              </View>
-              <View style={styles.todayStatCard}>
-                <View style={styles.todayStatIcon}>
-                  <Ionicons name="checkmark-done-outline" size={15} color="#1D4ED8" />
-                </View>
-                <View style={styles.todayStatTextWrap}>
-                  <Text style={styles.todayStatLabel}>Delivered today</Text>
-                  <Text style={styles.todayStatValue}>{todayDeliveredCount}</Text>
-                </View>
-              </View>
-            </View>
+  const displayName = user?.name || "Supplier";
+  const firstName = displayName.split(" ")[0] || displayName;
+
+  const headerHero = (
+    <View style={styles.headerHero}>
+      <View style={styles.welcomeRow}>
+        <View style={styles.avatarRing}>
+          <LinearGradient colors={["rgba(255,255,255,0.35)", "rgba(255,255,255,0.12)"]} style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>{getInitials(displayName)}</Text>
           </LinearGradient>
         </View>
+        <View style={styles.welcomeTextWrap}>
+          <Text style={styles.welcomeLabel}>Welcome back</Text>
+          <Text style={styles.welcomeName}>{firstName}</Text>
+          <Text style={styles.welcomeSub}>Supplier hub · orders, catalog & earnings</Text>
+        </View>
+        <View style={styles.supplierBadge}>
+          <Ionicons name="storefront" size={14} color="#FFFFFF" />
+          <Text style={styles.supplierBadgeText}>Partner</Text>
+        </View>
+      </View>
 
-        <View style={styles.contentPanel}>
+      <View style={styles.headerStatsRow}>
+        <View style={styles.headerStatCard}>
+          <View style={styles.headerStatIcon}>
+            <Ionicons name="cash-outline" size={16} color="#FFFFFF" />
+          </View>
+          <Text style={styles.headerStatLabel}>Today's earnings</Text>
+          <Text style={styles.headerStatValue}>₹{Number(todayEarnings || 0).toLocaleString()}</Text>
+        </View>
+        <View style={styles.headerStatCard}>
+          <View style={styles.headerStatIcon}>
+            <Ionicons name="checkmark-done-outline" size={16} color="#FFFFFF" />
+          </View>
+          <Text style={styles.headerStatLabel}>Delivered today</Text>
+          <Text style={styles.headerStatValue}>{todayDeliveredCount}</Text>
+        </View>
+        <View style={[styles.headerStatCard, incomingCount > 0 && styles.headerStatCardAlert]}>
+          <View style={[styles.headerStatIcon, incomingCount > 0 && styles.headerStatIconAlert]}>
+            <Ionicons name="notifications-outline" size={16} color="#FFFFFF" />
+          </View>
+          <Text style={styles.headerStatLabel}>Incoming</Text>
+          <Text style={styles.headerStatValue}>{incomingCount}</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <SupplierScreenShell showBack={false} tallHeader showMenu headerExtra={headerHero}>
+      <ScrollView contentContainerStyle={ui.scrollContent} showsVerticalScrollIndicator={false}>
+        {incomingCount > 0 ? (
+          <TouchableOpacity
+            style={styles.alertBannerWrap}
+            onPress={() => router.push("/supplier-incoming-orders")}
+            activeOpacity={0.9}
+          >
+            <LinearGradient colors={["#EF4444", "#DC2626"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.alertBanner}>
+              <View style={styles.alertBannerIcon}>
+                <Ionicons name="cart-outline" size={20} color="#FFFFFF" />
+              </View>
+              <View style={styles.alertBannerText}>
+                <Text style={styles.alertBannerTitle}>{incomingCount} incoming order{incomingCount !== 1 ? "s" : ""}</Text>
+                <Text style={styles.alertBannerSub}>Tap to review and accept</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color="#FFFFFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        ) : null}
+
+        <SectionCard icon="grid-outline" title="Quick actions" subtitle="Manage your supplier operations">
           <View style={styles.tileGrid}>
             {TILES.map((tile) => {
               const count = tile.badge ? incomingCount : null;
+              const isFeatured = tile.key === "incoming" && count > 0;
               return (
                 <TouchableOpacity
                   key={tile.key}
-                  style={styles.tile}
+                  style={styles.tileWrap}
                   onPress={() => handleTilePress(tile)}
-                  activeOpacity={0.8}
+                  activeOpacity={0.88}
                 >
-                  <View style={styles.tileIconWrap}>
-                    <Ionicons name={tile.icon} size={32} color={theme.primary} />
-                    {count != null && count > 0 && (
-                      <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{count > 99 ? "99+" : count}</Text>
+                  {isFeatured ? (
+                    <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.tileGradientBorder}>
+                      <View style={styles.tileInner}>
+                        <DashboardTile tile={tile} count={count} featured />
                       </View>
-                    )}
-                  </View>
-                  <Text style={styles.tileTitle}>{tile.title}</Text>
-                  <Text style={styles.tileSubtitle}>{tile.subtitle}</Text>
+                    </LinearGradient>
+                  ) : (
+                    <View style={styles.tile}>
+                      <DashboardTile tile={tile} count={count} />
+                    </View>
+                  )}
                 </TouchableOpacity>
               );
             })}
           </View>
-        </View>
+        </SectionCard>
       </ScrollView>
-    </SafeAreaView>
+    </SupplierScreenShell>
   );
 };
+
+function DashboardTile({ tile, count, featured = false }) {
+  return (
+    <>
+      <View style={styles.tileTopRow}>
+        <LinearGradient
+          colors={featured ? [theme.medium, theme.accent] : [`${tile.accent}22`, `${tile.accent}10`]}
+          style={styles.tileIconCircle}
+        >
+          <Ionicons name={tile.icon} size={22} color={featured ? "#FFFFFF" : tile.accent} />
+        </LinearGradient>
+        {count != null && count > 0 ? (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{count > 99 ? "99+" : count}</Text>
+          </View>
+        ) : (
+          <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+        )}
+      </View>
+      <Text style={[styles.tileTitle, featured && styles.tileTitleFeatured]}>{tile.title}</Text>
+      <Text style={styles.tileSubtitle} numberOfLines={2}>{tile.subtitle}</Text>
+      <View style={styles.tileFooter}>
+        <View style={[styles.tileDot, featured && styles.tileDotActive]} />
+        <Text style={[styles.tileFooterText, featured && styles.tileFooterTextActive]}>
+          {featured ? "Action needed" : "Open"}
+        </Text>
+      </View>
+    </>
+  );
+}
 
 const PRICE_UNITS = ["20L Jar", "1L Bottle", "5L Can", "500ml", "Bulk"];
 const BADGES = ["", "subscription", "premium"];
@@ -252,7 +259,6 @@ function SupplierAddProductView({ onClose, onAdded }) {
   const [badge, setBadge] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
 
   const pickProductImage = async () => {
     if (!ImagePicker) {
@@ -321,45 +327,66 @@ function SupplierAddProductView({ onClose, onAdded }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.headerPanel}>
-          <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, styles.addProductGradientBackground, { paddingTop: 20 + androidTopInset }]}>
-            <View style={styles.headerTopRow}>
-              <BackButton onPress={onClose} />
-              <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
-              <View style={styles.headerTopSpacer} />
+    <SupplierScreenShell
+      onBack={onClose}
+      showMenu
+      tallHeader
+      headerExtra={
+        <SupplierPageHeader
+          icon="add-circle-outline"
+          title="Add product"
+          subtitle="Create a new product for your catalog"
+          stats={[
+            { icon: "pricetag-outline", label: "Type", value: (productType || "jar").toUpperCase() },
+            { icon: "cube-outline", label: "Stock", value: stockQty || "0" },
+            { icon: "checkmark-circle-outline", label: "Status", value: inStock ? "In stock" : "Out" },
+          ]}
+        />
+      }
+    >
+      <ScrollView contentContainerStyle={ui.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <SectionCard icon="layers-outline" title="Product type" subtitle="Required">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={ui.filterRow}>
+            {PRODUCT_TYPES.map((type) => (
+              <FilterChip
+                key={type}
+                label={type}
+                selected={productType === type}
+                onPress={() => setProductType(type)}
+              />
+            ))}
+          </ScrollView>
+        </SectionCard>
+
+        <SectionCard icon="pricetag-outline" title="Basic details" subtitle="Name and availability">
+          <Text style={ui.inputLabel}>Product name *</Text>
+          <TextInput
+            style={ui.input}
+            value={productName}
+            onChangeText={setProductName}
+            placeholder="e.g. Pure Water 20L"
+            placeholderTextColor={theme.textMuted}
+          />
+          <TouchableOpacity onPress={() => setInStock(!inStock)} style={styles.checkRow} activeOpacity={0.85}>
+            <View style={[styles.checkbox, inStock && styles.checkboxChecked]}>
+              {inStock ? <Ionicons name="checkmark" size={16} color="#FFF" /> : null}
             </View>
-            <View style={styles.headerInfoRow}>
-              <View style={styles.headerIconCircle}>
-                <Ionicons name="add-circle-outline" size={24} color="#FFFFFF" />
-              </View>
-              <View style={styles.headerTextWrap}>
-                <Text style={styles.headerTitle}>Add product</Text>
-                <Text style={styles.welcomeText}>Create a new product for your catalog</Text>
-              </View>
-            </View>
-            <Text style={styles.productTypeLabelTop}>Product type *</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.topTypeChipScroll} contentContainerStyle={styles.topTypeChipContent}>
-              {PRODUCT_TYPES.map((type) => (
-                <TouchableOpacity key={type} style={[styles.choiceChip, productType === type && styles.choiceChipSelected]} onPress={() => setProductType(type)}>
-                  <Text style={[styles.choiceChipText, productType === type && styles.choiceChipTextSelected]}>{type}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </LinearGradient>
-        </View>
-        <View style={styles.contentPanel}>
-          <Text style={styles.label}>Product name *</Text>
-          <TextInput style={styles.input} value={productName} onChangeText={setProductName} placeholder="e.g. Pure Water 20L" placeholderTextColor="#9CA3AF" />
-          <Text style={styles.label}>Product image</Text>
-          <View style={styles.imageModeRow}>
-            <TouchableOpacity style={[styles.imageModeChip, imageMode === "library" && styles.imageModeChipSelected]} onPress={() => setImageMode("library")}>
-              <Text style={[styles.imageModeChipText, imageMode === "library" && styles.imageModeChipTextSelected]}>Select from list</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.imageModeChip, imageMode === "upload" && styles.imageModeChipSelected]} onPress={() => setImageMode("upload")}>
-              <Text style={[styles.imageModeChipText, imageMode === "upload" && styles.imageModeChipTextSelected]}>Upload image</Text>
-            </TouchableOpacity>
+            <Text style={styles.checkLabel}>In stock</Text>
+          </TouchableOpacity>
+        </SectionCard>
+
+        <SectionCard icon="image-outline" title="Product image" subtitle="Library or upload">
+          <View style={ui.filterRow}>
+            <FilterChip
+              label="Select from list"
+              selected={imageMode === "library"}
+              onPress={() => setImageMode("library")}
+            />
+            <FilterChip
+              label="Upload image"
+              selected={imageMode === "upload"}
+              onPress={() => setImageMode("upload")}
+            />
           </View>
           <View style={styles.imagePickerRow}>
             <Image
@@ -373,13 +400,9 @@ function SupplierAddProductView({ onClose, onAdded }) {
             <View style={styles.imagePickerActions}>
               {imageMode === "upload" ? (
                 <>
-                  <TouchableOpacity style={styles.imagePickBtn} onPress={pickProductImage}>
-                    <Text style={styles.imagePickBtnText}>{imageUrl ? "Change image" : "Upload image"}</Text>
-                  </TouchableOpacity>
+                  <GradientButton label={imageUrl ? "Change image" : "Upload image"} onPress={pickProductImage} icon="cloud-upload-outline" />
                   {imageUrl ? (
-                    <TouchableOpacity style={styles.imageUseDefaultBtn} onPress={() => setImageUrl("")}>
-                      <Text style={styles.imageUseDefaultBtnText}>Use default image</Text>
-                    </TouchableOpacity>
+                    <GradientButton label="Use default image" onPress={() => setImageUrl("")} variant="outline" style={{ marginTop: 8 }} />
                   ) : null}
                 </>
               ) : (
@@ -392,178 +415,210 @@ function SupplierAddProductView({ onClose, onAdded }) {
             {PRODUCT_IMAGE_OPTIONS.map((img) => {
               const selected = selectedAssetImage === img.storedValue;
               return (
-                <TouchableOpacity key={img.key} style={[styles.assetCard, selected && styles.assetCardSelected]} onPress={() => { setSelectedAssetImage(img.storedValue); setImageMode("library"); }}>
+                <TouchableOpacity
+                  key={img.key}
+                  style={[styles.assetCard, selected && styles.assetCardSelected]}
+                  onPress={() => { setSelectedAssetImage(img.storedValue); setImageMode("library"); }}
+                  activeOpacity={0.85}
+                >
                   <Image source={img.source} style={styles.assetThumb} />
                   <Text style={[styles.assetLabel, selected && styles.assetLabelSelected]} numberOfLines={1}>{img.label}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-          <Text style={styles.label}>Price (₹) *</Text>
-          <TextInput style={styles.input} value={price} onChangeText={setPrice} placeholder="0" keyboardType="decimal-pad" placeholderTextColor="#9CA3AF" />
-          <Text style={styles.label}>Price unit</Text>
-          <TextInput style={styles.input} value={priceUnit} onChangeText={setPriceUnit} placeholder="20L Jar" placeholderTextColor="#9CA3AF" />
-          <Text style={styles.label}>Delivery (e.g. 20-30 min)</Text>
-          <TextInput style={styles.input} value={delivery} onChangeText={setDelivery} placeholder="20-30 min" placeholderTextColor="#9CA3AF" />
-          <Text style={styles.label}>Capacity (L)</Text>
-          <TextInput style={styles.input} value={capacityL} onChangeText={setCapacityL} placeholder="20" keyboardType="number-pad" placeholderTextColor="#9CA3AF" />
-          <Text style={styles.label}>Available units (stock)</Text>
-          <TextInput style={styles.input} value={stockQty} onChangeText={setStockQty} placeholder="0" keyboardType="number-pad" placeholderTextColor="#9CA3AF" />
-          <Text style={styles.label}>Categories (comma-separated)</Text>
-          <TextInput style={styles.input} value={categories} onChangeText={setCategories} placeholder="drinking, mineral" placeholderTextColor="#9CA3AF" />
-          <View style={styles.checkRow}>
-            <TouchableOpacity onPress={() => setInStock(!inStock)} style={styles.checkRow}>
-              <View style={[styles.checkbox, inStock && styles.checkboxChecked]}>{inStock ? <Ionicons name="checkmark" size={16} color="#FFF" /> : null}</View>
-              <Text style={styles.checkLabel}>In stock</Text>
-            </TouchableOpacity>
-          </View>
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          <TouchableOpacity style={[styles.submitButton, loading && styles.submitButtonDisabled]} onPress={handleAdd} disabled={loading}>
-            <Text style={styles.submitButtonText}>{loading ? "Saving..." : "Save product"}</Text>
-          </TouchableOpacity>
-        </View>
+        </SectionCard>
+
+        <SectionCard icon="cash-outline" title="Pricing & delivery" subtitle="Price, capacity and stock">
+          <Text style={ui.inputLabel}>Price (₹) *</Text>
+          <TextInput style={ui.input} value={price} onChangeText={setPrice} placeholder="0" keyboardType="decimal-pad" placeholderTextColor={theme.textMuted} />
+          <Text style={ui.inputLabel}>Price unit</Text>
+          <TextInput style={ui.input} value={priceUnit} onChangeText={setPriceUnit} placeholder="20L Jar" placeholderTextColor={theme.textMuted} />
+          <Text style={ui.inputLabel}>Delivery (e.g. 20-30 min)</Text>
+          <TextInput style={ui.input} value={delivery} onChangeText={setDelivery} placeholder="20-30 min" placeholderTextColor={theme.textMuted} />
+          <Text style={ui.inputLabel}>Capacity (L)</Text>
+          <TextInput style={ui.input} value={capacityL} onChangeText={setCapacityL} placeholder="20" keyboardType="number-pad" placeholderTextColor={theme.textMuted} />
+          <Text style={ui.inputLabel}>Available units (stock)</Text>
+          <TextInput style={ui.input} value={stockQty} onChangeText={setStockQty} placeholder="0" keyboardType="number-pad" placeholderTextColor={theme.textMuted} />
+        </SectionCard>
+
+        <SectionCard icon="list-outline" title="Categories" subtitle="Comma-separated tags">
+          <Text style={ui.inputLabel}>Categories (comma-separated) *</Text>
+          <TextInput style={ui.input} value={categories} onChangeText={setCategories} placeholder="drinking, mineral" placeholderTextColor={theme.textMuted} />
+        </SectionCard>
+
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        <GradientButton
+          label={loading ? "Saving..." : "Save product"}
+          onPress={handleAdd}
+          disabled={loading}
+          loading={loading}
+          icon="checkmark-circle-outline"
+          style={{ marginBottom: 8 }}
+        />
       </ScrollView>
-    </SafeAreaView>
+    </SupplierScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
-  scrollContent: { paddingBottom: 30 },
-  headerPanel: { minHeight: 236, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingBottom: 28, paddingHorizontal: 20 },
-  addProductGradientBackground: { paddingBottom: 20 },
-  headerOverlay: { ...StyleSheet.absoluteFillObject },
-  dropletWrap: { position: "absolute", alignItems: "center", justifyContent: "center" },
-  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 22 },
-  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
-  headerTopSpacer: { width: 40, height: 40 },
-  headerInfoRow: { flexDirection: "row", alignItems: "center" },
-  headerIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center" },
-  headerTextWrap: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
-  welcomeText: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
-  productTypeLabelTop: { marginTop: 10, marginBottom: 8, fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
-  topTypeChipScroll: { marginBottom: 12 },
-  topTypeChipContent: { paddingRight: 10 },
-  todayStatsRow: { marginTop: 14, flexDirection: "row", gap: 8 },
-  todayStatCard: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.88)",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+  headerHero: { marginTop: 4 },
+  welcomeRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  avatarRing: {
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.45)",
+    padding: 2,
   },
-  todayStatIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.9)",
+  avatarCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 8,
   },
-  todayStatTextWrap: { flex: 1 },
-  todayStatLabel: { fontSize: 11, color: "#456173" },
-  todayStatValue: { fontSize: 14, fontWeight: "800", color: "#1B2B34", marginTop: 1 },
-  contentPanel: { marginTop: -14, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20 },
-  tileGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
-  tile: {
-    width: "48%",
-    backgroundColor: "rgba(255, 255, 255, 0.85)",
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 14,
+  avatarText: { fontSize: 18, fontWeight: "800", color: "#FFFFFF", letterSpacing: 0.5 },
+  welcomeTextWrap: { flex: 1, minWidth: 0 },
+  welcomeLabel: { fontSize: 13, fontWeight: "600", color: "rgba(255,255,255,0.88)" },
+  welcomeName: { fontSize: 24, fontWeight: "800", color: "#FFFFFF", letterSpacing: -0.5, marginTop: 2 },
+  welcomeSub: { fontSize: 12, color: "rgba(255,255,255,0.82)", marginTop: 4, lineHeight: 16 },
+  supplierBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.9)",
-    elevation: 0,
+    borderColor: "rgba(255,255,255,0.28)",
   },
-  tileIconWrap: { width: 52, height: 52, borderRadius: 14, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center", marginBottom: 10, position: "relative" },
-  badge: { position: "absolute", top: -6, right: -6, backgroundColor: "#EF4444", borderRadius: 12, minWidth: 22, height: 22, justifyContent: "center", alignItems: "center" },
-  badgeText: { color: "#FFF", fontSize: 12, fontWeight: "700" },
-  tileTitle: { fontSize: 16, fontWeight: "700", color: "#1B2B34", marginBottom: 2 },
-  tileSubtitle: { fontSize: 12, color: "#6B7C85" },
-  label: { fontSize: 15, fontWeight: "600", color: "#1B2B34", marginBottom: 8 },
-  input: {
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderRadius: 14,
-    paddingHorizontal: 16,
+  supplierBadgeText: { fontSize: 11, fontWeight: "700", color: "#FFFFFF" },
+  headerStatsRow: { flexDirection: "row", gap: 8, marginTop: 18 },
+  headerStatCard: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.14)",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.24)",
+    paddingHorizontal: 10,
     paddingVertical: 12,
-    fontSize: 16,
-    color: "#1B2B34",
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
   },
-  checkRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
-  checkbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: theme.primaryLight, marginRight: 10, justifyContent: "center", alignItems: "center" },
+  headerStatCardAlert: {
+    backgroundColor: "rgba(239,68,68,0.22)",
+    borderColor: "rgba(255,255,255,0.34)",
+  },
+  headerStatIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  headerStatIconAlert: { backgroundColor: "rgba(255,255,255,0.24)" },
+  headerStatLabel: { fontSize: 10, fontWeight: "600", color: "rgba(255,255,255,0.82)" },
+  headerStatValue: { fontSize: 15, fontWeight: "800", color: "#FFFFFF", marginTop: 3 },
+  alertBannerWrap: { borderRadius: 16, overflow: "hidden", marginBottom: 16 },
+  alertBanner: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
+  alertBannerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  alertBannerText: { flex: 1 },
+  alertBannerTitle: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
+  alertBannerSub: { fontSize: 12, color: "rgba(255,255,255,0.9)", marginTop: 2 },
+  tileGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  tileWrap: { width: "48%", marginBottom: 14 },
+  tileGradientBorder: { borderRadius: 22, padding: 2 },
+  tileInner: {
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    padding: 14,
+    minHeight: 158,
+  },
+  tile: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 14,
+    minHeight: 158,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  tileTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  tileIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badge: {
+    backgroundColor: "#EF4444",
+    borderRadius: 12,
+    minWidth: 22,
+    height: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 6,
+  },
+  badgeText: { color: "#FFF", fontSize: 11, fontWeight: "700" },
+  tileTitle: { fontSize: 15, fontWeight: "700", color: theme.textPrimary, marginBottom: 4 },
+  tileTitleFeatured: { color: theme.accent },
+  tileSubtitle: { fontSize: 12, color: theme.textMuted, lineHeight: 16, minHeight: 32 },
+  tileFooter: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 10 },
+  tileDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(107,124,133,0.35)" },
+  tileDotActive: { backgroundColor: theme.medium },
+  tileFooterText: { fontSize: 11, fontWeight: "600", color: theme.textMuted },
+  tileFooterTextActive: { color: theme.accent },
+  checkRow: { flexDirection: "row", alignItems: "center", marginTop: 4 },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: theme.primaryLight,
+    marginRight: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   checkboxChecked: { backgroundColor: theme.primary, borderColor: theme.primary },
-  checkLabel: { fontSize: 15, color: "#1B2B34" },
+  checkLabel: { fontSize: 15, color: theme.textPrimary },
   errorText: { fontSize: 14, color: "#DC2626", marginBottom: 12 },
-  submitButton: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 30, alignItems: "center", marginTop: 8, marginBottom: 24 },
-  submitButtonDisabled: { opacity: 0.7 },
-  submitButtonText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
-  choiceChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 18,
-    marginRight: 8,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
-  },
-  choiceChipSelected: { backgroundColor: theme.primary, borderColor: theme.primary },
-  choiceChipText: { fontSize: 13, color: "#1B2B34", textTransform: "capitalize" },
-  choiceChipTextSelected: { color: "#FFFFFF", fontWeight: "700" },
   imagePickerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
-    backgroundColor: "rgba(255,255,255,0.8)",
+    marginTop: 12,
+    marginBottom: 12,
+    backgroundColor: theme.contentPanelBackground,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
+    borderColor: "rgba(214,234,242,0.95)",
     padding: 10,
   },
-  imageModeRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
-  imageModeChip: {
-    flex: 1,
-    borderRadius: 10,
-    paddingVertical: 8,
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
-  },
-  imageModeChipSelected: { backgroundColor: theme.primary, borderColor: theme.primary },
-  imageModeChipText: { fontSize: 12, color: "#1B2B34", fontWeight: "600" },
-  imageModeChipTextSelected: { color: "#FFFFFF" },
   productPreviewImage: { width: 72, height: 72, borderRadius: 12, backgroundColor: "#EAF2F8" },
   imagePickerActions: { flex: 1, marginLeft: 12 },
-  imagePickHint: { fontSize: 12, color: "#6B7C85" },
-  imagePickBtn: { backgroundColor: theme.primary, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 12, marginBottom: 8, alignItems: "center" },
-  imagePickBtnText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
-  imageUseDefaultBtn: { borderRadius: 10, paddingVertical: 8, paddingHorizontal: 8, alignItems: "center" },
-  imageUseDefaultBtnText: { color: theme.primary, fontSize: 12, fontWeight: "600" },
-  assetListTitle: { fontSize: 12, color: "#6B7C85", marginBottom: 8 },
-  assetGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 16 },
+  imagePickHint: { fontSize: 12, color: theme.textMuted, lineHeight: 18 },
+  assetListTitle: { fontSize: 12, color: theme.textMuted, marginBottom: 8 },
+  assetGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
   assetCard: {
     width: "31%",
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 8,
     marginBottom: 8,
-    backgroundColor: "rgba(255,255,255,0.8)",
+    backgroundColor: theme.contentPanelBackground,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
+    borderColor: "rgba(214,234,242,0.95)",
   },
-  assetCardSelected: { borderColor: theme.primary, backgroundColor: "rgba(14,165,233,0.08)" },
+  assetCardSelected: { borderColor: theme.accent, backgroundColor: "rgba(30,143,177,0.08)" },
   assetThumb: { width: "100%", height: 56, borderRadius: 8, backgroundColor: "#EAF2F8", marginBottom: 6 },
-  assetLabel: { fontSize: 11, color: "#1B2B34", textAlign: "center" },
-  assetLabelSelected: { color: theme.primary, fontWeight: "700" },
+  assetLabel: { fontSize: 11, color: theme.textPrimary, textAlign: "center" },
+  assetLabelSelected: { color: theme.accent, fontWeight: "700" },
 });
 
 export default SupplierDashboardScreen;

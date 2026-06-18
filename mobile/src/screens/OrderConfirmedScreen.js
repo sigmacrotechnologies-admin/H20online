@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicat
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import AppLogo from "@/src/components/AppLogo";
 import BackButton from "@/src/components/BackButton";
 import { useCart } from "@/src/context/CartContext";
 import { api } from "@/src/api/client";
@@ -55,9 +56,11 @@ const OrderConfirmedScreen = () => {
           end={{ x: 1, y: 1 }}
           style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}
         >
+          <View style={styles.headerLogoRow}>
+            <AppLogo size="header" />
+          </View>
           <View style={styles.headerTopRow}>
             <BackButton onPress={() => router.replace("/dashboard")} />
-            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
             <View style={styles.headerTopSpacer} />
           </View>
           <View style={styles.headerInfoRow}>
@@ -112,6 +115,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
   headerSection: { minHeight: 230, overflow: "hidden" },
   gradientBackground: { flex: 1, paddingHorizontal: 20, paddingBottom: 26 },
+  headerLogoRow: { alignItems: "center", marginBottom: 12, zIndex: 2 },
   headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
   headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
   headerTopSpacer: { width: 40, height: 40 },
@@ -123,8 +127,8 @@ const styles = StyleSheet.create({
   contentSection: {
     marginTop: -38,
     backgroundColor: theme.screenBackground,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     paddingTop: 10,
     flex: 1,
     overflow: "hidden",

@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import PageHeader from "../components/PageHeader";
+import LoadingState from "../components/LoadingState";
 import { api } from "../api/client";
 
 const card = { background: "#f0f7fcd7", borderRadius: 16, padding: 24, marginBottom: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
@@ -13,7 +15,6 @@ const btnPrimary = { ...btn, background: "#1EA7FD", color: "#fff" };
 const btnSmall = { ...btn, background: "#E0F2FE", color: "#1B2B34", padding: "6px 12px", fontSize: 13 };
 const btnDanger = { ...btn, background: "#FEE2E2", color: "#B91C1C", padding: "6px 12px", fontSize: 13 };
 const tabRow = { display: "flex", gap: 4, marginBottom: 20, borderBottom: "1px solid #E5E7EB", flexWrap: "wrap" };
-const tab = (active) => ({ padding: "10px 16px", border: "none", background: "none", cursor: "pointer", fontWeight: 600, color: active ? "#1EA7FD" : "#6B7C85", borderBottom: active ? "2px solid #1EA7FD" : "2px solid transparent", marginBottom: -1 });
 
 const TABS = [
   { id: "details", label: "Subscription details" },
@@ -240,34 +241,36 @@ export default function Subscriptions() {
     <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 16, alignItems: "center" }}>
       {activeTab !== "financials" && (
         <>
-          <select value={activeTab === "history" ? "" : statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={select}>
+          <select value={activeTab === "history" ? "" : statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="select">
             <option value="">All status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
             <option value="cancelled">Cancelled</option>
           </select>
-          <select value={frequencyFilter} onChange={(e) => setFrequencyFilter(e.target.value)} style={select}>
+          <select value={frequencyFilter} onChange={(e) => setFrequencyFilter(e.target.value)} className="select">
             <option value="">All frequency</option>
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
             <option value="monthly">Monthly</option>
           </select>
-          <input type="text" placeholder="Search by subscription ID" value={subscriptionIdSearch} onChange={(e) => setSubscriptionIdSearch(e.target.value)} style={input} />
-          <input type="text" placeholder="Search customer (name, email, phone)" value={search} onChange={(e) => setSearch(e.target.value)} style={input} />
-          <button style={btnSmall} onClick={() => loadSubscriptions({ page: 1 })}>Apply</button>
+          <input type="text" placeholder="Search by subscription ID" value={subscriptionIdSearch} onChange={(e) => setSubscriptionIdSearch(e.target.value)} className="input" />
+          <input type="text" placeholder="Search customer (name, email, phone)" value={search} onChange={(e) => setSearch(e.target.value)} className="input" />
+          <button className="btn btn-secondary btn-sm" onClick={() => loadSubscriptions({ page: 1 })}>Apply</button>
         </>
       )}
     </div>
   );
 
   return (
-    <div>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Subscription orders</h1>
-      <p style={{ color: "#6B7C85", marginBottom: 16 }}>View active subscriptions, financials, status toggles, history and delivery assignment.</p>
+    <div className="admin-page">
+      <PageHeader
+        title="Subscription orders"
+        subtitle="View active subscriptions, financials, status toggles, history and delivery assignment."
+      />
 
-      <div style={tabRow}>
+      <div className="tab-group">
         {TABS.map((t) => (
-          <button key={t.id} type="button" style={tab(activeTab === t.id)} onClick={() => setActiveTab(t.id)}>
+          <button key={t.id} type="button" className={"tab-btn" + (activeTab === t.id ? " active" : "")} onClick={() => setActiveTab(t.id)}>
             {t.label}
           </button>
         ))}
@@ -277,51 +280,51 @@ export default function Subscriptions() {
         <>
           {filters}
           {loading ? (
-            <p>Loading...</p>
+            <LoadingState />
           ) : (
             <>
-              <div style={tableWrap}>
-                <table style={table}>
+              <div className="table-wrap">
+                <table className="data-table">
                   <thead>
                     <tr>
-                      <th style={th}>Subscription ID</th>
-                      <th style={th}>Customer ID</th>
-                      <th style={th}>Customer</th>
-                      <th style={th}>Type</th>
-                      <th style={th}>Product (label)</th>
-                      <th style={th}>Product ID</th>
-                      <th style={th}>Total (₹)</th>
-                      <th style={th}>Status</th>
-                      <th style={th}>Preferred time</th>
-                      <th style={th}>Actions</th>
+                      <th>Subscription ID</th>
+                      <th>Customer ID</th>
+                      <th>Customer</th>
+                      <th>Type</th>
+                      <th>Product (label)</th>
+                      <th>Product ID</th>
+                      <th>Total (₹)</th>
+                      <th>Status</th>
+                      <th>Preferred time</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {subscriptions.map((s) => (
                       <tr key={s.id}>
-                        <td style={td}>{s.subscriptionId || s.id}</td>
-                        <td style={td}>{s.customerId || (s.userId ? String(s.userId).slice(-8) : "—")}</td>
-                        <td style={td}>{s.customerName || s.customerEmail || "—"} {s.customerEmail && <span style={{ color: "#6B7C85", fontSize: 12 }}>{s.customerEmail}</span>}</td>
-                        <td style={td}>{s.frequency}</td>
-                        <td style={td}>{s.productLabel} ({s.productKey})</td>
-                        <td style={td}>{s.productId || "—"}</td>
-                        <td style={td}>₹{Number(s.totalPrice).toLocaleString()}</td>
-                        <td style={td}>{s.status}</td>
-                        <td style={td}>{s.preferredDeliveryTime || "—"}</td>
-                        <td style={td}>
-                          <button style={btnDanger} disabled={updatingId === s.id} onClick={() => handleDelete(s)}>Remove</button>
+                        <td>{s.subscriptionId || s.id}</td>
+                        <td>{s.customerId || (s.userId ? String(s.userId).slice(-8) : "—")}</td>
+                        <td>{s.customerName || s.customerEmail || "—"} {s.customerEmail && <span style={{ color: "#6B7C85", fontSize: 12 }}>{s.customerEmail}</span>}</td>
+                        <td>{s.frequency}</td>
+                        <td>{s.productLabel} ({s.productKey})</td>
+                        <td>{s.productId || "—"}</td>
+                        <td>₹{Number(s.totalPrice).toLocaleString()}</td>
+                        <td>{s.status}</td>
+                        <td>{s.preferredDeliveryTime || "—"}</td>
+                        <td>
+                          <button className="btn btn-danger btn-sm" disabled={updatingId === s.id} onClick={() => handleDelete(s)}>Remove</button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#6B7C85" }}>Total: {total}</span>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button style={btnSmall} disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
+              <div className="pagination-bar">
+                <span className="pagination-meta">Total: {total}</span>
+                <div className="pagination-controls">
+                  <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
                   <span>Page {page}</span>
-                  <button style={btnSmall} disabled={page * limit >= total} onClick={() => setPage((p) => p + 1)}>Next</button>
+                  <button className="btn btn-secondary btn-sm" disabled={page * limit >= total} onClick={() => setPage((p) => p + 1)}>Next</button>
                 </div>
               </div>
             </>
@@ -332,28 +335,28 @@ export default function Subscriptions() {
       {activeTab === "financials" && (
         <div>
           {financials == null ? (
-            <p>Loading...</p>
+            <LoadingState />
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 16 }}>
-              <div style={card}>
-                <div style={{ fontSize: 13, color: "#6B7C85", marginBottom: 4 }}>Active subscriptions</div>
-                <div style={{ fontSize: 24, fontWeight: 700 }}>{financials.activeCount}</div>
+            <div className="stat-grid">
+              <div className="stat-card">
+                <div className="stat-card-label">Active subscriptions</div>
+                <div className="stat-card-value">{financials.activeCount}</div>
               </div>
-              <div style={card}>
-                <div style={{ fontSize: 13, color: "#6B7C85", marginBottom: 4 }}>Inactive (paused)</div>
-                <div style={{ fontSize: 24, fontWeight: 700 }}>{financials.inactiveCount}</div>
+              <div className="stat-card">
+                <div className="stat-card-label">Inactive (paused)</div>
+                <div className="stat-card-value">{financials.inactiveCount}</div>
               </div>
-              <div style={card}>
-                <div style={{ fontSize: 13, color: "#6B7C85", marginBottom: 4 }}>Cancelled</div>
-                <div style={{ fontSize: 24, fontWeight: 700 }}>{financials.cancelledCount}</div>
+              <div className="stat-card">
+                <div className="stat-card-label">Cancelled</div>
+                <div className="stat-card-value">{financials.cancelledCount}</div>
               </div>
-              <div style={card}>
-                <div style={{ fontSize: 13, color: "#6B7C85", marginBottom: 4 }}>Active revenue (total)</div>
-                <div style={{ fontSize: 24, fontWeight: 700 }}>₹{Number(financials.totalActiveRevenue || 0).toLocaleString()}</div>
+              <div className="stat-card">
+                <div className="stat-card-label">Active revenue (total)</div>
+                <div className="stat-card-value">₹{Number(financials.totalActiveRevenue || 0).toLocaleString()}</div>
               </div>
-              <div style={card}>
-                <div style={{ fontSize: 13, color: "#6B7C85", marginBottom: 4 }}>By frequency</div>
-                <ul style={{ margin: 0, paddingLeft: 18 }}>
+              <div className="stat-card">
+                <div className="stat-card-label">By frequency</div>
+                <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: "0.875rem" }}>
                   {(financials.byFrequency || []).map((f) => (
                     <li key={f.frequency}>{f.frequency}: {f.count} (₹{Number(f.revenue).toLocaleString()})</li>
                   ))}
@@ -368,27 +371,27 @@ export default function Subscriptions() {
         <>
           {filters}
           {loading ? (
-            <p>Loading...</p>
+            <LoadingState />
           ) : (
-            <div style={tableWrap}>
-              <table style={table}>
+            <div className="table-wrap">
+              <table className="data-table">
                 <thead>
                   <tr>
-                    <th style={th}>Subscription ID</th>
-                    <th style={th}>Customer</th>
-                    <th style={th}>Plan · Product</th>
-                    <th style={th}>Status</th>
-                    <th style={th}>Action</th>
+                    <th>Subscription ID</th>
+                    <th>Customer</th>
+                    <th>Plan · Product</th>
+                    <th>Status</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {subscriptions.map((s) => (
                     <tr key={s.id}>
-                      <td style={td}>{s.subscriptionId || s.id}</td>
-                      <td style={td}>{s.customerName || s.customerEmail || "—"}</td>
-                      <td style={td}>{s.planName} · {s.productLabel}</td>
-                      <td style={td}>{s.status}</td>
-                      <td style={td}>
+                      <td>{s.subscriptionId || s.id}</td>
+                      <td>{s.customerName || s.customerEmail || "—"}</td>
+                      <td>{s.planName} · {s.productLabel}</td>
+                      <td>{s.status}</td>
+                      <td>
                         {(s.status === "active" || s.status === "inactive") && (
                           <button
                             style={{ ...btnSmall, background: s.status === "active" ? "#FEE2E2" : "#D1FAE5", color: s.status === "active" ? "#B91C1C" : "#059669" }}
@@ -412,43 +415,43 @@ export default function Subscriptions() {
         <>
           {filters}
           {loading ? (
-            <p>Loading...</p>
+            <LoadingState />
           ) : (
             <>
-              <div style={tableWrap}>
-                <table style={table}>
+              <div className="table-wrap">
+                <table className="data-table">
                   <thead>
                     <tr>
-                      <th style={th}>Subscription ID</th>
-                      <th style={th}>Customer</th>
-                      <th style={th}>Type</th>
-                      <th style={th}>Product</th>
-                      <th style={th}>Total (₹)</th>
-                      <th style={th}>Status</th>
-                      <th style={th}>Created</th>
+                      <th>Subscription ID</th>
+                      <th>Customer</th>
+                      <th>Type</th>
+                      <th>Product</th>
+                      <th>Total (₹)</th>
+                      <th>Status</th>
+                      <th>Created</th>
                     </tr>
                   </thead>
                   <tbody>
                     {subscriptions.map((s) => (
                       <tr key={s.id}>
-                        <td style={td}>{s.subscriptionId || s.id}</td>
-                        <td style={td}>{s.customerName || s.customerEmail || "—"}</td>
-                        <td style={td}>{s.frequency}</td>
-                        <td style={td}>{s.productLabel}</td>
-                        <td style={td}>₹{Number(s.totalPrice).toLocaleString()}</td>
-                        <td style={td}>{s.status}</td>
-                        <td style={td}>{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "—"}</td>
+                        <td>{s.subscriptionId || s.id}</td>
+                        <td>{s.customerName || s.customerEmail || "—"}</td>
+                        <td>{s.frequency}</td>
+                        <td>{s.productLabel}</td>
+                        <td>₹{Number(s.totalPrice).toLocaleString()}</td>
+                        <td>{s.status}</td>
+                        <td>{s.createdAt ? new Date(s.createdAt).toLocaleDateString() : "—"}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#6B7C85" }}>Total: {total}</span>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button style={btnSmall} disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
+              <div className="pagination-bar">
+                <span className="pagination-meta">Total: {total}</span>
+                <div className="pagination-controls">
+                  <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
                   <span>Page {page}</span>
-                  <button style={btnSmall} disabled={page * limit >= total} onClick={() => setPage((p) => p + 1)}>Next</button>
+                  <button className="btn btn-secondary btn-sm" disabled={page * limit >= total} onClick={() => setPage((p) => p + 1)}>Next</button>
                 </div>
               </div>
             </>
@@ -471,18 +474,18 @@ export default function Subscriptions() {
                 placeholder="Locality"
                 value={deliveryLocalityFilter}
                 onChange={(e) => setDeliveryLocalityFilter(e.target.value)}
-                style={{ ...input, minWidth: 140 }}
+                className="input input-wide"
               />
               <input
                 type="text"
                 placeholder="PIN code"
                 value={deliveryPinCodeFilter}
                 onChange={(e) => setDeliveryPinCodeFilter(e.target.value)}
-                style={{ ...input, minWidth: 100 }}
+                className="input input-wide"
               />
-              <button style={btnSmall} onClick={() => loadSubscriptions({ page: 1 })}>Apply filter</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => loadSubscriptions({ page: 1 })}>Apply filter</button>
               {(deliveryLocalityFilter || deliveryPinCodeFilter) && (
-                <button style={btnSmall} onClick={() => { setDeliveryLocalityFilter(""); setDeliveryPinCodeFilter(""); loadSubscriptions({ page: 1 }); }}>Clear</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => { setDeliveryLocalityFilter(""); setDeliveryPinCodeFilter(""); loadSubscriptions({ page: 1 }); }}>Clear</button>
               )}
             </div>
           </div>
@@ -493,14 +496,14 @@ export default function Subscriptions() {
               Select subscriptions below, then choose a delivery partner to assign to all selected. Partner will be checked for 13-minute slot conflicts.
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
-              <select value={clubPartnerId} onChange={(e) => setClubPartnerId(e.target.value)} style={select}>
+              <select value={clubPartnerId} onChange={(e) => setClubPartnerId(e.target.value)} className="select">
                 <option value="">— Select partner —</option>
                 {deliveryPartners.filter((dp) => dp.onboardingStatus === "approved").map((dp) => (
                   <option key={dp.id} value={dp.id}>{dp.name || dp.email}</option>
                 ))}
               </select>
               <button
-                style={btnPrimary}
+                className="btn btn-primary"
                 onClick={handleAssignBulk}
                 disabled={updatingId === "bulk" || deliverySelectedIds.size === 0 || !clubPartnerId}
               >
@@ -509,37 +512,37 @@ export default function Subscriptions() {
             </div>
           </div>
           {loading ? (
-            <p>Loading...</p>
+            <LoadingState />
           ) : (
-            <div style={tableWrap}>
-              <table style={table}>
+            <div className="table-wrap">
+              <table className="data-table">
                 <thead>
                   <tr>
-                    <th style={th}>Select</th>
-                    <th style={th}>Subscription ID</th>
-                    <th style={th}>Customer</th>
-                    <th style={th}>Address</th>
-                    <th style={th}>Locality</th>
-                    <th style={th}>PIN code</th>
-                    <th style={th}>Preferred time (from user)</th>
-                    <th style={th}>Pickup hub</th>
-                    <th style={th}>Assigned partner</th>
+                    <th>Select</th>
+                    <th>Subscription ID</th>
+                    <th>Customer</th>
+                    <th>Address</th>
+                    <th>Locality</th>
+                    <th>PIN code</th>
+                    <th>Preferred time (from user)</th>
+                    <th>Pickup hub</th>
+                    <th>Assigned partner</th>
                   </tr>
                 </thead>
                 <tbody>
                   {subscriptions.filter((s) => s.status === "active" || s.status === "inactive").map((s) => (
                     <tr key={s.id}>
-                      <td style={td}>
+                      <td>
                         <input
                           type="checkbox"
                           checked={deliverySelectedIds.has(s.id)}
                           onChange={() => toggleDeliverySelection(s.id)}
                         />
                       </td>
-                      <td style={td}>{s.subscriptionId || s.id}</td>
-                      <td style={td}>{s.customerName || s.customerEmail || "—"}</td>
-                      <td style={td}>{s.deliveryAddress || "—"}</td>
-                      <td style={td}>
+                      <td>{s.subscriptionId || s.id}</td>
+                      <td>{s.customerName || s.customerEmail || "—"}</td>
+                      <td>{s.deliveryAddress || "—"}</td>
+                      <td>
                         <input
                           type="text"
                           placeholder="Locality"
@@ -551,7 +554,7 @@ export default function Subscriptions() {
                           style={{ ...input, width: 100, minWidth: 80 }}
                         />
                       </td>
-                      <td style={td}>
+                      <td>
                         <input
                           type="text"
                           placeholder="PIN"
@@ -563,17 +566,17 @@ export default function Subscriptions() {
                           style={{ ...input, width: 80 }}
                         />
                       </td>
-                      <td style={td}>
+                      <td>
                         <span style={{ fontSize: 13, color: "#1B2B34" }} title="Set by customer when selecting plan">
                           {s.preferredDeliveryTime || (s.preferredTimeRangeStart && s.preferredTimeRangeEnd ? `${s.preferredTimeRangeStart} - ${s.preferredTimeRangeEnd}` : "—")}
                         </span>
                       </td>
-                      <td style={td}>
+                      <td>
                         <select
                           value={s.pickupHubId || ""}
                           onChange={(e) => handleAssignDelivery(s.id, { deliveryPartnerId: s.deliveryPartnerId || null, pickupHubId: e.target.value || null })}
                           disabled={updatingId === s.id}
-                          style={select}
+                          className="select"
                         >
                           <option value="">— None —</option>
                           {pickupHubs.map((h) => (
@@ -582,12 +585,12 @@ export default function Subscriptions() {
                         </select>
                         {s.pickupHubAddress && <span style={{ display: "block", fontSize: 11, color: "#6B7C85", marginTop: 4 }}>{s.pickupHubAddress}</span>}
                       </td>
-                      <td style={td}>
+                      <td>
                         <select
                           value={s.deliveryPartnerId || ""}
                           onChange={(e) => handleAssignDelivery(s.id, { deliveryPartnerId: e.target.value || null, pickupHubId: s.pickupHubId || null })}
                           disabled={updatingId === s.id}
-                          style={select}
+                          className="select"
                         >
                           <option value="">— None —</option>
                           {deliveryPartners.filter((dp) => dp.onboardingStatus === "approved").map((dp) => (

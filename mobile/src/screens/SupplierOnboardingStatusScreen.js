@@ -57,7 +57,7 @@ const SupplierOnboardingStatusScreen = () => {
           style={styles.gradientBackground}
         >
           <View style={styles.headerTopRow}>
-            <BackButton onPress={() => router.back()} />
+            <BackButton />
           </View>
           <View style={styles.headerCenter}>
             <View style={styles.headerIconCircle}>
@@ -134,8 +134,8 @@ const styles = StyleSheet.create({
   contentPanel: {
     marginTop: -16,
     backgroundColor: theme.screenBackground,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     paddingTop: 28,
     paddingHorizontal: 20,
   },

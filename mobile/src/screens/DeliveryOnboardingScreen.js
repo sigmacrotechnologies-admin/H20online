@@ -1,11 +1,16 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TextInput, ActivityIndicator } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import BackButton from "@/src/components/BackButton";
-import { theme } from "@/src/theme";
 import { api } from "@/src/api/client";
+import {
+  ModernScreenShell,
+  ModernInput,
+  ModernPrimaryButton,
+  modern,
+} from "@/src/components/modern";
+import { theme } from "@/src/theme";
 
 const VEHICLE_OPTIONS = [
   { key: "bicycle", label: "Bicycle", icon: "bicycle-outline" },
@@ -54,71 +59,63 @@ export default function DeliveryOnboardingScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerPanel}>
-        <LinearGradient colors={["#1E40AF", "#3B82F6", "#60A5FA"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.gradientBackground}>
-          <View style={styles.headerRow}>
-            <BackButton onPress={() => router.back()} />
-            <View style={styles.headerCenter}><Text style={styles.headerTitle}>Delivery partner</Text></View>
-            <View style={{ width: 40 }} />
-          </View>
-        </LinearGradient>
+    <ModernScreenShell
+      title="Delivery partner"
+      subtitle="Register to deliver water orders in your area"
+      icon="bicycle-outline"
+      headerHeight={210}
+    >
+      <Text style={modern.sectionTitle}>Vehicle type</Text>
+      <Text style={[modern.sectionSubtitle, { marginBottom: 12 }]}>Select how you will deliver</Text>
+      <View style={styles.vehicleRow}>
+        {VEHICLE_OPTIONS.map((v) => {
+          const selected = vehicleType === v.key;
+          return (
+            <TouchableOpacity key={v.key} style={styles.vehicleChipWrap} onPress={() => setVehicleType(v.key)} activeOpacity={0.85}>
+              {selected ? (
+                <LinearGradient colors={[theme.medium, theme.accent]} style={styles.vehicleChip}>
+                  <Ionicons name={v.icon} size={18} color="#FFFFFF" />
+                  <Text style={styles.vehicleChipTextSelected}>{v.label}</Text>
+                </LinearGradient>
+              ) : (
+                <View style={styles.vehicleChip}>
+                  <Ionicons name={v.icon} size={18} color={theme.accent} />
+                  <Text style={styles.vehicleChipText}>{v.label}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
       </View>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.content}>
-          <Text style={styles.sectionTitle}>Vehicle type</Text>
-          <View style={styles.vehicleRow}>
-            {VEHICLE_OPTIONS.map((v) => (
-              <TouchableOpacity
-                key={v.key}
-                style={[styles.vehicleChip, vehicleType === v.key && styles.vehicleChipSelected]}
-                onPress={() => setVehicleType(v.key)}
-              >
-                <Text style={[styles.vehicleChipText, vehicleType === v.key && styles.vehicleChipTextSelected]}>{v.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <Text style={styles.label}>Name *</Text>
-          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Full name" placeholderTextColor="#9CA3AF" />
-          <Text style={styles.label}>Email *</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email" keyboardType="email-address" placeholderTextColor="#9CA3AF" />
-          <Text style={styles.label}>Phone *</Text>
-          <TextInput style={styles.input} value={phone} onChangeText={setPhone} placeholder="Phone" keyboardType="phone-pad" placeholderTextColor="#9CA3AF" />
-          <Text style={styles.label}>Password *</Text>
-          <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry placeholderTextColor="#9CA3AF" />
-          <Text style={styles.label}>License document (URL or ref)</Text>
-          <TextInput style={styles.input} value={licenseDocument} onChangeText={setLicenseDocument} placeholder="Optional" placeholderTextColor="#9CA3AF" />
-          <Text style={styles.label}>Identity document (URL or ref)</Text>
-          <TextInput style={styles.input} value={identityDocument} onChangeText={setIdentityDocument} placeholder="Optional" placeholderTextColor="#9CA3AF" />
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          <TouchableOpacity style={[styles.submitBtn, loading && styles.submitBtnDisabled]} onPress={handleSubmit} disabled={loading}>
-            {loading ? <ActivityIndicator color="#FFF" size="small" /> : <Text style={styles.submitBtnText}>Submit for verification</Text>}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+
+      <ModernInput label="Name *" icon="person-outline" value={name} onChangeText={setName} placeholder="Full name" />
+      <ModernInput label="Email *" icon="mail-outline" value={email} onChangeText={setEmail} placeholder="Email" keyboardType="email-address" autoCapitalize="none" />
+      <ModernInput label="Phone *" icon="call-outline" value={phone} onChangeText={setPhone} placeholder="Phone" keyboardType="phone-pad" />
+      <ModernInput label="Password *" icon="lock-closed-outline" value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
+      <ModernInput label="License document" icon="document-outline" value={licenseDocument} onChangeText={setLicenseDocument} placeholder="Optional URL or reference" />
+      <ModernInput label="Identity document" icon="card-outline" value={identityDocument} onChangeText={setIdentityDocument} placeholder="Optional URL or reference" />
+
+      {error ? <Text style={modern.errorText}>{error}</Text> : null}
+      <ModernPrimaryButton label="Submit for verification" onPress={handleSubmit} loading={loading} icon="checkmark-circle-outline" />
+    </ModernScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
-  headerPanel: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 140, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 14, paddingBottom: 16, paddingHorizontal: 20 },
-  headerRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headerCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF" },
-  scroll: { paddingBottom: 40 },
-  content: { marginTop: -20, marginLeft: 11, marginRight: 11, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: "700", color: "#1B2B34", marginBottom: 12 },
-  vehicleRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 20 },
-  vehicleChip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.8)", marginRight: 10, marginBottom: 10 },
-  vehicleChipSelected: { backgroundColor: theme.primary },
-  vehicleChipText: { fontSize: 14, color: "#1B2B34" },
-  vehicleChipTextSelected: { color: "#FFF" },
-  label: { fontSize: 15, fontWeight: "600", color: "#1B2B34", marginBottom: 8 },
-  input: { backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 14, padding: 14, fontSize: 16, marginBottom: 16 },
-  errorText: { fontSize: 14, color: "#DC2626", marginBottom: 12 },
-  submitBtn: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 30, alignItems: "center", marginTop: 8 },
-  submitBtnDisabled: { opacity: 0.7 },
-  submitBtnText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
+  vehicleRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 8, gap: 8 },
+  vehicleChipWrap: { width: "31%", minWidth: 100 },
+  vehicleChip: {
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+    minHeight: 72,
+  },
+  vehicleChipText: { fontSize: 12, fontWeight: "600", color: theme.textPrimary, textAlign: "center" },
+  vehicleChipTextSelected: { fontSize: 12, fontWeight: "700", color: "#FFFFFF", textAlign: "center" },
 });

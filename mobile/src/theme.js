@@ -15,6 +15,7 @@ export const theme = {
   primary: "#1E8FB1",
   primaryLight: "#33AFC1",
   screenBackground: "#C2EEF0",
+  contentPanelBackground: "#F8FCFD",
   cardBackground: "rgba(255,255,255,0.75)",
   cardBackgroundSolid: "#FFFFFF",
   border: "#33AFC1",

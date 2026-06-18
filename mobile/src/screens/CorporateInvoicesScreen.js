@@ -29,7 +29,7 @@ const CorporateInvoicesScreen = () => {
             style={styles.gradientBackground}
           >
             <View style={[styles.headerOverlay, backButtonContainerStyle]}>
-              <BackButton onPress={() => router.back()} />
+              <BackButton />
               <Text style={styles.headerTitle}>All Invoices</Text>
             </View>
           </LinearGradient>
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   gradientBackground: { flex: 1, paddingTop: 14, paddingHorizontal: 20 },
   headerOverlay: { flexDirection: "row", alignItems: "center", right: 20 },
   headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF", marginLeft: 12 },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20 },
+  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#F8FCFD", borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 24, paddingHorizontal: 20 },
   subtitle: { fontSize: 14, color: "#6B7C85", marginBottom: 20 },
   invoiceCard: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "rgba(255,255,255,0.85)", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", elevation: 2 },
   invoiceLeft: { flexDirection: "row", alignItems: "center", flex: 1 },

@@ -13,6 +13,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { goBackOr } from "@/src/utils/navigation";
 import BackButton, { backButtonContainerStyle } from "@/src/components/BackButton";
 import { theme } from "@/src/theme";
 
@@ -43,7 +44,7 @@ const CorporateProfileScreen = () => {
   const [error, setError] = useState("");
 
   const handleBack = () => {
-    if (step === 1) router.back();
+    if (step === 1) goBackOr("/");
     else setStep(step - 1);
   };
 
@@ -378,7 +379,7 @@ const styles = StyleSheet.create({
   progressBarContainer: { marginTop: 4 },
   progressBarBg: { height: 6, backgroundColor: "rgba(255,255,255,0.4)", borderRadius: 3, overflow: "hidden" },
   progressBarFill: { height: "100%", backgroundColor: "#FFFFFF", borderRadius: 3 },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20, overflow: "hidden" },
+  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#F8FCFD", borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 28, paddingHorizontal: 20, overflow: "hidden" },
   title: { fontSize: 26, fontWeight: "700", textAlign: "center", color: "#1B2B34", marginBottom: 8 },
   subtitle: { textAlign: "center", color: "#6B7C85", marginBottom: 25, fontSize: 14 },
   inputSection: { marginBottom: 20 },

@@ -1,53 +1,40 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-
-const tileStyle = {
-  background: "#f0f7fcd7",
-  borderRadius: 20,
-  padding: 24,
-  textDecoration: "none",
-  color: "#1B2B34",
-  display: "block",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-  transition: "transform 0.2s, box-shadow 0.2s",
-};
-const gridStyle = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 20 };
+import PageHeader from "../components/PageHeader";
 
 const tiles = [
-  { to: "/users", title: "Users", subtitle: "View, add, edit and manage app users", emoji: "👤" },
-  { to: "/orders", title: "Orders", subtitle: "Ongoing and past orders", emoji: "📦" },
-  { to: "/suppliers", title: "Supplier onboarding", subtitle: "Add or remove suppliers", emoji: "🚚" },
-  { to: "/plans", title: "Plans & rates", subtitle: "Update subscription plans and bottle rates", emoji: "📋" },
-  { to: "/subscriptions", title: "Subscription orders", subtitle: "Active subscriptions, financials, delivery assignment", emoji: "📅" },
-  { to: "/wallet-management", title: "Wallet management", subtitle: "Customer, supplier & delivery wallets — view, add, deduct, set balance", emoji: "💳" },
-  { to: "/financials", title: "Financials", subtitle: "Revenue, platform cut (20% / 30%)", emoji: "💰", requireMasterOrAdmin: true },
-  { to: "/admin-users", title: "Admin users", subtitle: "Create admin or sub-admin", emoji: "🔐", requireMasterOrAdmin: true },
-  { to: "/delivery-partners", title: "Delivery partners", subtitle: "Verify & approve delivery partners", emoji: "🏍️" },
-  { to: "/supplier-support", title: "Supplier support", subtitle: "Messages from suppliers", emoji: "💬" },
+  { to: "/users", title: "Users", subtitle: "View, add, edit and manage app users", icon: "👤" },
+  { to: "/orders", title: "Orders", subtitle: "Ongoing and past orders", icon: "📦" },
+  { to: "/suppliers", title: "Supplier onboarding", subtitle: "Add or remove suppliers", icon: "🚚" },
+  { to: "/plans", title: "Plans & rates", subtitle: "Update subscription plans and bottle rates", icon: "📋" },
+  { to: "/subscriptions", title: "Subscription orders", subtitle: "Active subscriptions, financials, delivery assignment", icon: "📅" },
+  { to: "/wallet-management", title: "Wallet management", subtitle: "Customer, supplier & delivery wallets", icon: "💳" },
+  { to: "/financials", title: "Financials", subtitle: "Revenue, platform cut (20% / 30%)", icon: "💰", requireMasterOrAdmin: true },
+  { to: "/admin-users", title: "Admin users", subtitle: "Create admin or sub-admin", icon: "🔐", requireMasterOrAdmin: true },
+  { to: "/delivery-partners", title: "Delivery partners", subtitle: "Verify & approve delivery partners", icon: "🏍️" },
+  { to: "/customer-support", title: "Customer support", subtitle: "Complaints and support tickets", icon: "🎫" },
+  { to: "/supplier-support", title: "Supplier support", subtitle: "Messages from suppliers", icon: "💬" },
+  { to: "/delivery-support", title: "Delivery support", subtitle: "Messages from delivery partners", icon: "📨" },
 ];
 
 export default function Dashboard() {
-  const { canSeeFinancials, canCreateAdmin } = useAuth();
+  const { canSeeFinancials, canCreateAdmin, user } = useAuth();
 
   return (
-    <div>
-      <h1 style={{ fontSize: 28, fontWeight: 700, color: "#1B2B34", marginBottom: 8 }}>Admin Dashboard</h1>
-      <p style={{ fontSize: 15, color: "#6B7C85", marginBottom: 24 }}>Manage users, orders, suppliers, plans and financials.</p>
-      <div style={gridStyle}>
+    <div className="admin-page">
+      <PageHeader
+        title={`Welcome${user?.name ? `, ${user.name.split(" ")[0]}` : ""}`}
+        subtitle="Manage users, orders, suppliers, plans, wallets and support from one place."
+      />
+      <div className="tile-grid">
         {tiles.map((t) => {
           if (t.requireMasterOrAdmin && t.to === "/financials" && !canSeeFinancials) return null;
           if (t.requireMasterOrAdmin && t.to === "/admin-users" && !canCreateAdmin) return null;
           return (
-            <Link
-              key={t.to}
-              to={t.to}
-              style={tileStyle}
-              onMouseOver={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.1)"; }}
-              onMouseOut={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; }}
-            >
-              <span style={{ fontSize: 32, marginBottom: 12, display: "block" }}>{t.emoji}</span>
-              <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 6 }}>{t.title}</h2>
-              <p style={{ fontSize: 13, color: "#6B7C85", margin: 0 }}>{t.subtitle}</p>
+            <Link key={t.to} to={t.to} className="dashboard-tile">
+              <div className="dashboard-tile-icon">{t.icon}</div>
+              <h2>{t.title}</h2>
+              <p>{t.subtitle}</p>
             </Link>
           );
         })}

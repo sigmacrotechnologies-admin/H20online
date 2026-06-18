@@ -1,7 +1,11 @@
+const dns = require("dns");
 const mongoose = require("mongoose");
 
 async function connectDB() {
   const uri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/h20online";
+  if (process.platform === "win32" && uri.startsWith("mongodb+srv://")) {
+    dns.setServers(["8.8.8.8", "1.1.1.1"]);
+  }
   const options = {
     serverSelectionTimeoutMS: 10000,
     connectTimeoutMS: 10000,

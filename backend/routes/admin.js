@@ -9,6 +9,7 @@ const DeliveryPartner = require("../models/DeliveryPartner");
 const Subscription = require("../models/Subscription");
 const SupplierSupportThread = require("../models/SupplierSupportThread");
 const DeliveryPartnerSupportThread = require("../models/DeliveryPartnerSupportThread");
+const CustomerSupportTicket = require("../models/CustomerSupportTicket");
 const PickupHub = require("../models/PickupHub");
 const Wallet = require("../models/Wallet");
 const { getOrCreateWallet } = require("./wallet");
@@ -1212,6 +1213,93 @@ router.post("/delivery-support/:deliveryPartnerId/reply", async (req, res) => {
     await thread.save();
     const m = thread.messages[thread.messages.length - 1];
     res.status(201).json({ from: m.from, text: m.text, createdAt: m.createdAt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/customer-support", async (req, res) => {
+  try {
+    const tickets = await CustomerSupportTicket.find()
+      .populate("userId", "name email phone")
+      .sort({ updatedAt: -1 })
+      .lean();
+    res.json(
+      tickets.map((t) => ({
+        id: t._id.toString(),
+        ticketId: t.ticketId,
+        category: t.category,
+        subject: t.subject,
+        status: t.status,
+        customerName: t.userId?.name,
+        customerEmail: t.userId?.email,
+        customerPhone: t.userId?.phone,
+        userId: t.userId?._id?.toString(),
+        lastMessage: t.messages?.length ? t.messages[t.messages.length - 1].text : t.description,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+      }))
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/customer-support/:ticketId", async (req, res) => {
+  try {
+    const tid = toObjectId(req.params.ticketId);
+    if (!tid) return res.status(400).json({ error: "Invalid ticket id" });
+    const ticket = await CustomerSupportTicket.findById(tid)
+      .populate("userId", "name email phone")
+      .lean();
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+    res.json({
+      id: ticket._id.toString(),
+      ticketId: ticket.ticketId,
+      category: ticket.category,
+      subject: ticket.subject,
+      description: ticket.description,
+      status: ticket.status,
+      customer: ticket.userId
+        ? { name: ticket.userId.name, email: ticket.userId.email, phone: ticket.userId.phone }
+        : null,
+      messages: (ticket.messages || []).map((m) => ({ from: m.from, text: m.text, createdAt: m.createdAt })),
+      createdAt: ticket.createdAt,
+      updatedAt: ticket.updatedAt,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/customer-support/:ticketId/reply", async (req, res) => {
+  try {
+    const tid = toObjectId(req.params.ticketId);
+    if (!tid) return res.status(400).json({ error: "Invalid ticket id" });
+    const { text } = req.body;
+    if (!text || typeof text !== "string" || !text.trim()) return res.status(400).json({ error: "Message text required" });
+    const ticket = await CustomerSupportTicket.findById(tid);
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+    ticket.messages.push({ from: "admin", text: text.trim() });
+    if (ticket.status === "open") ticket.status = "in_progress";
+    await ticket.save();
+    const m = ticket.messages[ticket.messages.length - 1];
+    res.status(201).json({ from: m.from, text: m.text, createdAt: m.createdAt });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch("/customer-support/:ticketId/status", async (req, res) => {
+  try {
+    const tid = toObjectId(req.params.ticketId);
+    if (!tid) return res.status(400).json({ error: "Invalid ticket id" });
+    const { status } = req.body;
+    const allowed = ["open", "in_progress", "resolved", "closed"];
+    if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid status" });
+    const ticket = await CustomerSupportTicket.findByIdAndUpdate(tid, { status }, { new: true });
+    if (!ticket) return res.status(404).json({ error: "Ticket not found" });
+    res.json({ id: ticket._id.toString(), status: ticket.status });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

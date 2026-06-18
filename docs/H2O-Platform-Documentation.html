@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>H2O Online — Platform Documentation</title>
+  <style>
+    @page { size: A4; }
+    :root {
+      --primary: #0ea5e9;
+      --primary-dark: #0369a1;
+      --accent: #06b6d4;
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #e2e8f0;
+      --bg-soft: #f8fafc;
+      --success: #059669;
+      --warning: #d97706;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      color: var(--text);
+      line-height: 1.55;
+      font-size: 11pt;
+      margin: 0;
+      background: #fff;
+    }
+    .cover {
+      page-break-after: always;
+      min-height: 260mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(160deg, #e0f2fe 0%, #f0f9ff 40%, #ffffff 100%);
+      padding: 40mm 20mm;
+    }
+    .cover .logo {
+      width: 90px;
+      height: 90px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 36pt;
+      font-weight: 700;
+      margin-bottom: 24px;
+      box-shadow: 0 12px 40px rgba(14, 165, 233, 0.35);
+    }
+    .cover h1 {
+      font-size: 32pt;
+      margin: 0 0 8px;
+      color: var(--primary-dark);
+      letter-spacing: -0.5px;
+    }
+    .cover .subtitle {
+      font-size: 14pt;
+      color: var(--muted);
+      margin-bottom: 40px;
+    }
+    .cover .meta {
+      font-size: 10pt;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      width: 100%;
+      max-width: 420px;
+    }
+    .cover .meta p { margin: 4px 0; }
+    .page { padding: 0 4mm; }
+    h2 {
+      color: var(--primary-dark);
+      font-size: 18pt;
+      margin: 28px 0 12px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--primary);
+      page-break-after: avoid;
+    }
+    h3 {
+      color: #1e293b;
+      font-size: 13pt;
+      margin: 20px 0 8px;
+      page-break-after: avoid;
+    }
+    h4 {
+      color: #334155;
+      font-size: 11pt;
+      margin: 14px 0 6px;
+      page-break-after: avoid;
+    }
+    p { margin: 0 0 10px; }
+    ul, ol { margin: 0 0 12px; padding-left: 22px; }
+    li { margin-bottom: 4px; }
+    .toc {
+      page-break-after: always;
+      padding-top: 10mm;
+    }
+    .toc h2 { border: none; margin-top: 0; }
+    .toc ol {
+      list-style: none;
+      padding: 0;
+      counter-reset: toc;
+    }
+    .toc > ol > li {
+      counter-increment: toc;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--primary-dark);
+    }
+    .toc > ol > li::before {
+      content: counter(toc) ". ";
+    }
+    .toc ol ol {
+      margin-top: 4px;
+      padding-left: 24px;
+    }
+    .toc ol ol li {
+      font-weight: 400;
+      color: var(--muted);
+      font-size: 10pt;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 18px;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 7px 9px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: var(--bg-soft);
+      color: var(--primary-dark);
+      font-weight: 600;
+    }
+    tr:nth-child(even) td { background: #fafbfc; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 8pt;
+      font-weight: 600;
+    }
+    .badge-live { background: #d1fae5; color: #065f46; }
+    .badge-soon { background: #fef3c7; color: #92400e; }
+    .badge-demo { background: #e0e7ff; color: #3730a3; }
+    .callout {
+      background: var(--bg-soft);
+      border-left: 4px solid var(--primary);
+      padding: 12px 14px;
+      margin: 14px 0;
+      border-radius: 0 6px 6px 0;
+      page-break-inside: avoid;
+    }
+    .callout.warning {
+      border-left-color: var(--warning);
+      background: #fffbeb;
+    }
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin: 14px 0 18px;
+      page-break-inside: avoid;
+    }
+    .flow-step {
+      background: linear-gradient(135deg, #e0f2fe, #f0f9ff);
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 9pt;
+      font-weight: 600;
+      color: var(--primary-dark);
+      text-align: center;
+      min-width: 90px;
+    }
+    .flow-arrow {
+      color: var(--primary);
+      font-weight: 700;
+      font-size: 12pt;
+    }
+    .flow-vertical {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+      margin: 12px 0;
+    }
+    .flow-vertical .flow-step { width: 100%; text-align: left; }
+    .flow-vertical .flow-arrow { transform: rotate(90deg); margin-left: 20px; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin: 12px 0;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: #fff;
+      page-break-inside: avoid;
+    }
+    .card h4 { margin-top: 0; color: var(--primary-dark); }
+    .section-break { page-break-before: always; }
+    .footer-note {
+      font-size: 9pt;
+      color: var(--muted);
+      margin-top: 24px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    code {
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 9pt;
+      font-family: Consolas, monospace;
+    }
+    .arch-diagram {
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      margin: 14px 0;
+      page-break-inside: avoid;
+    }
+    .arch-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 8px 0;
+    }
+    .arch-box {
+      background: #fff;
+      border: 2px solid var(--primary);
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 600;
+      font-size: 9.5pt;
+      min-width: 120px;
+    }
+    .arch-box.secondary { border-color: #94a3b8; font-weight: 500; }
+    .arch-connector { color: var(--muted); font-size: 16pt; line-height: 1; }
+  </style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="logo">H₂O</div>
+  <h1>H2O Online</h1>
+  <p class="subtitle">End-to-End Platform Documentation<br>User Journeys · Admin Workflows · Feature Reference</p>
+  <div class="meta">
+    <p><strong>Document Version:</strong> 1.0</p>
+    <p><strong>Date:</strong> June 12, 2026</p>
+    <p><strong>Platform:</strong> Mobile App · Admin Portal · Backend API</p>
+    <p><strong>Prepared for:</strong> Sigma Cro Technologies — H2O Online</p>
+  </div>
+</div>
+
+<div class="page">
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ol>
+    <li>Executive Summary
+      <ol><li>Platform Overview</li><li>Technology Stack</li><li>User Roles</li></ol>
+    </li>
+    <li>System Architecture
+      <ol><li>Component Overview</li><li>Data Flow</li></ol>
+    </li>
+    <li>Customer Journey (Mobile App)
+      <ol><li>Onboarding &amp; Authentication</li><li>Dashboard &amp; Home</li><li>Ordering Workflow</li><li>Order Tracking</li><li>Subscriptions &amp; Billing</li><li>Wallet &amp; Payments</li><li>Water Intake &amp; Wellness</li><li>Profile &amp; Addresses</li></ol>
+    </li>
+    <li>Supplier Journey (Mobile App)
+      <ol><li>Onboarding &amp; Verification</li><li>Dashboard</li><li>Order Fulfillment</li><li>Product Catalog</li><li>Financials &amp; Wallet</li><li>Support</li></ol>
+    </li>
+    <li>Delivery Partner Journey (Mobile App)
+      <ol><li>Onboarding &amp; Verification</li><li>Dashboard</li><li>Delivery Workflow</li><li>Subscription Deliveries</li><li>Financials &amp; Redemption</li><li>Support &amp; Profile</li></ol>
+    </li>
+    <li>Admin Portal Journey
+      <ol><li>Authentication &amp; Roles</li><li>Dashboard</li><li>User Management</li><li>Order Management</li><li>Supplier Management</li><li>Delivery Partner Management</li><li>Plans &amp; Subscriptions</li><li>Wallet Management</li><li>Financials</li><li>Support Modules</li></ol>
+    </li>
+    <li>Core Business Workflows
+      <ol><li>Instant Order Lifecycle</li><li>Subscription Lifecycle</li><li>Payment &amp; Payout Flow</li><li>Onboarding &amp; Verification</li><li>Support Communication</li></ol>
+    </li>
+    <li>Complete Feature Matrix</li>
+    <li>API Reference Summary</li>
+    <li>Data Models</li>
+    <li>Future &amp; Planned Features</li>
+    <li>Appendix</li>
+  </ol>
+</div>
+
+<!-- 1. EXECUTIVE SUMMARY -->
+<h2>1. Executive Summary</h2>
+
+<h3>1.1 Platform Overview</h3>
+<p>
+  <strong>H2O Online</strong> is a comprehensive water delivery and hydration management platform designed to connect
+  customers, water suppliers, and delivery partners through a unified digital ecosystem. The platform enables on-demand
+  water ordering, subscription-based recurring deliveries, wallet-based payments, real-time order tracking, supplier
+  fulfillment management, delivery partner logistics, and centralized admin oversight.
+</p>
+<p>The platform consists of three integrated components:</p>
+<ul>
+  <li><strong>Mobile App</strong> — React Native (Expo) application for customers, suppliers, and delivery partners</li>
+  <li><strong>Admin Portal</strong> — React web application for platform administrators and sub-admins</li>
+  <li><strong>Backend API</strong> — Node.js / Express REST API with MongoDB database</li>
+</ul>
+
+<div class="callout">
+  <strong>Mission:</strong> Deliver clean, reliable water to homes and businesses while giving suppliers and delivery
+  partners the tools to manage orders, earnings, and operations efficiently — all under one admin-controlled marketplace.
+</div>
+
+<h3>1.2 Technology Stack</h3>
+<table>
+  <tr><th>Layer</th><th>Technology</th><th>Details</th></tr>
+  <tr><td>Mobile App</td><td>React Native + Expo Router</td><td>File-based navigation, AsyncStorage auth, context-based state</td></tr>
+  <tr><td>Admin Portal</td><td>React 18 + Vite + React Router</td><td>SPA with JWT auth stored in localStorage</td></tr>
+  <tr><td>Backend</td><td>Node.js + Express 5</td><td>RESTful API, JWT authentication, Mongoose ODM</td></tr>
+  <tr><td>Database</td><td>MongoDB</td><td>Document store for users, orders, subscriptions, wallets</td></tr>
+  <tr><td>Payments</td><td>Internal Wallet System</td><td>Wallet debit/credit; platform wallet for settlement</td></tr>
+</table>
+
+<h3>1.3 User Roles</h3>
+<table>
+  <tr><th>Role</th><th>Platform</th><th>Status</th><th>Description</th></tr>
+  <tr><td>Customer</td><td>Mobile</td><td><span class="badge badge-live">Live</span></td><td>Browse products, place orders, manage subscriptions, track deliveries, wallet payments</td></tr>
+  <tr><td>Supplier</td><td>Mobile</td><td><span class="badge badge-live">Live</span></td><td>Water vendor — accept orders, manage catalog, assign riders, view earnings</td></tr>
+  <tr><td>Delivery Partner</td><td>Mobile</td><td><span class="badge badge-live">Live</span></td><td>Pickup and deliver orders; manage subscription routes; redeem earnings</td></tr>
+  <tr><td>Admin / Master</td><td>Admin Portal</td><td><span class="badge badge-live">Live</span></td><td>Full platform management, financials, user/supplier verification</td></tr>
+  <tr><td>Sub-Admin</td><td>Admin Portal</td><td><span class="badge badge-live">Live</span></td><td>Limited admin — no financials, no user deletion, no admin creation</td></tr>
+  <tr><td>Corporate</td><td>Mobile</td><td><span class="badge badge-demo">UI Demo</span></td><td>Bulk office supply — screens exist; login blocked as "Coming Soon"</td></tr>
+  <tr><td>Restaurant</td><td>Mobile</td><td><span class="badge badge-soon">Coming Soon</span></td><td>Hospitality water solutions</td></tr>
+  <tr><td>Event Org</td><td>Mobile</td><td><span class="badge badge-soon">Coming Soon</span></td><td>Large-volume event water planning</td></tr>
+  <tr><td>Institute</td><td>Mobile</td><td><span class="badge badge-soon">Coming Soon</span></td><td>Campus water monitoring and supply</td></tr>
+</table>
+
+<!-- 2. ARCHITECTURE -->
+<h2 class="section-break">2. System Architecture</h2>
+
+<h3>2.1 Component Overview</h3>
+<div class="arch-diagram">
+  <div class="arch-row">
+    <div class="arch-box">Mobile App<br><small>Expo / React Native</small></div>
+    <div class="arch-box">Admin Portal<br><small>React / Vite</small></div>
+  </div>
+  <div class="arch-connector">▼ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ▼</div>
+  <div class="arch-row">
+    <div class="arch-box secondary" style="min-width:280px;">Backend API — Express.js<br><small>/api/* REST endpoints</small></div>
+  </div>
+  <div class="arch-connector">▼</div>
+  <div class="arch-row">
+    <div class="arch-box secondary">MongoDB<br><small>Users, Orders, Wallets, Subscriptions</small></div>
+  </div>
+</div>
+
+<h3>2.2 Data Flow</h3>
+<ol>
+  <li>Mobile and admin clients authenticate via JWT tokens</li>
+  <li>API requests are routed through Express middleware (auth, adminAuth)</li>
+  <li>Business logic in route handlers and services (e.g., order payout)</li>
+  <li>Mongoose models persist data to MongoDB</li>
+  <li>Wallet transactions update balances atomically on order placement and delivery</li>
+</ol>
+
+<!-- 3. CUSTOMER JOURNEY -->
+<h2 class="section-break">3. Customer Journey (Mobile App)</h2>
+
+<h3>3.1 Onboarding &amp; Authentication</h3>
+<div class="flow">
+  <div class="flow-step">Splash / Loading</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Role Selection</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Create Profile</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Dashboard</div>
+</div>
+
+<h4>Entry Flow</h4>
+<ul>
+  <li>App launches with a 2-second loading screen, then displays the <strong>Role Selection</strong> screen</li>
+  <li>Customer selects "Customer" role and taps <strong>Sign Up</strong> → navigates to Create Profile</li>
+  <li>Existing users tap <strong>Login</strong> → Login screen with role tab pre-selected as Customer</li>
+</ul>
+
+<h4>Registration (Create Profile)</h4>
+<table>
+  <tr><th>Field</th><th>Required</th><th>Notes</th></tr>
+  <tr><td>Full Name</td><td>Yes</td><td>Display name on profile</td></tr>
+  <tr><td>Email</td><td>Yes</td><td>Used for login; must be unique</td></tr>
+  <tr><td>Phone</td><td>Yes</td><td>Contact number</td></tr>
+  <tr><td>Password</td><td>Yes</td><td>Hashed with bcrypt on server</td></tr>
+  <tr><td>Age, Gender, Activity Level</td><td>No</td><td>Profile enrichment</td></tr>
+  <tr><td>Family Size</td><td>No</td><td>Used for plan recommendations</td></tr>
+  <tr><td>Avatar</td><td>No</td><td>Profile photo</td></tr>
+  <tr><td>Subscription Plan</td><td>No</td><td>Optional plan selection during signup</td></tr>
+</table>
+<p>On successful registration via <code>POST /api/auth/register</code>, user is assigned role <code>customer</code> with auto-generated code prefix <code>Cust_</code> and redirected to Dashboard.</p>
+
+<h4>Login</h4>
+<ul>
+  <li>Email + password authentication with terms acceptance checkbox</li>
+  <li>Role tab must match stored user role or login is rejected</li>
+  <li>JWT token stored in AsyncStorage (<code>h20_auth_token</code>)</li>
+  <li>Token restored on app relaunch via AuthContext</li>
+</ul>
+
+<div class="callout warning">
+  <strong>Placeholder features:</strong> Forgot Password, Google Sign-In, Apple Sign-In, and OTP Login screens exist but are not fully integrated with the backend.
+</div>
+
+<h3>3.2 Dashboard &amp; Home</h3>
+<p>The customer dashboard is the central hub providing:</p>
+<ul>
+  <li><strong>Hydration summary</strong> — today's water intake vs. daily goal with weekly graph</li>
+  <li><strong>Active subscriptions</strong> — count and quick access to plan management</li>
+  <li><strong>Quick actions</strong> — Order Water, My Plan, Track Order, Order History, Water Intake, Saved Addresses, Billing</li>
+  <li><strong>Wallet balance</strong> — tap to open wallet modal for top-up and transaction history</li>
+  <li><strong>Connected devices</strong> — UI placeholders for Apple Watch, Smart Bottle, TV Hub integration</li>
+</ul>
+
+<h3>3.3 Ordering Workflow</h3>
+<div class="flow">
+  <div class="flow-step">Browse Products</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Add to Cart</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Checkout</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Payment</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Order Confirmed</div>
+</div>
+
+<h4>Step 1 — Browse Products (Order Screen)</h4>
+<ul>
+  <li>Product catalog fetched from <code>GET /api/products</code></li>
+  <li>Filters: price range, delivery time, rating, distance, bottle size</li>
+  <li>Product comparison and ratings modal</li>
+  <li>Actions: Add to Cart or Buy Now (direct to checkout)</li>
+</ul>
+
+<h4>Step 2 — Cart</h4>
+<ul>
+  <li>View items with quantity controls</li>
+  <li>Update quantities; remove items</li>
+  <li>Proceed to Checkout</li>
+</ul>
+
+<h4>Step 3 — Checkout</h4>
+<ul>
+  <li>Select or add delivery address (saved addresses integration)</li>
+  <li>Receiver name and contact</li>
+  <li>Delivery schedule: Instant or Scheduled (date/time picker)</li>
+  <li>Coupon code field (UI ready)</li>
+  <li>Wallet balance shortcut</li>
+</ul>
+
+<h4>Step 4 — Payment</h4>
+<table>
+  <tr><th>Method</th><th>Status</th><th>Behavior</th></tr>
+  <tr><td>Wallet</td><td><span class="badge badge-live">Live</span></td><td>Balance checked; debited on order placement</td></tr>
+  <tr><td>Cash on Delivery</td><td><span class="badge badge-live">Live</span></td><td>Order placed without wallet debit</td></tr>
+  <tr><td>Card</td><td><span class="badge badge-soon">UI Only</span></td><td>Payment method field stored; no gateway integration</td></tr>
+  <tr><td>UPI</td><td><span class="badge badge-soon">UI Only</span></td><td>Payment method field stored; no gateway integration</td></tr>
+</table>
+
+<h4>Step 5 — Order Confirmation</h4>
+<p>Order created via <code>POST /api/orders</code>. Confirmation screen shows order ID with options to Track Order or return to Dashboard.</p>
+
+<h3>3.4 Order Tracking</h3>
+<p>Real-time order status pipeline displayed on Track Order screen:</p>
+<div class="flow-vertical">
+  <div class="flow-step">1. Waiting — Order placed, awaiting supplier acceptance</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">2. Accepted — Supplier accepted with ETA</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">3. Partner Assigned — Delivery partner assigned by supplier</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">4. Picked Up — Delivery partner collected order</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">5. Delivered — Order completed</div>
+</div>
+<p>Customer can view supplier ETA, call supplier/delivery partner, and access order details modal.</p>
+
+<h3>3.5 Subscriptions &amp; Billing</h3>
+<h4>Plan Subscription</h4>
+<ul>
+  <li>Available plans: Basic, Family, Active, Premium (slugs: basic, family, active, premium)</li>
+  <li>Select plan → choose products within plan limits → set frequency (daily/weekly/monthly)</li>
+  <li>Configure delivery time window and delivery address</li>
+  <li>Create via <code>POST /api/subscriptions</code></li>
+</ul>
+
+<h4>Billing</h4>
+<ul>
+  <li>Monthly subscription bills auto-generated (due 5th of each month)</li>
+  <li>View pending, paid, and overdue bills on Billing screen</li>
+  <li>Pay bills using wallet balance via <code>POST /api/bills/:id/pay</code></li>
+</ul>
+
+<h3>3.6 Wallet &amp; Payments</h3>
+<ul>
+  <li><strong>View balance</strong> — Dashboard tile, Profile screen, Checkout shortcut</li>
+  <li><strong>Top up</strong> — Credit wallet via <code>POST /api/wallet/credit</code></li>
+  <li><strong>Pay orders</strong> — Wallet debited on order placement</li>
+  <li><strong>Pay bills</strong> — Subscription bill payment from wallet</li>
+  <li><strong>Transaction history</strong> — Full log of credits and debits</li>
+</ul>
+
+<h3>3.7 Water Intake &amp; Wellness</h3>
+<ul>
+  <li>Log daily water consumption in liters or glasses</li>
+  <li>View weekly intake graph and percentage of daily goal</li>
+  <li>Dashboard hydration summary synced via <code>GET /api/water-intake/summary</code></li>
+  <li>Add/remove intake entries for any day</li>
+</ul>
+
+<h3>3.8 Profile &amp; Addresses</h3>
+<table>
+  <tr><th>Feature</th><th>Screen</th><th>API</th></tr>
+  <tr><td>View/edit profile</td><td>Profile</td><td><code>GET/PUT /api/users/me</code></td></tr>
+  <tr><td>Change password</td><td>Profile</td><td>UI present</td></tr>
+  <tr><td>Wallet display</td><td>Profile</td><td><code>GET /api/wallet</code></td></tr>
+  <tr><td>Saved addresses</td><td>Saved Addresses</td><td><code>GET/POST/PUT/DELETE /api/addresses</code></td></tr>
+  <tr><td>Order history</td><td>Order History</td><td><code>GET /api/orders</code></td></tr>
+  <tr><td>Product reviews</td><td>Order History</td><td><code>POST /api/reviews</code></td></tr>
+  <tr><td>Logout</td><td>Profile</td><td>Clears token; returns to tabs/role selection</td></tr>
+</table>
+
+<!-- 4. SUPPLIER JOURNEY -->
+<h2 class="section-break">4. Supplier Journey (Mobile App)</h2>
+
+<h3>4.1 Onboarding &amp; Verification</h3>
+<div class="flow">
+  <div class="flow-step">Role: Partner</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Supplier Onboarding</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Verification Code</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Pending / Approved</div>
+</div>
+
+<h4>Registration Fields</h4>
+<table>
+  <tr><th>Category</th><th>Fields</th></tr>
+  <tr><td>Business Info</td><td>Business name, type (water supplier / delivery agent / other), address, city, pin code</td></tr>
+  <tr><td>Credentials</td><td>Email, phone, password</td></tr>
+  <tr><td>Documents</td><td>Business license, GST certificate, identity proof, bank details (for water suppliers)</td></tr>
+  <tr><td>Delivery Agent</td><td>Vehicle type, vehicle number, delivery documents</td></tr>
+</table>
+<p>Registration via <code>POST /api/auth/register-supplier</code> creates User (role: supplier) + Supplier profile with <code>onboardingStatus: pending</code> and a 6-digit verification code.</p>
+
+<h4>Verification Gate</h4>
+<ul>
+  <li>After registration, supplier sees verification code screen then pending screen</li>
+  <li>App polls <code>GET /api/suppliers/me</code> every few seconds</li>
+  <li>When admin approves (<code>onboardingStatus: approved</code>), auto-redirect to Supplier Dashboard</li>
+  <li>On login, unapproved suppliers are routed to Verification Pending screen</li>
+</ul>
+
+<h3>4.2 Supplier Dashboard</h3>
+<ul>
+  <li>Today's delivered order count and earnings summary</li>
+  <li>Quick navigation to all supplier modules</li>
+  <li>Inline "Add Product" modal for rapid catalog expansion</li>
+  <li>Incoming orders badge/indicator</li>
+</ul>
+
+<h3>4.3 Order Fulfillment</h3>
+<div class="flow-vertical">
+  <div class="flow-step">Incoming Order Received (status: pending in supplierResponses)</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">Supplier Reviews Order Details</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">Accept (with ETA, remarks, fleet type) OR Reject</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">Assign Delivery Partner from available riders</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">Partner Picks Up → Delivers → Order Complete</div>
+</div>
+
+<h4>Incoming Orders Screen</h4>
+<ul>
+  <li>View pending orders with item details, customer info, delivery address</li>
+  <li>Accept with: estimated delivery time, remarks, fleet type filter</li>
+  <li>Select delivery partner from <code>GET /api/delivery-partners</code> list</li>
+  <li>Reject order — if all suppliers reject, order is auto-cancelled</li>
+  <li>Change assigned rider on accepted orders</li>
+</ul>
+
+<h3>4.4 Product Catalog</h3>
+<ul>
+  <li>View all supplier products with price, stock, capacity, category, badge</li>
+  <li>Create new products: name, description, price, stock, capacity, image, category</li>
+  <li>Edit and delete existing products</li>
+  <li>API: <code>GET/POST/PUT/DELETE /api/supplier/products</code> and <code>/api/products</code></li>
+</ul>
+
+<h3>4.5 Financials &amp; Wallet</h3>
+<table>
+  <tr><th>Module</th><th>Details</th></tr>
+  <tr><td>Financials Screen</td><td>Total revenue, platform deduction (commission %), net earnings, order breakdown</td></tr>
+  <tr><td>Wallet Screen</td><td>Current balance, credit/debit transaction history</td></tr>
+  <tr><td>Order History</td><td>Complete history of accepted, delivered, and cancelled orders</td></tr>
+  <tr><td>Payout</td><td>On delivery completion: supplier receives (100 − commission%) of their item value</td></tr>
+</table>
+
+<h3>4.6 Support</h3>
+<ul>
+  <li>In-app chat with admin via Supplier Support screen</li>
+  <li>Messages polled every 5 seconds</li>
+  <li>API: <code>GET /api/supplier-support/thread</code>, <code>POST /api/supplier-support/message</code></li>
+</ul>
+
+<!-- 5. DELIVERY PARTNER JOURNEY -->
+<h2 class="section-break">5. Delivery Partner Journey (Mobile App)</h2>
+
+<h3>5.1 Onboarding &amp; Verification</h3>
+<div class="flow">
+  <div class="flow-step">Login → Sign Up</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Delivery Onboarding</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Verification Pending</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-step">Delivery Dashboard</div>
+</div>
+
+<h4>Registration</h4>
+<ul>
+  <li>Accessible from Login screen → Delivery Partner tab → Sign Up</li>
+  <li>Fields: name, email, phone, password, vehicle type, vehicle number, optional documents</li>
+  <li>API: <code>POST /api/auth/register-delivery</code></li>
+  <li>Alternative path: Supplier Onboarding with business type "delivery agent"</li>
+</ul>
+
+<h4>Verification</h4>
+<ul>
+  <li>Admin verifies identity, license, and vehicle documents</li>
+  <li>App polls until <code>onboardingStatus: approved</code></li>
+  <li>Approved partners appear in supplier rider assignment and admin subscription delivery assignment</li>
+</ul>
+
+<h3>5.2 Delivery Dashboard</h3>
+<ul>
+  <li>Today's delivery summary: total, delivered, in progress, cancelled</li>
+  <li>Quick links: Incoming Orders, Subscription Orders, Order History, Financials, Help, Profile</li>
+  <li>Earnings overview</li>
+</ul>
+
+<h3>5.3 Delivery Workflow (Instant Orders)</h3>
+<div class="flow-vertical">
+  <div class="flow-step">Order Assigned by Supplier</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">View in Incoming Orders (Instant / Scheduled tabs)</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">Mark Picked Up</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">Navigate to Customer Address</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">Mark Delivered → Earnings Credited</div>
+</div>
+
+<h3>5.4 Subscription Deliveries</h3>
+<ul>
+  <li>Dedicated Subscription Orders screen for recurring delivery routes</li>
+  <li>Filters: today, this week, custom time range</li>
+  <li>View subscription details: customer, address, products, delivery window</li>
+  <li>Admin assigns partners to subscriptions with pickup hub and slot management</li>
+</ul>
+
+<h3>5.5 Financials &amp; Redemption</h3>
+<ul>
+  <li>View total earnings and per-order breakdown</li>
+  <li>Delivery partner receives 10% of order total on wallet-paid deliveries</li>
+  <li>Redeem earnings from wallet via debit operation</li>
+  <li>Order summary aggregates: total orders, delivered, in progress, cancelled</li>
+</ul>
+
+<h3>5.6 Support &amp; Profile</h3>
+<table>
+  <tr><th>Module</th><th>Details</th></tr>
+  <tr><td>Help / Support</td><td>Chat with admin; polled every 5 seconds</td></tr>
+  <tr><td>Profile</td><td>Update name, phone, vehicle details via <code>PUT /api/delivery-partners/profile</code></td></tr>
+  <tr><td>Order History</td><td>Complete delivery history with status and earnings</td></tr>
+</table>
+
+<!-- 6. ADMIN JOURNEY -->
+<h2 class="section-break">6. Admin Portal Journey</h2>
+
+<h3>6.1 Authentication &amp; Roles</h3>
+<table>
+  <tr><th>Role</th><th>Login Method</th><th>Permissions</th></tr>
+  <tr><td>Master</td><td>Static credentials (H2O admin / admin@H2O)</td><td>Full access — all modules, financials, delete users, create admins</td></tr>
+  <tr><td>Admin</td><td>Database credentials</td><td>Same as Master for operational actions</td></tr>
+  <tr><td>Sub-Admin</td><td>Database credentials</td><td>Cannot access financials, delete users, remove suppliers, or create admins</td></tr>
+</table>
+<p>JWT token stored in <code>localStorage</code> as <code>h20_admin_token</code>. Auth verified via <code>GET /api/admin/auth/me</code>.</p>
+
+<h3>6.2 Dashboard</h3>
+<p>Central tile grid linking to all admin modules. Tiles hidden for sub-admin where restricted (Financials, Admin Users).</p>
+
+<h3>6.3 User Management</h3>
+<ul>
+  <li>List all customers and suppliers with search and filter</li>
+  <li>View user details: profile, role, segment, registration date</li>
+  <li>Edit profile fields (name, email, phone, etc.)</li>
+  <li>Delete user (master/admin only)</li>
+</ul>
+
+<h3>6.4 Order Management</h3>
+<ul>
+  <li>List all orders with status filter (pending, accepted, in progress, delivered, cancelled)</li>
+  <li>View order detail: items, customer info, supplier responses, payment method, delivery status per supplier</li>
+  <li>Monitor multi-supplier order fulfillment</li>
+</ul>
+
+<h3>6.5 Supplier Management</h3>
+<div class="flow-vertical">
+  <div class="flow-step">View Pending / Approved supplier tabs</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">Review uploaded documents (license, GST, identity, bank)</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">Verify individual documents OR approve entirely</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">Set commission percentage (default 20%)</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step">Supplier can now accept orders on mobile app</div>
+</div>
+<ul>
+  <li>Pre-create approved suppliers via admin form</li>
+  <li>Delete supplier (master/admin only)</li>
+</ul>
+
+<h3>6.6 Delivery Partner Management</h3>
+<ul>
+  <li>List all delivery partners with status and vehicle type filters</li>
+  <li>Review and verify documents: identity, license, vehicle registration</li>
+  <li>Approve partner for active duty</li>
+  <li>Approved partners available for order assignment and subscription routes</li>
+</ul>
+
+<h3>6.7 Plans &amp; Subscriptions</h3>
+<h4>Plan Management</h4>
+<ul>
+  <li>Edit plan metadata: name, slug, max quantity per product, coming soon flag</li>
+  <li>CRUD plan products with daily, weekly, and monthly pricing rates</li>
+  <li>Plans: Basic (max 5 qty), Family, Active, Premium</li>
+</ul>
+
+<h4>Subscription Management (5 Tabs)</h4>
+<table>
+  <tr><th>Tab</th><th>Function</th></tr>
+  <tr><td>Details</td><td>View subscription info: customer, plan, products, frequency, address</td></tr>
+  <tr><td>Financials</td><td>Subscription value, billing history, revenue</td></tr>
+  <tr><td>Status</td><td>Activate, pause (inactive), or cancel subscriptions</td></tr>
+  <tr><td>History</td><td>Status change and delivery history log</td></tr>
+  <tr><td>Delivery</td><td>Assign delivery partner, pickup hub; bulk assign; locality/pin filters; 13-min slot conflict detection</td></tr>
+</table>
+
+<h3>6.8 Wallet Management</h3>
+<p>Manage wallets across all user segments:</p>
+<table>
+  <tr><th>Segment Tab</th><th>Actions</th></tr>
+  <tr><td>Customer</td><td>View balance, add/deduct/set with notes</td></tr>
+  <tr><td>Corporate</td><td>View balance, adjust</td></tr>
+  <tr><td>Organization</td><td>View balance, adjust</td></tr>
+  <tr><td>Institute</td><td>View balance, adjust</td></tr>
+  <tr><td>College</td><td>View balance, adjust</td></tr>
+  <tr><td>Supplier</td><td>View balance, adjust</td></tr>
+  <tr><td>Delivery Partner</td><td>View balance, adjust</td></tr>
+</table>
+
+<h3>6.9 Financials (Master/Admin Only)</h3>
+<ul>
+  <li><strong>Total revenue</strong> — all completed order value</li>
+  <li><strong>Platform cut</strong> — 20% single-supplier orders, 30% multi-supplier orders</li>
+  <li><strong>Wallet revenue</strong> — funds collected via wallet payments</li>
+  <li><strong>Payouts</strong> — amounts paid to suppliers and delivery partners</li>
+  <li><strong>Net profit</strong> — platform revenue minus payouts</li>
+  <li><strong>Daily breakdown</strong> — revenue and transaction trends by date</li>
+</ul>
+
+<h3>6.10 Support Modules</h3>
+<div class="grid-2">
+  <div class="card">
+    <h4>Supplier Support</h4>
+    <ul>
+      <li>Thread list of all supplier conversations</li>
+      <li>Read messages and reply to suppliers</li>
+      <li>Real-time issue resolution</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>Delivery Partner Support</h4>
+    <ul>
+      <li>Thread list of delivery partner conversations</li>
+      <li>Read messages and reply to partners</li>
+      <li>Route and delivery issue handling</li>
+    </ul>
+  </div>
+</div>
+
+<h3>6.11 Admin User Management (Master/Admin Only)</h3>
+<ul>
+  <li>Create new admin or sub-admin accounts</li>
+  <li>Assign role: admin (full) or sub-admin (restricted)</li>
+  <li>API: <code>POST /api/admin/admins</code></li>
+</ul>
+
+<!-- 7. CORE WORKFLOWS -->
+<h2 class="section-break">7. Core Business Workflows</h2>
+
+<h3>7.1 Instant Order Lifecycle</h3>
+<div class="flow-vertical">
+  <div class="flow-step"><strong>1. Order Placement</strong> — Customer selects products, checkout, pays (wallet/COD). Stock validated. Wallet debited → platform wallet credited.</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step"><strong>2. Supplier Notification</strong> — Order created with supplierResponses[] per unique supplier (status: pending).</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step"><strong>3. Supplier Action</strong> — Accept (ETA + assign rider) or Reject. All reject → order cancelled.</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step"><strong>4. Pickup</strong> — Delivery partner marks picked up. Status: picked_up.</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step"><strong>5. Delivery</strong> — Partner marks delivered. Order status: delivered.</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step"><strong>6. Payout</strong> — Platform wallet debited. Supplier gets (100−commission%) of items. Delivery partner gets 10% of total.</div>
+</div>
+
+<h3>7.2 Subscription Lifecycle</h3>
+<div class="flow-vertical">
+  <div class="flow-step"><strong>1. Creation</strong> — Customer selects plan, products, frequency, dates, time window, address.</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step"><strong>2. Admin Assignment</strong> — Admin assigns delivery partner + pickup hub. Bulk assign with slot conflict checks.</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step"><strong>3. Recurring Delivery</strong> — Partner fulfills on schedule via Subscription Orders screen.</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step"><strong>4. Monthly Billing</strong> — Auto-generated bill (due 5th). Customer pays via wallet.</div>
+  <span class="flow-arrow">↓</span>
+  <div class="flow-step"><strong>5. Management</strong> — Admin can pause, cancel, or delete. Customer can cancel via app.</div>
+</div>
+
+<h3>7.3 Payment &amp; Payout Flow</h3>
+<table>
+  <tr><th>Event</th><th>Customer Wallet</th><th>Platform Wallet</th><th>Supplier Wallet</th><th>Delivery Wallet</th></tr>
+  <tr><td>Customer tops up</td><td>+credit</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Order placed (wallet)</td><td>−debit</td><td>+credit</td><td>—</td><td>—</td></tr>
+  <tr><td>Order delivered</td><td>—</td><td>−debit</td><td>+credit (net of commission)</td><td>+credit (10%)</td></tr>
+  <tr><td>Bill paid (wallet)</td><td>−debit</td><td>+credit</td><td>—</td><td>—</td></tr>
+  <tr><td>Admin adjustment</td><td>±adjust</td><td>—</td><td>±adjust</td><td>±adjust</td></tr>
+</table>
+
+<h3>7.4 Onboarding &amp; Verification Workflow</h3>
+<table>
+  <tr><th>Step</th><th>Actor</th><th>Action</th></tr>
+  <tr><td>1</td><td>Supplier/Partner</td><td>Registers on mobile with business details and documents</td></tr>
+  <tr><td>2</td><td>System</td><td>Creates user + profile with status "pending" and verification code</td></tr>
+  <tr><td>3</td><td>Supplier/Partner</td><td>Views verification code; waits on pending screen (polls API)</td></tr>
+  <tr><td>4</td><td>Admin</td><td>Reviews documents in admin portal</td></tr>
+  <tr><td>5</td><td>Admin</td><td>Verifies individual docs or approves entirely; sets commission %</td></tr>
+  <tr><td>6</td><td>System</td><td>Status → "approved"; mobile app auto-redirects to dashboard</td></tr>
+</table>
+
+<h3>7.5 Support Communication Workflow</h3>
+<ol>
+  <li>Supplier or delivery partner opens support screen on mobile</li>
+  <li>Sends message via API → stored in support thread</li>
+  <li>Admin sees new thread/message in admin portal support module</li>
+  <li>Admin replies → message delivered to mobile on next poll (5-second interval)</li>
+  <li>Bi-directional conversation until issue resolved</li>
+</ol>
+
+<!-- 8. FEATURE MATRIX -->
+<h2 class="section-break">8. Complete Feature Matrix</h2>
+
+<table>
+  <tr>
+    <th>Feature</th>
+    <th>Customer</th>
+    <th>Supplier</th>
+    <th>Delivery</th>
+    <th>Admin</th>
+  </tr>
+  <tr><td>Registration / Login</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+  <tr><td>Profile Management</td><td>✓</td><td>—</td><td>✓</td><td>✓ (all users)</td></tr>
+  <tr><td>Product Browsing</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Product Catalog CRUD</td><td>—</td><td>✓</td><td>—</td><td>—</td></tr>
+  <tr><td>Cart &amp; Checkout</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Instant Ordering</td><td>✓</td><td>✓ (fulfill)</td><td>✓ (deliver)</td><td>✓ (monitor)</td></tr>
+  <tr><td>Order Tracking</td><td>✓</td><td>—</td><td>—</td><td>✓</td></tr>
+  <tr><td>Order History</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
+  <tr><td>Accept / Reject Orders</td><td>—</td><td>✓</td><td>—</td><td>—</td></tr>
+  <tr><td>Assign Delivery Partner</td><td>—</td><td>✓</td><td>—</td><td>✓ (subscriptions)</td></tr>
+  <tr><td>Mark Picked Up / Delivered</td><td>—</td><td>—</td><td>✓</td><td>—</td></tr>
+  <tr><td>Subscription Plans</td><td>✓</td><td>—</td><td>✓ (deliver)</td><td>✓ (manage)</td></tr>
+  <tr><td>Subscription Billing</td><td>✓</td><td>—</td><td>—</td><td>✓</td></tr>
+  <tr><td>Wallet</td><td>✓</td><td>✓</td><td>✓</td><td>✓ (manage all)</td></tr>
+  <tr><td>Financials / Earnings</td><td>—</td><td>✓</td><td>✓</td><td>✓</td></tr>
+  <tr><td>Water Intake Tracking</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Saved Addresses</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Product Reviews</td><td>✓</td><td>—</td><td>—</td><td>—</td></tr>
+  <tr><td>Supplier Verification</td><td>—</td><td>✓ (status)</td><td>—</td><td>✓</td></tr>
+  <tr><td>Partner Verification</td><td>—</td><td>—</td><td>✓ (status)</td><td>✓</td></tr>
+  <tr><td>Support Chat</td><td>—</td><td>✓</td><td>✓</td><td>✓ (reply)</td></tr>
+  <tr><td>Plan Product Management</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr>
+  <tr><td>Pickup Hub Management</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr>
+  <tr><td>Admin User Creation</td><td>—</td><td>—</td><td>—</td><td>✓ (master/admin)</td></tr>
+  <tr><td>User Deletion</td><td>—</td><td>—</td><td>—</td><td>✓ (master/admin)</td></tr>
+  <tr><td>Corporate Dashboard</td><td>Demo UI</td><td>—</td><td>—</td><td>—</td></tr>
+</table>
+
+<!-- 9. API REFERENCE -->
+<h2 class="section-break">9. API Reference Summary</h2>
+
+<h3>9.1 Authentication Endpoints</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td>POST</td><td>/api/auth/register</td><td>Customer registration</td></tr>
+  <tr><td>POST</td><td>/api/auth/register-supplier</td><td>Supplier / delivery agent registration</td></tr>
+  <tr><td>POST</td><td>/api/auth/register-delivery</td><td>Dedicated delivery partner registration</td></tr>
+  <tr><td>POST</td><td>/api/auth/login</td><td>Mobile app login (JWT)</td></tr>
+  <tr><td>POST</td><td>/api/admin/auth/login</td><td>Admin portal login</td></tr>
+  <tr><td>GET</td><td>/api/admin/auth/me</td><td>Current admin user</td></tr>
+</table>
+
+<h3>9.2 Customer Endpoints</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td>GET/PUT</td><td>/api/users/me</td><td>Profile read/update</td></tr>
+  <tr><td>GET</td><td>/api/products</td><td>Product catalog</td></tr>
+  <tr><td>POST</td><td>/api/orders</td><td>Place order</td></tr>
+  <tr><td>GET</td><td>/api/orders</td><td>Order history</td></tr>
+  <tr><td>PATCH</td><td>/api/orders/:id/cancel</td><td>Cancel order</td></tr>
+  <tr><td>GET/POST</td><td>/api/wallet</td><td>Wallet balance / credit / debit</td></tr>
+  <tr><td>GET/POST</td><td>/api/subscriptions</td><td>Subscriptions list / create</td></tr>
+  <tr><td>GET/POST</td><td>/api/bills</td><td>Bills list / pay</td></tr>
+  <tr><td>CRUD</td><td>/api/addresses</td><td>Saved addresses</td></tr>
+  <tr><td>GET/POST</td><td>/api/water-intake</td><td>Water intake tracking</td></tr>
+  <tr><td>POST</td><td>/api/reviews</td><td>Product reviews</td></tr>
+  <tr><td>GET</td><td>/api/plans</td><td>Subscription plans</td></tr>
+</table>
+
+<h3>9.3 Supplier Endpoints</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td>GET</td><td>/api/suppliers/me</td><td>Supplier profile &amp; onboarding status</td></tr>
+  <tr><td>POST</td><td>/api/supplier/accept-order</td><td>Accept incoming order</td></tr>
+  <tr><td>POST</td><td>/api/supplier/reject-order</td><td>Reject order</td></tr>
+  <tr><td>POST</td><td>/api/supplier/assign-rider</td><td>Assign delivery partner</td></tr>
+  <tr><td>CRUD</td><td>/api/supplier/products</td><td>Product catalog management</td></tr>
+  <tr><td>GET</td><td>/api/supplier/financials</td><td>Revenue and earnings</td></tr>
+  <tr><td>GET/POST</td><td>/api/supplier-support</td><td>Support chat</td></tr>
+</table>
+
+<h3>9.4 Delivery Partner Endpoints</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td>PUT</td><td>/api/delivery-partners/profile</td><td>Update profile</td></tr>
+  <tr><td>POST</td><td>/api/delivery-partners/mark-picked-up</td><td>Mark order picked up</td></tr>
+  <tr><td>POST</td><td>/api/delivery-partners/mark-delivered</td><td>Mark order delivered</td></tr>
+  <tr><td>GET</td><td>/api/delivery-partners/subscriptions</td><td>Subscription deliveries</td></tr>
+  <tr><td>GET</td><td>/api/delivery-partners/financials</td><td>Earnings summary</td></tr>
+  <tr><td>GET/POST</td><td>/api/delivery-support</td><td>Support chat</td></tr>
+</table>
+
+<h3>9.5 Admin Endpoints</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td>GET/PUT/DELETE</td><td>/api/admin/users</td><td>User management</td></tr>
+  <tr><td>POST</td><td>/api/admin/admins</td><td>Create admin users</td></tr>
+  <tr><td>GET</td><td>/api/admin/orders</td><td>All orders</td></tr>
+  <tr><td>GET/PATCH/DELETE</td><td>/api/admin/suppliers</td><td>Supplier management</td></tr>
+  <tr><td>GET/PATCH</td><td>/api/admin/delivery-partners</td><td>Partner management</td></tr>
+  <tr><td>GET/PUT</td><td>/api/admin/plans</td><td>Plan management</td></tr>
+  <tr><td>GET/PATCH/DELETE</td><td>/api/admin/subscriptions</td><td>Subscription management</td></tr>
+  <tr><td>GET/POST</td><td>/api/admin/wallet-management</td><td>Wallet adjustments</td></tr>
+  <tr><td>GET</td><td>/api/admin/financials</td><td>Platform financials</td></tr>
+  <tr><td>GET/POST</td><td>/api/admin/supplier-support</td><td>Supplier support threads</td></tr>
+  <tr><td>GET/POST</td><td>/api/admin/delivery-support</td><td>Delivery support threads</td></tr>
+  <tr><td>GET/POST</td><td>/api/admin/pickup-hubs</td><td>Pickup hub management</td></tr>
+</table>
+
+<!-- 10. DATA MODELS -->
+<h2 class="section-break">10. Data Models</h2>
+
+<table>
+  <tr><th>Model</th><th>Key Fields</th><th>Purpose</th></tr>
+  <tr><td>User</td><td>userCode, email, password, role, segment, profile</td><td>All platform users</td></tr>
+  <tr><td>Supplier</td><td>businessName, documents, onboardingStatus, commissionPercentage</td><td>Water vendor profiles</td></tr>
+  <tr><td>DeliveryPartner</td><td>vehicleType, vehicleNumber, documents, onboardingStatus</td><td>Delivery rider profiles</td></tr>
+  <tr><td>Product</td><td>name, price, stock, capacity, category, supplierId</td><td>Marketplace catalog</td></tr>
+  <tr><td>Order</td><td>orderId, items[], supplierResponses[], status, paymentMethod</td><td>Instant orders</td></tr>
+  <tr><td>Plan</td><td>name, slug, maxQuantityPerProduct, comingSoon</td><td>Subscription tiers</td></tr>
+  <tr><td>PlanProduct</td><td>planId, name, dailyRate, weeklyRate, monthlyRate</td><td>Plan-specific SKUs</td></tr>
+  <tr><td>Subscription</td><td>subscriptionId, plan, frequency, deliveryWindow, partnerId, hubId</td><td>Recurring deliveries</td></tr>
+  <tr><td>SubscriptionBill</td><td>subscriptionId, amount, status, dueDate</td><td>Monthly billing</td></tr>
+  <tr><td>Wallet</td><td>userId, balance, transactions[]</td><td>User/platform wallets</td></tr>
+  <tr><td>SavedAddress</td><td>userId, label, address, pinCode, locality</td><td>Customer addresses</td></tr>
+  <tr><td>PickupHub</td><td>name, address, location</td><td>Subscription pickup points</td></tr>
+  <tr><td>ProductReview</td><td>userId, productId, orderId, rating, comment</td><td>Product ratings</td></tr>
+  <tr><td>WaterIntake</td><td>userId, date, amount, unit</td><td>Hydration tracking</td></tr>
+  <tr><td>SupplierSupportThread</td><td>supplierId, messages[]</td><td>Supplier-admin chat</td></tr>
+  <tr><td>DeliveryPartnerSupportThread</td><td>partnerId, messages[]</td><td>Partner-admin chat</td></tr>
+</table>
+
+<h4>User Code Prefixes</h4>
+<table>
+  <tr><th>Prefix</th><th>Role</th></tr>
+  <tr><td>Cust_</td><td>Customer</td></tr>
+  <tr><td>Sup_</td><td>Supplier</td></tr>
+  <tr><td>Del_</td><td>Delivery Partner</td></tr>
+  <tr><td>Admin_</td><td>Admin</td></tr>
+  <tr><td>SubAdmin_</td><td>Sub-Admin</td></tr>
+</table>
+
+<!-- 11. FUTURE FEATURES -->
+<h2 class="section-break">11. Future &amp; Planned Features</h2>
+
+<table>
+  <tr><th>Feature</th><th>Status</th><th>Notes</th></tr>
+  <tr><td>Corporate Accounts</td><td><span class="badge badge-demo">UI Built</span></td><td>Dashboard, invoices, bulk orders — login blocked</td></tr>
+  <tr><td>Restaurant Solutions</td><td><span class="badge badge-soon">Coming Soon</span></td><td>Role card on selection screen</td></tr>
+  <tr><td>Event Organization</td><td><span class="badge badge-soon">Coming Soon</span></td><td>Large volume planning</td></tr>
+  <tr><td>Institute / Campus</td><td><span class="badge badge-soon">Coming Soon</span></td><td>Campus monitoring</td></tr>
+  <tr><td>Forgot Password</td><td><span class="badge badge-soon">UI Only</span></td><td>Screen exists; no backend reset</td></tr>
+  <tr><td>OTP Login</td><td><span class="badge badge-soon">Mock</span></td><td>Screen exists; mock verification</td></tr>
+  <tr><td>Google / Apple Sign-In</td><td><span class="badge badge-soon">Placeholder</span></td><td>Buttons on login screen</td></tr>
+  <tr><td>Card / UPI Payment Gateway</td><td><span class="badge badge-soon">UI Only</span></td><td>Payment method stored; no gateway</td></tr>
+  <tr><td>Connected Devices</td><td><span class="badge badge-soon">Placeholder</span></td><td>Apple Watch, Smart Bottle, TV Hub UI</td></tr>
+  <tr><td>Coupon System</td><td><span class="badge badge-soon">UI Only</span></td><td>Coupon field on checkout</td></tr>
+</table>
+
+<!-- 12. APPENDIX -->
+<h2 class="section-break">12. Appendix</h2>
+
+<h3>12.1 Mobile App Screens (45 Total)</h3>
+<table>
+  <tr><th>Category</th><th>Screens</th></tr>
+  <tr><td>Bootstrap</td><td>Loading, Role Selection</td></tr>
+  <tr><td>Auth</td><td>Login, Login OTP, Forgot Password, Create Profile</td></tr>
+  <tr><td>Customer (14)</td><td>Dashboard, Profile, Order, Cart, Checkout, Payment, Order Confirmed, Order History, Track Order, Saved Addresses, Plan Subscription, Billing, Water Intake</td></tr>
+  <tr><td>Supplier (11)</td><td>Onboarding, Onboarding Status, Verification Pending, Dashboard, Incoming Orders, Assign Rider, Order History, Products, Financials, Wallet, Support</td></tr>
+  <tr><td>Delivery (10)</td><td>Onboarding, Verification Pending, Dashboard, Incoming Orders, Subscription Orders, Order History, Summary, Financials, Help, Profile</td></tr>
+  <tr><td>Corporate (5)</td><td>Profile, Validation, Dashboard, Order History, Invoices</td></tr>
+</table>
+
+<h3>12.2 Admin Portal Pages (12 Total)</h3>
+<p>Login, Dashboard, Users, Orders, Suppliers, Plans, Subscriptions, Wallet Management, Financials, Admin Users, Delivery Partners, Supplier Support, Delivery Partner Support</p>
+
+<h3>12.3 Commission &amp; Payout Rules</h3>
+<ul>
+  <li>Default supplier commission: 20% (configurable per supplier by admin)</li>
+  <li>Platform cut on financials dashboard: 20% (single-supplier orders), 30% (multi-supplier orders)</li>
+  <li>Delivery partner payout: 10% of order total on wallet-paid deliveries</li>
+  <li>Payout triggered automatically on order delivery completion</li>
+</ul>
+
+<h3>12.4 Environment Configuration</h3>
+<table>
+  <tr><th>Component</th><th>Variable</th><th>Default</th></tr>
+  <tr><td>Mobile</td><td>EXPO_PUBLIC_API_URL</td><td>Backend API base URL</td></tr>
+  <tr><td>Admin</td><td>VITE_API_URL</td><td>http://localhost:5000</td></tr>
+  <tr><td>Backend</td><td>MONGODB_URI</td><td>mongodb://127.0.0.1:27017/h20online</td></tr>
+  <tr><td>Backend</td><td>JWT_SECRET</td><td>h20-secret</td></tr>
+  <tr><td>Backend</td><td>PORT</td><td>5000</td></tr>
+</table>
+
+<div class="footer-note">
+  <strong>Document generated from H2O Online codebase analysis.</strong><br>
+  Repository: H20online · Mobile (Expo/React Native) · Admin (React/Vite) · Backend (Express/MongoDB)<br>
+  For questions or updates, contact the development team at Sigma Cro Technologies.
+</div>
+
+</div>
+</body>
+</html>

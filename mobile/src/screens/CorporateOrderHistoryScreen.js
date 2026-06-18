@@ -26,7 +26,7 @@ const CorporateOrderHistoryScreen = () => {
             style={styles.gradientBackground}
           >
             <View style={styles.headerOverlay}>
-              <BackButton onPress={() => router.back()} />
+              <BackButton />
               <Text style={styles.headerTitle}>Corporate Order History</Text>
             </View>
           </LinearGradient>
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
   gradientBackground: { flex: 1, paddingTop: 14, paddingHorizontal: 20 },
   headerOverlay: { flexDirection: "row", alignItems: "center", right: 20 },
   headerTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF", marginLeft: 12 },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20 },
+  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#F8FCFD", borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 24, paddingHorizontal: 20 },
   updatePlanTile: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.85)", borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", elevation: 2 },
   updatePlanText: { flex: 1, fontSize: 15, fontWeight: "600", color: "#1B2B34", marginLeft: 12 },
   sectionTitle: { fontSize: 17, fontWeight: "700", color: "#1B2B34", marginBottom: 12 },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -12,40 +12,62 @@ import {
   Image,
   Platform,
   StatusBar,
-  Animated,
-  Easing,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import Svg, { Path } from "react-native-svg";
 import BackButton from "@/src/components/BackButton";
+import AppLogo from "@/src/components/AppLogo";
+import DropletOverlay from "@/src/components/modern/DropletOverlay";
+import WalletModal from "@/src/components/WalletModal";
 import { useWallet } from "@/src/context/WalletContext";
 import { api } from "@/src/api/client";
 import { theme } from "@/src/theme";
 
-const HEADER_DROPLETS = [
-  { left: -12, top: 20, width: 18, height: 24, phase: "a" },
-  { left: 14, top: 62, width: 16, height: 22, phase: "b" },
-  { left: 52, top: 28, width: 20, height: 28, phase: "c" },
-  { left: 88, top: 94, width: 14, height: 20, phase: "a" },
-  { right: 110, top: 8, width: 16, height: 22, phase: "a" },
-  { right: 76, top: 66, width: 18, height: 24, phase: "b" },
-  { right: 42, top: 30, width: 22, height: 30, phase: "c" },
-  { right: 8, top: 98, width: 16, height: 22, phase: "a" },
+const FILTERS = [
+  { id: "all", label: "All" },
+  { id: "pending", label: "Pending" },
+  { id: "paid", label: "Paid" },
+  { id: "overdue", label: "Overdue" },
 ];
+
+function SectionCard({ icon, title, subtitle, children }) {
+  return (
+    <View style={styles.sectionCard}>
+      <View style={styles.sectionHeader}>
+        <LinearGradient colors={[theme.medium, theme.accent]} style={styles.sectionIcon}>
+          <Ionicons name={icon} size={18} color="#FFFFFF" />
+        </LinearGradient>
+        <View style={styles.sectionHeaderText}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
+        </View>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function billStatusMeta(status) {
+  if (status === "paid") {
+    return { label: "Paid", color: "#059669", bg: "rgba(5,150,105,0.12)", icon: "checkmark-circle-outline" };
+  }
+  if (status === "overdue") {
+    return { label: "Overdue", color: "#DC2626", bg: "rgba(220,38,38,0.12)", icon: "alert-circle-outline" };
+  }
+  return { label: "Pending", color: "#D97706", bg: "rgba(217,119,6,0.12)", icon: "time-outline" };
+}
 
 export default function BillingScreen() {
   const router = useRouter();
   const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
   const { balance, setBalance } = useWallet();
-  const dropletAnimA = React.useRef(new Animated.Value(0)).current;
-  const dropletAnimB = React.useRef(new Animated.Value(0)).current;
-  const dropletAnimC = React.useRef(new Animated.Value(0)).current;
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [payingId, setPayingId] = useState(null);
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [showWallet, setShowWallet] = useState(false);
 
   const fetchBills = useCallback(() => api.bills.list().then(setBills).catch(() => setBills([])), []);
 
@@ -64,9 +86,24 @@ export default function BillingScreen() {
     fetchBills().finally(() => setRefreshing(false));
   };
 
+  const stats = useMemo(() => {
+    const pending = bills.filter((b) => b.status === "pending" || b.status === "overdue");
+    const totalDue = pending.reduce((sum, b) => sum + (Number(b.amount) || 0), 0);
+    const overdueCount = bills.filter((b) => b.status === "overdue").length;
+    return { totalDue, pendingCount: pending.length, overdueCount, paidCount: bills.filter((b) => b.status === "paid").length };
+  }, [bills]);
+
+  const filteredBills = useMemo(() => {
+    if (activeFilter === "all") return bills;
+    return bills.filter((b) => b.status === activeFilter);
+  }, [bills, activeFilter]);
+
   const handlePay = (bill) => {
     if (balance < bill.amount) {
-      Alert.alert("Insufficient balance", "Add money to wallet first.");
+      Alert.alert("Insufficient balance", "Add money to your wallet to pay this bill.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Add money", onPress: () => setShowWallet(true) },
+      ]);
       return;
     }
     setPayingId(bill.id);
@@ -80,143 +117,354 @@ export default function BillingScreen() {
       .finally(() => setPayingId(null));
   };
 
-  const formatDate = (d) => (d ? new Date(d).toLocaleDateString() : "");
-
-  React.useEffect(() => {
-    const loop = (value, duration) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(value, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(value, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        ])
-      );
-    const a = loop(dropletAnimA, 3400), b = loop(dropletAnimB, 4200), c = loop(dropletAnimC, 3800);
-    a.start(); b.start(); c.start();
-    return () => { a.stop(); b.stop(); c.stop(); };
-  }, [dropletAnimA, dropletAnimB, dropletAnimC]);
-  const getDropletAnim = (phase) => phase === "b" ? dropletAnimB : phase === "c" ? dropletAnimC : dropletAnimA;
+  const formatDate = (d) => (d ? new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—");
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.headerSection}>
-        <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}>
-          <View style={styles.headerOverlay}>
-            {HEADER_DROPLETS.map((drop, idx) => {
-              const dropAnim = getDropletAnim(drop.phase);
-              return (
-                <Animated.View
-                  key={`billing-drop-${idx}`}
-                  style={[styles.dropletWrap, {
-                    left: drop.left, right: drop.right, top: drop.top, width: drop.width, height: drop.height,
-                    opacity: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.32] }),
-                    transform: [
-                      { translateY: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
-                      { scale: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.05] }) },
-                    ],
-                  }]}
-                >
-                  <Svg width="100%" height="100%" viewBox="0 0 60 80">
-                    <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.3)" />
-                  </Svg>
-                </Animated.View>
-              );
-            })}
-          </View>
-          <View style={styles.headerTopRow}>
-            <BackButton onPress={() => router.back()} />
-            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
-            <View style={styles.headerTopSpacer} />
-          </View>
-          <View style={styles.headerInfoRow}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="receipt-outline" size={24} color="#FFFFFF" />
+      <View style={styles.pageBody}>
+        <View style={styles.headerSection}>
+          <LinearGradient
+            colors={theme.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.gradientBackground, { paddingTop: 12 + androidTopInset }]}
+          >
+            <DropletOverlay />
+            <View style={styles.headerTopRow}>
+              <BackButton />
+              <AppLogo size="header" />
+              <TouchableOpacity style={styles.headerMenuBtn} activeOpacity={0.85} onPress={() => router.push("/profile")}>
+                <Ionicons name="menu" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
-            <View style={styles.headerTextWrap}>
-              <Text style={styles.headerTitle}>Billing</Text>
-              <Text style={styles.headerSubtitle}>Manage subscription bills and wallet payments</Text>
-            </View>
-          </View>
-        </LinearGradient>
-      </View>
-      <View style={styles.contentSection}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />}
-      >
-        <Text style={styles.sectionLabel}>Subscription bills</Text>
-        <Text style={styles.hint}>Monthly bills are generated on the 1st. Pay within 5 days. You can pay from your wallet (₹{balance}).</Text>
-        {loading ? (
-          <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24 }} />
-        ) : bills.length === 0 ? (
-          <View style={styles.empty}>
-            <Ionicons name="receipt-outline" size={48} color="#9CA3AF" />
-            <Text style={styles.emptyText}>No bills yet</Text>
-            <Text style={styles.emptySub}>When you have active subscriptions, monthly bills will appear here.</Text>
-          </View>
-        ) : (
-          bills.map((b) => (
-            <View key={b.id} style={styles.card}>
-              <View style={styles.cardRow}>
-                <Text style={styles.cardLabel}>{b.subscriptionLabel || "Subscription"}</Text>
-                <View style={[styles.statusBadge, b.status === "paid" && styles.statusPaid, b.status === "overdue" && styles.statusOverdue]}>
-                  <Text style={styles.statusText}>{b.status}</Text>
+          </LinearGradient>
+        </View>
+
+        <View style={styles.contentSection}>
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} colors={[theme.accent]} />}
+          >
+            <View style={styles.summaryBanner}>
+              <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.summaryBannerGradient}>
+                <View style={styles.summaryBannerIcon}>
+                  <Ionicons name="receipt-outline" size={22} color="#FFFFFF" />
                 </View>
-              </View>
-              <Text style={styles.cardPeriod}>{b.period} · Due {formatDate(b.dueDate)}</Text>
-              <Text style={styles.cardAmount}>₹{b.amount}</Text>
-              {b.status === "pending" || b.status === "overdue" ? (
-                <TouchableOpacity
-                  style={[styles.payBtn, (payingId === b.id || balance < b.amount) && styles.payBtnDisabled]}
-                  onPress={() => handlePay(b)}
-                  disabled={payingId === b.id || balance < b.amount}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.payBtnText}>{payingId === b.id ? "Paying…" : balance < b.amount ? "Insufficient balance" : "Pay from wallet"}</Text>
-                </TouchableOpacity>
-              ) : (
-                <Text style={styles.paidText}>Paid {b.paidAt ? formatDate(b.paidAt) : ""}</Text>
-              )}
+                <View style={styles.summaryBannerText}>
+                  <Text style={styles.summaryBannerLabel}>Amount due</Text>
+                  <Text style={styles.summaryBannerValue}>₹{stats.totalDue.toLocaleString("en-IN")}</Text>
+                </View>
+                <View style={styles.summaryStatChip}>
+                  <Text style={styles.summaryStatValue}>{stats.pendingCount}</Text>
+                  <Text style={styles.summaryStatLabel}>Pending</Text>
+                </View>
+              </LinearGradient>
             </View>
-          ))
-        )}
-      </ScrollView>
+
+            <TouchableOpacity style={styles.walletCardWrap} onPress={() => setShowWallet(true)} activeOpacity={0.9}>
+              <LinearGradient colors={["#059669", "#047857"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.walletCard}>
+                <View style={styles.walletLeft}>
+                  <View style={styles.walletIcon}>
+                    <Ionicons name="wallet-outline" size={22} color="#FFFFFF" />
+                  </View>
+                  <View>
+                    <Text style={styles.walletLabel}>H2 Wallet balance</Text>
+                    <Text style={styles.walletTap}>Tap to add or manage funds</Text>
+                  </View>
+                </View>
+                <Text style={styles.walletBalance}>₹{Number(balance || 0).toLocaleString("en-IN")}</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
+                <Ionicons name="checkmark-circle-outline" size={18} color="#059669" />
+                <Text style={styles.statValue}>{stats.paidCount}</Text>
+                <Text style={styles.statLabel}>Paid</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Ionicons name="time-outline" size={18} color={theme.accent} />
+                <Text style={styles.statValue}>{stats.pendingCount}</Text>
+                <Text style={styles.statLabel}>Pending</Text>
+              </View>
+              <View style={[styles.statCard, stats.overdueCount > 0 && styles.statCardAlert]}>
+                <Ionicons name="alert-circle-outline" size={18} color={stats.overdueCount > 0 ? "#DC2626" : theme.textMuted} />
+                <Text style={[styles.statValue, stats.overdueCount > 0 && styles.statValueAlert]}>{stats.overdueCount}</Text>
+                <Text style={styles.statLabel}>Overdue</Text>
+              </View>
+            </View>
+
+            <SectionCard icon="calendar-outline" title="Billing info" subtitle="Monthly cycle and payment window">
+              <Text style={styles.infoText}>
+                Bills are generated on the 1st of each month. Pay within 5 days using your H2 Wallet balance.
+              </Text>
+            </SectionCard>
+
+            <SectionCard icon="funnel-outline" title="Subscription bills" subtitle="Filter by payment status">
+              <View style={styles.filterRow}>
+                {FILTERS.map((f) => {
+                  const selected = activeFilter === f.id;
+                  return (
+                    <TouchableOpacity key={f.id} onPress={() => setActiveFilter(f.id)} activeOpacity={0.88}>
+                      {selected ? (
+                        <LinearGradient colors={[theme.medium, theme.accent]} style={styles.filterChip}>
+                          <Text style={styles.filterChipTextSelected}>{f.label}</Text>
+                        </LinearGradient>
+                      ) : (
+                        <View style={styles.filterChipMuted}>
+                          <Text style={styles.filterChipText}>{f.label}</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {loading ? (
+                <ActivityIndicator size="large" color={theme.accent} style={styles.loader} />
+              ) : filteredBills.length === 0 ? (
+                <View style={styles.emptyWrap}>
+                  <View style={styles.emptyIcon}>
+                    <Ionicons name="receipt-outline" size={32} color={theme.accent} />
+                  </View>
+                  <Text style={styles.emptyTitle}>No bills found</Text>
+                  <Text style={styles.emptyText}>
+                    {activeFilter === "all"
+                      ? "When you have active subscriptions, monthly bills will appear here."
+                      : "No bills match this filter."}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.billsList}>
+                  {filteredBills.map((b) => {
+                    const meta = billStatusMeta(b.status);
+                    const isPaying = payingId === b.id;
+                    const canPay = b.status === "pending" || b.status === "overdue";
+                    const insufficient = balance < b.amount;
+
+                    return (
+                      <View key={b.id} style={styles.billCard}>
+                        <View style={styles.billCardTop}>
+                          <LinearGradient colors={[theme.medium, theme.accent]} style={styles.billIcon}>
+                            <Ionicons name="document-text-outline" size={18} color="#FFFFFF" />
+                          </LinearGradient>
+                          <View style={styles.billMain}>
+                            <Text style={styles.billLabel} numberOfLines={1}>
+                              {b.subscriptionLabel || "Subscription"}
+                            </Text>
+                            <Text style={styles.billPeriod}>
+                              {b.period} · Due {formatDate(b.dueDate)}
+                            </Text>
+                          </View>
+                          <View style={[styles.statusChip, { backgroundColor: meta.bg }]}>
+                            <Ionicons name={meta.icon} size={12} color={meta.color} />
+                            <Text style={[styles.statusChipText, { color: meta.color }]}>{meta.label}</Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.billAmountRow}>
+                          <Text style={styles.billAmount}>₹{Number(b.amount || 0).toLocaleString("en-IN")}</Text>
+                          {b.status === "paid" ? (
+                            <Text style={styles.paidText}>Paid {formatDate(b.paidAt)}</Text>
+                          ) : null}
+                        </View>
+
+                        {canPay ? (
+                          <TouchableOpacity
+                            onPress={() => handlePay(b)}
+                            disabled={isPaying}
+                            activeOpacity={0.9}
+                            style={styles.payBtnWrap}
+                          >
+                            <LinearGradient
+                              colors={insufficient || isPaying ? ["#EEF3F7", "#E8EEF2"] : [theme.medium, theme.accent]}
+                              style={styles.payBtn}
+                            >
+                              {isPaying ? (
+                                <ActivityIndicator size="small" color="#FFFFFF" />
+                              ) : (
+                                <>
+                                  <Ionicons name="wallet-outline" size={16} color={insufficient ? theme.textMuted : "#FFFFFF"} />
+                                  <Text style={[styles.payBtnText, insufficient && styles.payBtnTextMuted]}>
+                                    {insufficient ? "Insufficient balance" : "Pay from wallet"}
+                                  </Text>
+                                </>
+                              )}
+                            </LinearGradient>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </SectionCard>
+          </ScrollView>
+        </View>
       </View>
+
+      <WalletModal visible={showWallet} onClose={() => setShowWallet(false)} />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.screenBackground },
-  headerSection: { minHeight: 236, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingHorizontal: 20, paddingBottom: 34 },
-  headerOverlay: { ...StyleSheet.absoluteFillObject },
-  dropletWrap: { position: "absolute", alignItems: "center", justifyContent: "center" },
-  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 30 },
-  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
-  headerTopSpacer: { width: 40, height: 40 },
-  headerInfoRow: { flexDirection: "row", alignItems: "center" },
-  headerIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center" },
-  headerTextWrap: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
-  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
-  contentSection: { marginTop: -18, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, flex: 1, overflow: "hidden" },
-  scrollContent: { padding: 16, paddingBottom: 40, paddingTop: 18 },
-  sectionLabel: { fontSize: 16, fontWeight: "700", color: "#1B2B34", marginBottom: 6 },
-  hint: { fontSize: 13, color: "#6B7C85", marginBottom: 16 },
-  empty: { alignItems: "center", paddingVertical: 48 },
-  emptyText: { fontSize: 16, fontWeight: "600", color: "#6B7C85", marginTop: 12 },
-  emptySub: { fontSize: 14, color: "#9CA3AF", marginTop: 4, textAlign: "center" },
-  card: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)" },
-  cardRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 },
-  cardLabel: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
-  statusBadge: { backgroundColor: "#FEF3C7", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  statusPaid: { backgroundColor: "#D1FAE5" },
-  statusOverdue: { backgroundColor: "#FEE2E2" },
-  statusText: { fontSize: 12, fontWeight: "600", color: "#92400E" },
-  cardPeriod: { fontSize: 13, color: "#6B7C85", marginBottom: 6 },
-  cardAmount: { fontSize: 20, fontWeight: "700", color: theme.primary, marginBottom: 12 },
-  payBtn: { backgroundColor: theme.primary, paddingVertical: 12, borderRadius: 12, alignItems: "center" },
-  payBtnDisabled: { opacity: 0.6 },
-  payBtnText: { fontSize: 15, fontWeight: "600", color: "#FFF" },
-  paidText: { fontSize: 14, color: "#059669" },
+  pageBody: { flex: 1 },
+  headerSection: { flexShrink: 0, overflow: "hidden" },
+  gradientBackground: { paddingHorizontal: 20, paddingBottom: 28 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 0 },
+  logoGlass: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.34)",
+  },
+  headerLogoLight: { width: 108, height: 30 },
+  headerMenuBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
+  },
+
+  contentSection: {
+    flex: 1,
+    marginTop: -24,
+    backgroundColor: theme.contentPanelBackground,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.9)",
+    overflow: "hidden",
+  },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 32 },
+
+  summaryBanner: { borderRadius: 18, overflow: "hidden", marginBottom: 14 },
+  summaryBannerGradient: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
+  summaryBannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  summaryBannerText: { flex: 1 },
+  summaryBannerLabel: { fontSize: 12, fontWeight: "600", color: "rgba(255,255,255,0.88)" },
+  summaryBannerValue: { fontSize: 22, fontWeight: "800", color: "#FFFFFF", marginTop: 2 },
+  summaryStatChip: {
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.24)",
+  },
+  summaryStatValue: { fontSize: 18, fontWeight: "800", color: "#FFFFFF" },
+  summaryStatLabel: { fontSize: 10, fontWeight: "600", color: "rgba(255,255,255,0.88)", marginTop: 2 },
+
+  walletCardWrap: { borderRadius: 18, overflow: "hidden", marginBottom: 14 },
+  walletCard: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16 },
+  walletLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  walletIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  walletLabel: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
+  walletTap: { fontSize: 12, color: "rgba(255,255,255,0.88)", marginTop: 2 },
+  walletBalance: { fontSize: 22, fontWeight: "800", color: "#FFFFFF" },
+
+  statsRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  statCardAlert: { borderColor: "rgba(220,38,38,0.2)", backgroundColor: "#FEF2F2" },
+  statValue: { fontSize: 18, fontWeight: "800", color: theme.textPrimary, marginTop: 6 },
+  statValueAlert: { color: "#DC2626" },
+  statLabel: { fontSize: 11, fontWeight: "600", color: theme.textMuted, marginTop: 2 },
+
+  sectionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  sectionHeader: { flexDirection: "row", alignItems: "center", marginBottom: 14, gap: 12 },
+  sectionIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  sectionHeaderText: { flex: 1 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: theme.textPrimary },
+  sectionSubtitle: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  infoText: { fontSize: 14, color: theme.textSecondary, lineHeight: 20 },
+
+  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
+  filterChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999 },
+  filterChipMuted: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: theme.contentPanelBackground,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  filterChipTextSelected: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
+  filterChipText: { fontSize: 13, fontWeight: "600", color: theme.textSecondary },
+
+  loader: { marginVertical: 28 },
+  emptyWrap: { alignItems: "center", paddingVertical: 28 },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: "rgba(30,143,177,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  emptyTitle: { fontSize: 17, fontWeight: "700", color: theme.textPrimary },
+  emptyText: { fontSize: 14, color: theme.textMuted, textAlign: "center", marginTop: 6, lineHeight: 20 },
+
+  billsList: { gap: 12 },
+  billCard: {
+    backgroundColor: theme.contentPanelBackground,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  billCardTop: { flexDirection: "row", alignItems: "center", gap: 12 },
+  billIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  billMain: { flex: 1, minWidth: 0 },
+  billLabel: { fontSize: 15, fontWeight: "700", color: theme.textPrimary },
+  billPeriod: { fontSize: 12, color: theme.textMuted, marginTop: 3 },
+  statusChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999 },
+  statusChipText: { fontSize: 11, fontWeight: "700" },
+  billAmountRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 },
+  billAmount: { fontSize: 22, fontWeight: "800", color: theme.accent },
+  paidText: { fontSize: 12, fontWeight: "600", color: "#059669" },
+  payBtnWrap: { borderRadius: 14, overflow: "hidden", marginTop: 12 },
+  payBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12 },
+  payBtnText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
+  payBtnTextMuted: { color: theme.textMuted },
 });

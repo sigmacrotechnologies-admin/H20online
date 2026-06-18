@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import BackButton from "@/src/components/BackButton";
+import { useAppBack } from "@/src/utils/navigation";
 import { theme } from "@/src/theme";
 
 const headerStyles = StyleSheet.create({
@@ -37,6 +38,7 @@ export default function DeliveryPartnerLayout({ title, subtitle = "", icon = "bi
   const router = useRouter();
   const { logout } = useAuth();
   const [menuVisible, setMenuVisible] = useState(false);
+  const handleBack = useAppBack("/delivery-dashboard");
 
   const closeAnd = (fn) => {
     setMenuVisible(false);
@@ -54,7 +56,7 @@ export default function DeliveryPartnerLayout({ title, subtitle = "", icon = "bi
       <View style={headerStyles.headerSection}>
         <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={headerStyles.gradientBackground}>
           <View style={headerStyles.headerTopRow}>
-            <BackButton onPress={() => router.back()} />
+            <BackButton onPress={handleBack} />
             <TouchableOpacity style={headerStyles.headerMenuBtn} onPress={() => setMenuVisible(true)} activeOpacity={0.8}>
               <Ionicons name="menu" size={24} color="#FFFFFF" />
             </TouchableOpacity>

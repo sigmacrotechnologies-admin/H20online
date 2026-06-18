@@ -11,13 +11,18 @@ export function getAuthToken() {
 }
 
 const REQUEST_TIMEOUT_MS = 25000;
+const AI_REQUEST_TIMEOUT_MS = 60000;
 
 export async function request(path, options = {}) {
   const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
   const headers = { "Content-Type": "application/json", ...options.headers };
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
+  const isAiRequest = path.includes("/api/ai/");
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    isAiRequest ? AI_REQUEST_TIMEOUT_MS : REQUEST_TIMEOUT_MS
+  );
   try {
     const res = await fetch(url, { ...options, headers, signal: controller.signal });
     clearTimeout(timeoutId);
@@ -87,6 +92,13 @@ export const api = {
     getThread: () => request("/api/supplier-support/thread"),
     sendMessage: (text) => request("/api/supplier-support/message", { method: "POST", body: JSON.stringify({ text }) }),
   },
+  customerSupport: {
+    listTickets: () => request("/api/customer-support/tickets"),
+    createTicket: (body) => request("/api/customer-support/tickets", { method: "POST", body: JSON.stringify(body) }),
+    getTicket: (id) => request("/api/customer-support/tickets/" + id),
+    replyToTicket: (id, text) =>
+      request("/api/customer-support/tickets/" + id + "/reply", { method: "POST", body: JSON.stringify({ text }) }),
+  },
   products: {
     list: (params) => {
       const q = new URLSearchParams(params || {}).toString();
@@ -154,5 +166,12 @@ export const api = {
   bills: {
     list: () => request("/api/bills"),
     pay: (id) => request("/api/bills/" + id + "/pay", { method: "POST" }),
+  },
+  ai: {
+    waterInsight: () => request("/api/ai/water-insight"),
+    intakeSense: (date) =>
+      request("/api/ai/intake-sense" + (date ? "?date=" + encodeURIComponent(date) : "")),
+    waterReport: () => request("/api/ai/water-report", { method: "POST" }),
+    ask: (question) => request("/api/ai/ask", { method: "POST", body: JSON.stringify({ question }) }),
   },
 };

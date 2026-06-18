@@ -1,9 +1,18 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Modal, TextInput, ActivityIndicator, Image, Platform, StatusBar, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, ActivityIndicator, Alert, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import BackButton from "@/src/components/BackButton";
+import SupplierScreenShell from "@/src/components/supplier/SupplierScreenShell";
+import {
+  SectionCard,
+  FilterChip,
+  GradientButton,
+  EmptyState,
+  ModernSheet,
+  SupplierPageHeader,
+  ui,
+} from "@/src/components/supplier/supplierUi";
 import { theme } from "@/src/theme";
 import { api } from "@/src/api/client";
 
@@ -14,6 +23,12 @@ const VEHICLE_LABELS = {
   tanker: "Tanker",
   miniTruck: "Mini Truck",
 };
+
+const TYPE_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "instant", label: "Instant" },
+  { id: "scheduled", label: "Scheduled" },
+];
 
 export default function SupplierIncomingOrdersScreen() {
   const router = useRouter();
@@ -29,7 +44,6 @@ export default function SupplierIncomingOrdersScreen() {
   const [selectedPartnerId, setSelectedPartnerId] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [activeTypeFilter, setActiveTypeFilter] = useState("all");
-  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
 
   const load = useCallback(() => {
     setLoading(true);
@@ -162,272 +176,315 @@ export default function SupplierIncomingOrdersScreen() {
       ? scheduledOrders
       : orders;
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerPanel}>
-        <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}>
-          <View style={styles.headerTopRow}>
-            <BackButton onPress={() => router.back()} />
-            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
-            <View style={styles.headerTopSpacer} />
+  const renderOrderCard = (o) => {
+    const isScheduled = (o.orderType || "instant") === "scheduled";
+    const typeMeta = isScheduled
+      ? { label: "Scheduled", color: "#059669", bg: "rgba(5,150,105,0.12)", icon: "calendar-outline" }
+      : { label: "Instant", color: "#DC2626", bg: "rgba(220,38,38,0.12)", icon: "flash-outline" };
+    const productNames = getProductNames(o);
+
+    return (
+      <View key={o.id} style={styles.orderCard}>
+        <View style={styles.orderCardTop}>
+          <LinearGradient colors={[theme.medium, theme.accent]} style={styles.orderIcon}>
+            <Ionicons name="cart-outline" size={20} color="#FFFFFF" />
+          </LinearGradient>
+          <View style={styles.orderMain}>
+            <Text style={styles.orderId}>#{o.id.slice(-6)}</Text>
+            <Text style={styles.orderCustomer} numberOfLines={1}>
+              {o.customerName || o.customerEmail || "Customer"}
+            </Text>
+            <Text style={styles.orderDate}>
+              {formatOrderDate(o.createdAt)} · {formatOrderTime(o.createdAt)}
+            </Text>
           </View>
-          <View style={styles.headerInfoRow}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="cart-outline" size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.headerTextWrap}>
-              <Text style={styles.headerTitle}>Incoming orders</Text>
-              <Text style={styles.headerSubtitle}>Accept orders and assign delivery partner</Text>
-            </View>
-          </View>
-          <View style={styles.headerTypeTilesRow}>
-            <TouchableOpacity
-              style={[styles.headerTypeTile, activeTypeFilter === "instant" && styles.headerTypeTileActive]}
-              onPress={() => setActiveTypeFilter("instant")}
-              activeOpacity={0.85}
-            >
-              <View style={styles.headerTypeTileTop}>
-                <Text style={[styles.headerTypeTileTitle, activeTypeFilter === "instant" && styles.headerTypeTileTitleActive]}>Instant order</Text>
-                {instantOrders.length > 0 ? <View style={styles.headerLiveDot} /> : null}
-              </View>
-              <Text style={[styles.headerTypeTileCount, activeTypeFilter === "instant" && styles.headerTypeTileCountActive]}>{instantOrders.length}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.headerTypeTile, activeTypeFilter === "scheduled" && styles.headerTypeTileActive]}
-              onPress={() => setActiveTypeFilter("scheduled")}
-              activeOpacity={0.85}
-            >
-              <View style={styles.headerTypeTileTop}>
-                <Text style={[styles.headerTypeTileTitle, activeTypeFilter === "scheduled" && styles.headerTypeTileTitleActive]}>Schedule for later</Text>
-                {scheduledOrders.length > 0 ? <View style={[styles.headerLiveDot, { backgroundColor: "#22C55E" }]} /> : null}
-              </View>
-              <Text style={[styles.headerTypeTileCount, activeTypeFilter === "scheduled" && styles.headerTypeTileCountActive]}>{scheduledOrders.length}</Text>
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-      </View>
-      <View style={styles.contentSection}>
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentWrap}>
-        {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24 }} /> : (
-          visibleOrders.length === 0 ? (
-            <Text style={styles.empty}>No pending orders</Text>
-          ) : (
-            visibleOrders.map((o) => (
-              <View key={o.id} style={styles.card}>
-                <View style={styles.cardTopRow}>
-                  <View style={styles.cardLeftCol}>
-                    <Text style={styles.cardId}>#{o.id.slice(-6)}</Text>
-                    <Text style={styles.cardCustomer}>{o.customerName || o.customerEmail || "Customer"}</Text>
-                  </View>
-                  <View style={styles.cardRightCol}>
-                    <Text style={styles.cardTotal}>₹{Number(o.myTotal || o.total).toLocaleString()}</Text>
-                    <Text style={styles.cardItems}>{(o.myItems || o.items || []).length} item(s)</Text>
-                  </View>
-                </View>
-                <View style={[styles.orderTypePill, (o.orderType || "instant") === "scheduled" ? styles.orderTypeScheduled : styles.orderTypeInstant]}>
-                  <Text style={styles.orderTypeText}>{(o.orderType || "instant") === "scheduled" ? "Scheduled" : "Instant"}</Text>
-                </View>
-                <Text style={styles.cardProducts} numberOfLines={2}>
-                  Products: {getProductNames(o).length ? getProductNames(o).join(", ") : "—"}
-                </Text>
-                <Text style={styles.cardReceiver} numberOfLines={1}>
-                  Receiver: {o.receiverName || "N/A"} {o.receiverPhone ? `• ${o.receiverPhone}` : ""}
-                </Text>
-                <Text style={styles.cardAddress} numberOfLines={2}>
-                  Address: {o.address || "N/A"}
-                </Text>
-                <Text style={styles.cardMeta}>Date: {formatOrderDate(o.createdAt)} • Time: {formatOrderTime(o.createdAt)}</Text>
-                <View style={styles.cardActions}>
-                  <TouchableOpacity style={[styles.actionBtn, styles.rejectBtn]} onPress={() => handleReject(o.id)}>
-                    <Text style={[styles.actionBtnText, styles.rejectBtnText]}>Reject</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.actionBtn, styles.acceptActionBtn]} onPress={() => openModal(o)}>
-                    <Text style={styles.actionBtnText}>Accept</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))
-          )
-        )}
-      </ScrollView>
-      </View>
-      <Modal visible={!!modalOrder} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Accept order</Text>
-              <TouchableOpacity onPress={() => setModalOrder(null)}><Ionicons name="close" size={28} color="#1B2B34" /></TouchableOpacity>
-            </View>
-            {modalOrder && (
-              <>
-                <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent}>
-                  <View style={styles.orderSummaryCard}>
-                    <Text style={styles.orderSummaryTitle}>Order details</Text>
-                    <Text style={styles.orderSummaryMeta}>Date: {formatOrderDate(modalOrder.createdAt)} • Time: {formatOrderTime(modalOrder.createdAt)}</Text>
-                    <Text style={styles.orderSummaryMeta}>Customer: {modalOrder.customerName || modalOrder.customerEmail || "Customer"}</Text>
-                    <Text style={styles.orderSummaryMeta}>Total: ₹{Number(modalOrder.myTotal || modalOrder.total).toLocaleString()}</Text>
-                    <Text style={styles.orderSummaryLabel}>Products</Text>
-                    {(modalOrder.myItems?.length ? modalOrder.myItems : modalOrder.items || []).map((item, idx) => (
-                      <Text key={`${item.productName || "item"}-${idx}`} style={styles.orderSummaryItem}>
-                        {idx + 1}. {item.productName || "Product"} x {item.qty || 1}
-                      </Text>
-                    ))}
-                  </View>
-                  <Text style={styles.modalLabel}>ETA (hours and minutes) *</Text>
-                  <View style={styles.etaRow}>
-                    <View style={styles.etaUnit}>
-                      <Text style={styles.etaUnitLabel}>Hours</Text>
-                      <View style={styles.etaControl}>
-                        <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaHours(-1)}><Text style={styles.etaBtnText}>-</Text></TouchableOpacity>
-                        <Text style={styles.etaValue}>{etaHours}</Text>
-                        <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaHours(1)}><Text style={styles.etaBtnText}>+</Text></TouchableOpacity>
-                      </View>
-                    </View>
-                    <View style={styles.etaUnit}>
-                      <Text style={styles.etaUnitLabel}>Minutes</Text>
-                      <View style={styles.etaControl}>
-                        <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaMinutes(-5)}><Text style={styles.etaBtnText}>-</Text></TouchableOpacity>
-                        <Text style={styles.etaValue}>{etaMinutes}</Text>
-                        <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaMinutes(5)}><Text style={styles.etaBtnText}>+</Text></TouchableOpacity>
-                      </View>
-                    </View>
-                  </View>
-                  <Text style={styles.etaPreview}>{etaDisplay}</Text>
-                  <Text style={styles.modalLabel}>Remarks (shown to customer) *</Text>
-                  <TextInput style={[styles.input, { minHeight: 60 }]} value={remarks} onChangeText={setRemarks} placeholder="Required remarks" placeholderTextColor="#9CA3AF" multiline />
-                  <Text style={styles.modalLabel}>Fleet type needed *</Text>
-                  <View style={styles.fleetRow}>
-                    {availableFleetOptions.map((f) => (
-                      <TouchableOpacity key={f.key} style={[styles.fleetChip, fleetType === f.key && styles.fleetChipSelected]} onPress={() => loadPartnersByFleet(f.key)}>
-                        <Text style={[styles.fleetChipText, fleetType === f.key && styles.fleetChipTextSelected]}>{f.label}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  {partners.length > 0 && (
-                    <>
-                      <Text style={styles.modalLabel}>Assign delivery partner *</Text>
-                      <ScrollView style={{ maxHeight: 180 }}>
-                        {partners.map((p) => (
-                          <TouchableOpacity key={p.id} style={[styles.partnerRow, selectedPartnerId === p.id && styles.partnerRowSelected]} onPress={() => setSelectedPartnerId(selectedPartnerId === p.id ? null : p.id)}>
-                            <Text style={styles.partnerName}>{p.name} • {p.vehicleType}</Text>
-                            <Text style={styles.partnerPhone}>{p.phone}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </>
-                  )}
-                </ScrollView>
-                <View style={styles.modalFooter}>
-                  <TouchableOpacity style={[styles.acceptBtn, submitting && styles.acceptBtnDisabled]} onPress={handleAccept} disabled={submitting}>
-                    <Text style={styles.acceptBtnText}>{submitting ? "Saving..." : "Accept & send to customer"}</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
+          <View style={[styles.statusChip, { backgroundColor: typeMeta.bg }]}>
+            <Ionicons name={typeMeta.icon} size={12} color={typeMeta.color} />
+            <Text style={[styles.statusChipText, { color: typeMeta.color }]}>{typeMeta.label}</Text>
           </View>
         </View>
-      </Modal>
-    </SafeAreaView>
+
+        <View style={styles.orderDetails}>
+          <Text style={styles.detailText} numberOfLines={2}>
+            <Text style={styles.detailLabel}>Products: </Text>
+            {productNames.length ? productNames.join(", ") : "—"}
+          </Text>
+          <Text style={styles.detailText} numberOfLines={1}>
+            <Text style={styles.detailLabel}>Receiver: </Text>
+            {o.receiverName || "N/A"}
+            {o.receiverPhone ? ` · ${o.receiverPhone}` : ""}
+          </Text>
+          <Text style={styles.detailText} numberOfLines={2}>
+            <Text style={styles.detailLabel}>Address: </Text>
+            {o.address || "N/A"}
+          </Text>
+        </View>
+
+        <View style={styles.orderCardBottom}>
+          <View style={styles.orderMetaItem}>
+            <Ionicons name="cube-outline" size={14} color={theme.textMuted} />
+            <Text style={styles.orderMetaText}>{(o.myItems || o.items || []).length} item(s)</Text>
+          </View>
+          <Text style={styles.orderTotal}>₹{Number(o.myTotal || o.total).toLocaleString()}</Text>
+        </View>
+
+        <View style={styles.cardActions}>
+          <GradientButton label="Reject" variant="danger" onPress={() => handleReject(o.id)} style={{ flex: 1 }} />
+          <GradientButton label="Accept" icon="checkmark" onPress={() => openModal(o)} style={{ flex: 1 }} />
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <SupplierScreenShell
+      showMenu
+      tallHeader
+      headerExtra={
+        <SupplierPageHeader
+          icon="cart-outline"
+          title="Incoming orders"
+          subtitle="Accept orders and assign delivery partner"
+          stats={[
+            { icon: "time-outline", label: "Pending", value: String(orders.length), alert: orders.length > 0 },
+            { icon: "flash-outline", label: "Instant", value: String(instantOrders.length) },
+            { icon: "calendar-outline", label: "Scheduled", value: String(scheduledOrders.length) },
+          ]}
+        />
+      }
+    >
+      <ScrollView contentContainerStyle={ui.scrollContent} showsVerticalScrollIndicator={false}>
+        <SectionCard icon="funnel-outline" title="Order type" subtitle="Filter by delivery timing">
+          <View style={ui.filterRow}>
+            {TYPE_FILTERS.map((f) => {
+              const count = f.id === "instant" ? instantOrders.length : f.id === "scheduled" ? scheduledOrders.length : orders.length;
+              return (
+                <FilterChip
+                  key={f.id}
+                  label={`${f.label} (${count})`}
+                  selected={activeTypeFilter === f.id}
+                  onPress={() => setActiveTypeFilter(f.id)}
+                />
+              );
+            })}
+          </View>
+        </SectionCard>
+
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.accent} style={styles.loader} />
+        ) : visibleOrders.length === 0 ? (
+          <EmptyState
+            icon="cart-outline"
+            title="No pending orders"
+            subtitle={
+              activeTypeFilter === "all"
+                ? "New customer orders will appear here for you to accept."
+                : "No orders match this filter."
+            }
+          />
+        ) : (
+          visibleOrders.map(renderOrderCard)
+        )}
+      </ScrollView>
+
+      <ModernSheet
+        visible={!!modalOrder}
+        title="Accept order"
+        subtitle={modalOrder ? `Order #${modalOrder.id.slice(-6)}` : ""}
+        icon="checkmark-circle-outline"
+        onClose={() => setModalOrder(null)}
+        footer={
+          <GradientButton
+            label={submitting ? "Saving..." : "Accept & send to customer"}
+            onPress={handleAccept}
+            disabled={submitting}
+            loading={submitting}
+            icon="send-outline"
+          />
+        }
+      >
+        {modalOrder ? (
+          <>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>Order details</Text>
+              <Text style={styles.summaryMeta}>
+                Date: {formatOrderDate(modalOrder.createdAt)} · Time: {formatOrderTime(modalOrder.createdAt)}
+              </Text>
+              <Text style={styles.summaryMeta}>
+                Customer: {modalOrder.customerName || modalOrder.customerEmail || "Customer"}
+              </Text>
+              <Text style={styles.summaryMeta}>
+                Total: ₹{Number(modalOrder.myTotal || modalOrder.total).toLocaleString()}
+              </Text>
+              <Text style={styles.summaryLabel}>Products</Text>
+              {(modalOrder.myItems?.length ? modalOrder.myItems : modalOrder.items || []).map((item, idx) => (
+                <Text key={`${item.productName || "item"}-${idx}`} style={styles.summaryItem}>
+                  {idx + 1}. {item.productName || "Product"} x {item.qty || 1}
+                </Text>
+              ))}
+            </View>
+
+            <Text style={ui.inputLabel}>ETA (hours and minutes) *</Text>
+            <View style={styles.etaRow}>
+              <View style={styles.etaUnit}>
+                <Text style={styles.etaUnitLabel}>Hours</Text>
+                <View style={styles.etaControl}>
+                  <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaHours(-1)}>
+                    <Text style={styles.etaBtnText}>-</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.etaValue}>{etaHours}</Text>
+                  <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaHours(1)}>
+                    <Text style={styles.etaBtnText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={styles.etaUnit}>
+                <Text style={styles.etaUnitLabel}>Minutes</Text>
+                <View style={styles.etaControl}>
+                  <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaMinutes(-5)}>
+                    <Text style={styles.etaBtnText}>-</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.etaValue}>{etaMinutes}</Text>
+                  <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaMinutes(5)}>
+                    <Text style={styles.etaBtnText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+            <Text style={styles.etaPreview}>{etaDisplay}</Text>
+
+            <Text style={ui.inputLabel}>Remarks (shown to customer) *</Text>
+            <TextInput
+              style={[ui.input, { minHeight: 60 }]}
+              value={remarks}
+              onChangeText={setRemarks}
+              placeholder="Required remarks"
+              placeholderTextColor="#9CA3AF"
+              multiline
+            />
+
+            <Text style={ui.inputLabel}>Fleet type needed *</Text>
+            <View style={ui.filterRow}>
+              {availableFleetOptions.map((f) => (
+                <FilterChip
+                  key={f.key}
+                  label={f.label}
+                  selected={fleetType === f.key}
+                  onPress={() => loadPartnersByFleet(f.key)}
+                />
+              ))}
+            </View>
+
+            {partners.length > 0 ? (
+              <>
+                <Text style={ui.inputLabel}>Assign delivery partner *</Text>
+                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
+                  {partners.map((p) => (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={[styles.partnerRow, selectedPartnerId === p.id && styles.partnerRowSelected]}
+                      onPress={() => setSelectedPartnerId(selectedPartnerId === p.id ? null : p.id)}
+                    >
+                      <Text style={styles.partnerName}>
+                        {p.name} · {p.vehicleType}
+                      </Text>
+                      <Text style={styles.partnerPhone}>{p.phone}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </>
+            ) : null}
+          </>
+        ) : null}
+      </ModernSheet>
+    </SupplierScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
-  headerPanel: { minHeight: 300, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingBottom: 20, paddingHorizontal: 20 },
-  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 22 },
-  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
-  headerTopSpacer: { width: 40, height: 40 },
-  headerInfoRow: { flexDirection: "row", alignItems: "center" },
-  headerIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center" },
-  headerTextWrap: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
-  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
-  contentSection: {
-    marginTop: -16,
-    backgroundColor: theme.screenBackground,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 18,
-    flex: 1,
-    overflow: "hidden",
-  },
-  content: { flex: 1 },
-  headerTypeTilesRow: { flexDirection: "row", gap: 10, marginTop: 16 },
-  headerTypeTile: {
-    flex: 1,
-    borderRadius: 14,
-    padding: 12,
-    backgroundColor: "rgba(255,255,255,0.2)",
+  loader: { marginTop: 32 },
+  orderCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.32)",
+    borderColor: "rgba(214,234,242,0.95)",
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 8 },
+      android: { elevation: 0 },
+    }),
   },
-  headerTypeTileActive: {
-    backgroundColor: "rgba(255,255,255,0.32)",
-    borderColor: "rgba(255,255,255,0.5)",
+  orderCardTop: { flexDirection: "row", alignItems: "center", gap: 12 },
+  orderIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  orderMain: { flex: 1, minWidth: 0 },
+  orderId: { fontSize: 12, fontWeight: "600", color: theme.textMuted },
+  orderCustomer: { fontSize: 15, fontWeight: "700", color: theme.textPrimary, marginTop: 2 },
+  orderDate: { fontSize: 12, color: theme.textMuted, marginTop: 3 },
+  statusChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999 },
+  statusChipText: { fontSize: 11, fontWeight: "700" },
+  orderDetails: { marginTop: 12, gap: 4 },
+  detailText: { fontSize: 12, color: theme.textSecondary, lineHeight: 18 },
+  detailLabel: { fontWeight: "700", color: theme.textPrimary },
+  orderCardBottom: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(214,234,242,0.8)",
+    gap: 12,
   },
-  headerTypeTileTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headerTypeTileTitle: { fontSize: 13, fontWeight: "700", color: "rgba(255,255,255,0.95)" },
-  headerTypeTileTitleActive: { color: "#FFFFFF" },
-  headerTypeTileCount: { fontSize: 20, fontWeight: "800", color: "#FFFFFF", marginTop: 8 },
-  headerTypeTileCountActive: { color: "#FFFFFF" },
-  headerLiveDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#EF4444" },
-  contentWrap: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24 },
-  empty: { textAlign: "center", color: "#6B7C85", marginTop: 24 },
-  card: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)" },
-  cardTopRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
-  cardLeftCol: { flex: 1, paddingRight: 10 },
-  cardRightCol: { minWidth: 92, alignItems: "flex-end" },
-  cardId: { fontSize: 12, color: "#6B7C85" },
-  cardCustomer: { fontSize: 16, fontWeight: "700", color: "#1B2B34", marginTop: 4 },
-  cardTotal: { fontSize: 15, fontWeight: "700", color: theme.primary, marginTop: 2 },
-  cardItems: { fontSize: 12, color: "#6B7C85", marginTop: 3 },
-  orderTypePill: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginTop: 8 },
-  orderTypeInstant: { backgroundColor: "#FEE2E2" },
-  orderTypeScheduled: { backgroundColor: "#DCFCE7" },
-  orderTypeText: { fontSize: 11, fontWeight: "700", color: "#1F2937" },
-  cardMeta: { fontSize: 12, color: "#6B7C85", marginTop: 4 },
-  cardProducts: { fontSize: 12, color: "#435866", marginTop: 8 },
-  cardReceiver: { fontSize: 12, color: "#435866", marginTop: 5 },
-  cardAddress: { fontSize: 12, color: "#435866", marginTop: 4 },
-  cardActions: { flexDirection: "row", justifyContent: "flex-end", marginTop: 12, gap: 10 },
-  actionBtn: { borderRadius: 10, paddingVertical: 9, paddingHorizontal: 16 },
-  actionBtnText: { color: "#FFF", fontSize: 13, fontWeight: "700" },
-  rejectBtn: { backgroundColor: "#FEE2E2" },
-  rejectBtnText: { color: "#B91C1C" },
-  acceptActionBtn: { backgroundColor: theme.primary },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-  modalBox: { backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingTop: 24, paddingHorizontal: 24, maxHeight: "90%" },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalTitle: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
-  modalScroll: { flexGrow: 0 },
-  modalScrollContent: { paddingBottom: 8 },
-  orderSummaryCard: { backgroundColor: "#f0f7fc", borderRadius: 12, padding: 12, marginBottom: 14 },
-  orderSummaryTitle: { fontSize: 14, fontWeight: "700", color: "#1B2B34", marginBottom: 6 },
-  orderSummaryMeta: { fontSize: 12, color: "#435866", marginBottom: 2 },
-  orderSummaryLabel: { fontSize: 12, fontWeight: "700", color: "#1B2B34", marginTop: 6, marginBottom: 4 },
-  orderSummaryItem: { fontSize: 12, color: "#435866", marginBottom: 2 },
-  modalLabel: { fontSize: 14, fontWeight: "600", color: "#1B2B34", marginBottom: 8 },
-  input: { backgroundColor: "#f0f7fc", borderRadius: 12, padding: 14, fontSize: 16, marginBottom: 16 },
+  orderMetaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  orderMetaText: { fontSize: 12, color: theme.textMuted, fontWeight: "500" },
+  orderTotal: { marginLeft: "auto", fontSize: 17, fontWeight: "800", color: theme.accent },
+  cardActions: { flexDirection: "row", gap: 10, marginTop: 12 },
+  summaryCard: {
+    backgroundColor: "rgba(30,143,177,0.08)",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  summaryTitle: { fontSize: 14, fontWeight: "700", color: theme.textPrimary, marginBottom: 6 },
+  summaryMeta: { fontSize: 12, color: theme.textSecondary, marginBottom: 2 },
+  summaryLabel: { fontSize: 12, fontWeight: "700", color: theme.textPrimary, marginTop: 6, marginBottom: 4 },
+  summaryItem: { fontSize: 12, color: theme.textSecondary, marginBottom: 2 },
   etaRow: { flexDirection: "row", gap: 10, marginBottom: 8 },
   etaUnit: { flex: 1 },
-  etaUnitLabel: { fontSize: 12, color: "#6B7C85", marginBottom: 6 },
-  etaControl: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#f0f7fc", borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8 },
-  etaBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: "#E2ECF3", alignItems: "center", justifyContent: "center" },
-  etaBtnText: { fontSize: 20, color: "#1B2B34", lineHeight: 24 },
-  etaValue: { fontSize: 18, fontWeight: "700", color: "#1B2B34", minWidth: 30, textAlign: "center" },
-  etaPreview: { fontSize: 13, color: "#4B5563", marginBottom: 16 },
-  fleetRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  fleetChip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: theme.selectedTint },
-  fleetChipSelected: { backgroundColor: theme.primary },
-  fleetChipText: { fontSize: 13, color: "#1B2B34" },
-  fleetChipTextSelected: { color: "#FFF" },
-  partnerRow: { padding: 12, backgroundColor: "#f0f7fc", borderRadius: 12, marginBottom: 8 },
-  partnerRowSelected: { backgroundColor: theme.selectedTint, borderWidth: 2, borderColor: theme.primary },
-  partnerName: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
-  partnerPhone: { fontSize: 13, color: "#6B7C85" },
-  modalFooter: { paddingTop: 10, paddingBottom: 14 },
-  acceptBtn: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 30, alignItems: "center", marginTop: 16 },
-  acceptBtnDisabled: { opacity: 0.7 },
-  acceptBtnText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
+  etaUnitLabel: { fontSize: 12, color: theme.textMuted, marginBottom: 6 },
+  etaControl: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: theme.contentPanelBackground,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  etaBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(30,143,177,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  etaBtnText: { fontSize: 20, color: theme.textPrimary, lineHeight: 24 },
+  etaValue: { fontSize: 18, fontWeight: "700", color: theme.textPrimary, minWidth: 30, textAlign: "center" },
+  etaPreview: { fontSize: 13, color: theme.textMuted, marginBottom: 16 },
+  partnerRow: {
+    padding: 12,
+    backgroundColor: theme.contentPanelBackground,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  partnerRowSelected: { backgroundColor: theme.selectedTint, borderWidth: 2, borderColor: theme.accent },
+  partnerName: { fontSize: 15, fontWeight: "600", color: theme.textPrimary },
+  partnerPhone: { fontSize: 13, color: theme.textMuted, marginTop: 2 },
 });
