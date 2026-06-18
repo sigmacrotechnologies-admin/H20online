@@ -84,7 +84,7 @@ export default function SupplierAssignRiderScreen() {
       <View style={styles.header}>
         <LinearGradient colors={["#1E40AF", "#3B82F6", "#60A5FA"]} style={StyleSheet.absoluteFill} />
         <View style={styles.headerRow}>
-          <BackButton onPress={() => router.back()} />
+          <BackButton />
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Assign rider</Text>
             <Text style={styles.headerSubtitle}>Assign delivery partner to orders</Text>

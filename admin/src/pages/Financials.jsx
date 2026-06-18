@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../api/client";
-
-const card = { background: "#f0f7fcd7", borderRadius: 16, padding: 24, marginBottom: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
-const table = { width: "100%", borderCollapse: "collapse" };
-const th = { textAlign: "left", padding: "10px 12px", borderBottom: "2px solid #E5E7EB", fontWeight: 600, color: "#1B2B34" };
-const td = { padding: "10px 12px", borderBottom: "1px solid #E5E7EB", color: "#1B2B34" };
+import PageHeader from "../components/PageHeader";
+import LoadingState from "../components/LoadingState";
 
 export default function Financials() {
   const [data, setData] = useState(null);
@@ -23,70 +20,70 @@ export default function Financials() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p>Loading...</p>;
-  if (!data) return <p>Unable to load financials or access denied.</p>;
+  if (loading) return <LoadingState />;
+  if (!data) return <div className="admin-page"><div className="empty-state">Unable to load financials or access denied.</div></div>;
 
   return (
-    <div>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Financials</h1>
-      <p style={{ color: "#6B7C85", marginBottom: 24 }}>
-        Revenue, platform cut, and wallet-based payment settled. Net profit after supplier and delivery payouts.
-      </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 20, marginBottom: 24 }}>
-        <div style={card}>
-          <div style={{ fontSize: 14, color: "#6B7C85", marginBottom: 4 }}>Total revenue (orders)</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1B2B34" }}>₹{Number(data.totalRevenue || 0).toLocaleString()}</div>
+    <div className="admin-page">
+      <PageHeader
+        title="Financials"
+        subtitle="Revenue, platform cut, and wallet-based payment settled. Net profit after supplier and delivery payouts."
+      />
+      <div className="stat-grid">
+        <div className="stat-card">
+          <div className="stat-card-label">Total revenue (orders)</div>
+          <div className="stat-card-value">₹{Number(data.totalRevenue || 0).toLocaleString()}</div>
         </div>
-        <div style={card}>
-          <div style={{ fontSize: 14, color: "#6B7C85", marginBottom: 4 }}>Platform cut (est.)</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1B2B34" }}>₹{Number(data.platformCutTotal || 0).toLocaleString()}</div>
+        <div className="stat-card">
+          <div className="stat-card-label">Platform cut (est.)</div>
+          <div className="stat-card-value">₹{Number(data.platformCutTotal || 0).toLocaleString()}</div>
         </div>
-        <div style={card}>
-          <div style={{ fontSize: 14, color: "#6B7C85", marginBottom: 4 }}>Payment settled (wallet)</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1B2B34" }}>₹{Number(data.walletRevenue || 0).toLocaleString()}</div>
-          <div style={{ fontSize: 12, color: "#6B7C85" }}>Revenue from wallet orders & bills</div>
+        <div className="stat-card">
+          <div className="stat-card-label">Payment settled (wallet)</div>
+          <div className="stat-card-value">₹{Number(data.walletRevenue || 0).toLocaleString()}</div>
+          <div className="stat-card-hint">Revenue from wallet orders & bills</div>
         </div>
-        <div style={card}>
-          <div style={{ fontSize: 14, color: "#6B7C85", marginBottom: 4 }}>Amount to suppliers</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#B91C1C" }}>₹{Number(data.amountToSuppliers || 0).toLocaleString()}</div>
+        <div className="stat-card">
+          <div className="stat-card-label">Amount to suppliers</div>
+          <div className="stat-card-value danger">₹{Number(data.amountToSuppliers || 0).toLocaleString()}</div>
         </div>
-        <div style={card}>
-          <div style={{ fontSize: 14, color: "#6B7C85", marginBottom: 4 }}>Amount to delivery partners</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#B91C1C" }}>₹{Number(data.amountToDeliveryPartners || 0).toLocaleString()}</div>
+        <div className="stat-card">
+          <div className="stat-card-label">Amount to delivery partners</div>
+          <div className="stat-card-value danger">₹{Number(data.amountToDeliveryPartners || 0).toLocaleString()}</div>
         </div>
-        <div style={card}>
-          <div style={{ fontSize: 14, color: "#6B7C85", marginBottom: 4 }}>Net profit (wallet)</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#059669" }}>₹{Number(data.netProfit ?? 0).toLocaleString()}</div>
-          <div style={{ fontSize: 12, color: "#6B7C85" }}>Settled revenue − payouts</div>
+        <div className="stat-card">
+          <div className="stat-card-label">Net profit (wallet)</div>
+          <div className="stat-card-value success">₹{Number(data.netProfit ?? 0).toLocaleString()}</div>
+          <div className="stat-card-hint">Settled revenue − payouts</div>
         </div>
-        <div style={card}>
-          <div style={{ fontSize: 14, color: "#6B7C85", marginBottom: 4 }}>Platform wallet balance</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1B2B34" }}>₹{Number(data.platformWalletBalance || 0).toLocaleString()}</div>
+        <div className="stat-card">
+          <div className="stat-card-label">Platform wallet balance</div>
+          <div className="stat-card-value">₹{Number(data.platformWalletBalance || 0).toLocaleString()}</div>
         </div>
-        <div style={card}>
-          <div style={{ fontSize: 14, color: "#6B7C85", marginBottom: 4 }}>Order count</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: "#1B2B34" }}>{data.orderCount || 0}</div>
+        <div className="stat-card">
+          <div className="stat-card-label">Order count</div>
+          <div className="stat-card-value">{data.orderCount || 0}</div>
         </div>
       </div>
-      <div style={card}>
-        <h3 style={{ marginTop: 0 }}>By day (last 30 days)</h3>
-        <div style={{ overflowX: "auto" }}>
-          <table style={table}>
+      <div className="card">
+        <h3 className="card-title">By day (last 30 days)</h3>
+        <div className="table-wrap" style={{ border: "none", boxShadow: "none" }}>
+          <table className="data-table">
             <thead>
               <tr>
-                <th style={th}>Date</th>
-                <th style={th}>Revenue</th>
-                <th style={th}>Platform cut</th>
-                <th style={th}>Orders</th>
+                <th>Date</th>
+                <th>Revenue</th>
+                <th>Platform cut</th>
+                <th>Orders</th>
               </tr>
             </thead>
             <tbody>
               {(data.byDay || []).map((row) => (
                 <tr key={row.date}>
-                  <td style={td}>{row.date}</td>
-                  <td style={td}>₹{Number(row.revenue || 0).toLocaleString()}</td>
-                  <td style={td}>₹{Number(row.platformCut || 0).toLocaleString()}</td>
-                  <td style={td}>{row.orderCount || 0}</td>
+                  <td>{row.date}</td>
+                  <td>₹{Number(row.revenue || 0).toLocaleString()}</td>
+                  <td>₹{Number(row.platformCut || 0).toLocaleString()}</td>
+                  <td>{row.orderCount || 0}</td>
                 </tr>
               ))}
             </tbody>

@@ -1,6 +1,12 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { Platform } from "react-native";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api/client";
+
+const DOCS_DEMO_CART = [
+  { id: "docs-demo-1", productName: "AquaPure Premium 20L Jar", supplierName: "AquaPure Water Co.", price: 180, qty: 2 },
+  { id: "docs-demo-2", productName: "BlueSprings Local 20L Jar", supplierName: "BlueSprings Hydration Hub", price: 120, qty: 1 },
+];
 
 const CartContext = createContext(null);
 
@@ -10,14 +16,27 @@ export function CartProvider({ children }) {
   const [orders, setOrders] = useState([]);
   const [checkoutDetails, setCheckoutDetailsState] = useState(null);
 
-  const refreshOrders = () => {
-    if (!isAuthenticated) return;
-    api.orders.list().then((list) => setOrders(Array.isArray(list) ? list : [])).catch(() => {});
-  };
+  const refreshOrders = useCallback(() => {
+    if (!isAuthenticated) return Promise.resolve();
+    return api.orders.list().then((list) => setOrders(Array.isArray(list) ? list : [])).catch(() => {});
+  }, [isAuthenticated]);
 
   useEffect(() => {
     refreshOrders();
-  }, [isAuthenticated]);
+  }, [refreshOrders]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("docs") === "1") {
+      setCart(DOCS_DEMO_CART);
+      setCheckoutDetailsState({
+        address: "Flat 402, Sunrise Apartments, Andheri West, Mumbai 400053",
+        receiverName: "Rohit Sharma",
+        receiverPhone: "9988776655",
+      });
+    }
+  }, []);
 
   const addToCart = (item, qty = 1) => {
     setCart((prev) => {

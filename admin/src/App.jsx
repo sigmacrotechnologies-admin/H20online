@@ -13,11 +13,13 @@ import AdminUsers from "./pages/AdminUsers";
 import DeliveryPartners from "./pages/DeliveryPartners";
 import SupplierSupport from "./pages/SupplierSupport";
 import DeliveryPartnerSupport from "./pages/DeliveryPartnerSupport";
+import CustomerSupport from "./pages/CustomerSupport";
 import WalletManagement from "./pages/WalletManagement";
+import LoadingState from "./components/LoadingState";
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div style={{ padding: 40, textAlign: "center" }}>Loading...</div>;
+  if (loading) return <LoadingState label="Loading admin portal..." />;
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }
@@ -58,6 +60,7 @@ function AppRoutes() {
         <Route path="delivery-partners" element={<DeliveryPartners />} />
         <Route path="supplier-support" element={<SupplierSupport />} />
         <Route path="delivery-support" element={<DeliveryPartnerSupport />} />
+        <Route path="customer-support" element={<CustomerSupport />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

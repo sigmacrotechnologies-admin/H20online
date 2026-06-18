@@ -1,15 +1,14 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, Image, Platform, StatusBar } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
-import BackButton from "@/src/components/BackButton";
+import SupplierScreenShell from "@/src/components/supplier/SupplierScreenShell";
+import { SectionCard, EmptyState, SupplierPageHeader, ui } from "@/src/components/supplier/supplierUi";
 import { api } from "@/src/api/client";
 import { theme } from "@/src/theme";
 
 export default function SupplierWalletScreen() {
   const router = useRouter();
-  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
   const [loading, setLoading] = useState(true);
   const [wallet, setWallet] = useState(null);
   const mountedRef = useRef(true);
@@ -58,93 +57,100 @@ export default function SupplierWalletScreen() {
 
   const txns = wallet?.transactions || [];
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerPanel}>
-        <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}>
-          <View style={styles.headerTopRow}>
-            <BackButton onPress={() => router.back()} />
-            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
-            <View style={styles.headerTopSpacer} />
-          </View>
-          <View style={styles.headerInfoRow}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="wallet-outline" size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.headerTextWrap}>
-              <Text style={styles.headerTitle}>Wallet</Text>
-              <Text style={styles.headerSubtitle}>Supplier balance and transaction history</Text>
-            </View>
-          </View>
-        </LinearGradient>
+  const renderTxn = (t, idx) => {
+    const isCredit = t.type === "credit";
+    return (
+      <View key={`${t.ref || "tx"}-${idx}`} style={styles.txnCard}>
+        <View style={[styles.txnIconWrap, isCredit ? styles.txnIconCredit : styles.txnIconDebit]}>
+          <Ionicons name={isCredit ? "arrow-down" : "arrow-up"} size={16} color={isCredit ? "#065F46" : "#9F1239"} />
+        </View>
+        <View style={styles.txnMain}>
+          <Text style={styles.txnRef}>{t.ref || "wallet"}</Text>
+          <Text style={styles.txnType}>{t.type || "credit"}</Text>
+        </View>
+        <Text style={[styles.txnAmount, isCredit ? styles.creditText : styles.debitText]}>
+          {isCredit ? "+" : "-"}₹{Number(t.amount || 0).toLocaleString()}
+        </Text>
       </View>
+    );
+  };
 
-      <View style={styles.contentSection}>
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentWrap} showsVerticalScrollIndicator={false}>
-          {loading ? (
-            <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24 }} />
-          ) : wallet ? (
-            <>
-              <View style={styles.balanceCard}>
-                <Text style={styles.balanceLabel}>Available balance</Text>
-                <Text style={styles.balanceValue}>₹{Number(wallet.balance || 0).toLocaleString()}</Text>
-              </View>
-              <Text style={styles.sectionTitle}>Recent transactions</Text>
+  return (
+    <SupplierScreenShell
+      showMenu
+      tallHeader
+      headerExtra={
+        <SupplierPageHeader
+          icon="wallet-outline"
+          title="Wallet"
+          subtitle="Balance and recent transactions"
+          stats={[
+            {
+              icon: "cash-outline",
+              label: "Balance",
+              value: `₹${Number(wallet?.balance || 0).toLocaleString()}`,
+            },
+            { icon: "swap-horizontal-outline", label: "Transactions", value: String(txns.length) },
+            {
+              icon: "arrow-down-outline",
+              label: "Credits",
+              value: String(txns.filter((t) => t.type === "credit").length),
+            },
+          ]}
+        />
+      }
+    >
+      <ScrollView contentContainerStyle={ui.scrollContent} showsVerticalScrollIndicator={false}>
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.accent} style={styles.loader} />
+        ) : wallet ? (
+          <>
+            <SectionCard icon="swap-horizontal-outline" title="Recent transactions" subtitle="Your wallet activity">
               {txns.length === 0 ? (
-                <Text style={styles.empty}>No transactions yet.</Text>
+                <EmptyState icon="receipt-outline" title="No transactions yet" subtitle="Wallet activity will appear here." />
               ) : (
-                txns.slice().reverse().map((t, idx) => (
-                  <View key={`${t.ref || "tx"}-${idx}`} style={styles.txnRow}>
-                    <View style={[styles.txnIconWrap, t.type === "credit" ? styles.txnIconCredit : styles.txnIconDebit]}>
-                      <Ionicons name={t.type === "credit" ? "arrow-down" : "arrow-up"} size={14} color={t.type === "credit" ? "#065F46" : "#9F1239"} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.txnRef}>{t.ref || "wallet"}</Text>
-                      <Text style={styles.txnType}>{t.type || "credit"}</Text>
-                    </View>
-                    <Text style={[styles.txnAmount, t.type === "credit" ? styles.creditText : styles.debitText]}>
-                      {t.type === "credit" ? "+" : "-"}₹{Number(t.amount || 0).toLocaleString()}
-                    </Text>
-                  </View>
-                ))
+                txns
+                  .slice()
+                  .reverse()
+                  .map(renderTxn)
               )}
-            </>
-          ) : (
-            <Text style={styles.empty}>Unable to load wallet</Text>
-          )}
-        </ScrollView>
-      </View>
-    </SafeAreaView>
+            </SectionCard>
+          </>
+        ) : (
+          <EmptyState
+            icon="wallet-outline"
+            title="Unable to load wallet"
+            subtitle="Please check your connection and try again."
+          />
+        )}
+      </ScrollView>
+    </SupplierScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
-  headerPanel: { minHeight: 236, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingBottom: 28, paddingHorizontal: 20 },
-  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 22 },
-  headerLogoLight: { width: 124, height: 34 },
-  headerTopSpacer: { width: 40, height: 40 },
-  headerInfoRow: { flexDirection: "row", alignItems: "center" },
-  headerIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center" },
-  headerTextWrap: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
-  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
-  contentSection: { marginTop: -16, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 18, flex: 1, overflow: "hidden" },
-  content: { flex: 1 },
-  contentWrap: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24 },
-  balanceCard: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 16, padding: 18, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)", marginBottom: 14 },
-  balanceLabel: { fontSize: 13, color: "#6B7C85", marginBottom: 6 },
-  balanceValue: { fontSize: 28, fontWeight: "800", color: "#1B2B34" },
-  sectionTitle: { fontSize: 15, fontWeight: "700", color: "#1B2B34", marginBottom: 10 },
-  txnRow: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)", padding: 12, marginBottom: 10 },
-  txnIconWrap: { width: 28, height: 28, borderRadius: 8, justifyContent: "center", alignItems: "center", marginRight: 10 },
+  loader: { marginTop: 32 },
+  txnCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.contentPanelBackground,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+    padding: 12,
+    marginBottom: 10,
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      android: { elevation: 0 },
+    }),
+  },
+  txnIconWrap: { width: 36, height: 36, borderRadius: 12, justifyContent: "center", alignItems: "center", marginRight: 12 },
   txnIconCredit: { backgroundColor: "#D1FAE5" },
   txnIconDebit: { backgroundColor: "#FFE4E6" },
-  txnRef: { fontSize: 14, fontWeight: "600", color: "#1B2B34" },
-  txnType: { fontSize: 12, color: "#6B7C85", marginTop: 2, textTransform: "capitalize" },
-  txnAmount: { fontSize: 14, fontWeight: "700" },
+  txnMain: { flex: 1 },
+  txnRef: { fontSize: 14, fontWeight: "600", color: theme.textPrimary },
+  txnType: { fontSize: 12, color: theme.textMuted, marginTop: 2, textTransform: "capitalize" },
+  txnAmount: { fontSize: 15, fontWeight: "700" },
   creditText: { color: "#065F46" },
   debitText: { color: "#9F1239" },
-  empty: { textAlign: "center", color: "#6B7C85", marginTop: 24 },
 });

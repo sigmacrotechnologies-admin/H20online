@@ -10,6 +10,7 @@ import {
   Modal,
   Image,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
@@ -17,6 +18,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
+import AppLogo from "@/src/components/AppLogo";
+import { goBackOr } from "@/src/utils/navigation";
 import { theme } from "@/src/theme";
 
 let ImagePicker;
@@ -113,7 +116,7 @@ const SupplierOnboardingScreen = () => {
     setShowDocPicker(true);
   };
 
-  const handleBack = () => router.back();
+  const handleBack = () => goBackOr("/");
 
   const handleSubmit = async () => {
     setError("");
@@ -224,12 +227,15 @@ const SupplierOnboardingScreen = () => {
           >
             <View style={styles.headerTopRow}>
               <BackButton onPress={handleBack} />
+              <AppLogo size="header" />
+              <View style={styles.headerSpacer} />
             </View>
             <View style={styles.headerCenter}>
               <View style={styles.headerIconCircle}>
-                <Ionicons name="business-outline" size={36} color="#FFFFFF" />
+                <Ionicons name="business-outline" size={32} color="#FFFFFF" />
               </View>
               <Text style={styles.headerTitle}>Partner onboarding</Text>
+              <Text style={styles.headerSubtitle}>Register as vendor or delivery partner</Text>
             </View>
           </LinearGradient>
         </View>
@@ -580,32 +586,40 @@ const SupplierOnboardingScreen = () => {
 export default SupplierOnboardingScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: theme.screenBackground },
   scrollContent: { paddingBottom: 30 },
-  headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 200, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 24, paddingHorizontal: 36, paddingBottom: 36 },
-  headerTopRow: { flexDirection: "row", alignItems: "center", marginBottom: 0 },
-  headerCenter: { alignItems: "center", justifyContent: "center", marginTop: -14, width: "100%" },
+  headerSection: { marginTop: -10, height: 220, overflow: "hidden" },
+  gradientBackground: { flex: 1, paddingTop: 20, paddingHorizontal: 20, paddingBottom: 36 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+  headerSpacer: { width: 40, height: 40 },
+  logoGlass: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.34)",
+  },
+  headerLogo: { width: 120, height: 32 },
+  headerCenter: { alignItems: "center", justifyContent: "center", marginTop: 4, width: "100%" },
   headerIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     backgroundColor: "rgba(255,255,255,0.25)",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF", textAlign: "center", paddingBottom: 32 },
+  headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF", textAlign: "center" },
+  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.92)", textAlign: "center", marginTop: 4, marginBottom: 20 },
   contentPanel: {
-    marginTop: -16,
-    marginLeft: 2,
-    marginRight: 2,
-    backgroundColor: theme.screenBackground,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    marginTop: -30,
+    backgroundColor: "#F8FCFD",
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     paddingTop: 28,
     paddingHorizontal: 20,
-    overflow: "hidden",
   },
   subtitle: { textAlign: "center", color: theme.textMuted, marginTop: 0, marginBottom: 25, fontSize: 14 },
   sectionTitle: { fontSize: 17, fontWeight: "700", color: theme.textPrimary, marginBottom: 6, marginTop: 8 },
@@ -615,7 +629,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.cardBackground,
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -624,14 +638,21 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   inputIcon: { marginRight: 12 },
-  input: { flex: 1, fontSize: 16, color: theme.textPrimary, padding: 0 },
-  row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20, gap: 12 },
-  halfWidth: { flex: 1 },
-  tileRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 20, gap: 10 },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: theme.textPrimary,
+    padding: 0,
+    minHeight: Platform.OS === "android" ? 24 : 20,
+    ...(Platform.OS === "android" ? { textAlignVertical: "center", includeFontPadding: false } : {}),
+  },
+  row: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 20, width: "100%" },
+  halfWidth: { width: "48%", maxWidth: "48%" },
+  tileRow: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", marginBottom: 20, width: "100%" },
   businessTile: {
     width: "48%",
-    minWidth: 140,
-    backgroundColor: theme.cardBackground,
+    maxWidth: "48%",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     borderWidth: 2,
@@ -648,7 +669,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: theme.cardBackground,
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,

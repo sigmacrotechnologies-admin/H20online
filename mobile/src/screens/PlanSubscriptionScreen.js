@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
@@ -12,15 +11,15 @@ import {
   Image,
   Platform,
   StatusBar,
-  Animated,
-  Easing,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import BackButton from "@/src/components/BackButton";
-import Svg, { Path } from "react-native-svg";
+import AppLogo from "@/src/components/AppLogo";
+import DropletOverlay from "@/src/components/modern/DropletOverlay";
 import { api } from "@/src/api/client";
+import { goBackOr } from "@/src/utils/navigation";
 import { theme } from "@/src/theme";
 
 const PLAN_SLUGS = [
@@ -31,30 +30,63 @@ const PLAN_SLUGS = [
 ];
 
 const FREQUENCIES = [
-  { key: "daily", label: "Daily" },
-  { key: "weekly", label: "Weekly" },
-  { key: "monthly", label: "Monthly" },
+  { key: "daily", label: "Daily", icon: "today-outline" },
+  { key: "weekly", label: "Weekly", icon: "calendar-outline" },
+  { key: "monthly", label: "Monthly", icon: "repeat-outline" },
 ];
-const HEADER_DROPLETS = [
-  { left: -8, top: 18, width: 16, height: 22, phase: "a" },
-  { left: 22, top: 58, width: 14, height: 20, phase: "b" },
-  { left: 56, top: 20, width: 18, height: 24, phase: "c" },
-  { left: 92, top: 86, width: 14, height: 20, phase: "a" },
-  { left: 132, top: 38, width: 16, height: 22, phase: "b" },
-  { left: 172, top: 102, width: 14, height: 20, phase: "c" },
-  { left: 212, top: 60, width: 16, height: 22, phase: "a" },
-  { left: 24, top: 156, width: 14, height: 20, phase: "c" },
-  { left: 84, top: 188, width: 14, height: 20, phase: "a" },
-  { left: 152, top: 174, width: 16, height: 22, phase: "b" },
-  { right: 154, top: 20, width: 16, height: 22, phase: "c" },
-  { right: 118, top: 68, width: 14, height: 20, phase: "a" },
-  { right: 82, top: 30, width: 16, height: 22, phase: "b" },
-  { right: 46, top: 94, width: 14, height: 20, phase: "c" },
-  { right: 10, top: 54, width: 16, height: 22, phase: "a" },
-  { right: -6, top: 124, width: 14, height: 20, phase: "b" },
-  { right: 92, top: 160, width: 14, height: 20, phase: "c" },
-  { right: 28, top: 188, width: 14, height: 20, phase: "a" },
-];
+
+function SectionCard({ icon, title, subtitle, children }) {
+  return (
+    <View style={styles.sectionCard}>
+      <View style={styles.sectionHeader}>
+        <LinearGradient colors={[theme.medium, theme.accent]} style={styles.sectionIcon}>
+          <Ionicons name={icon} size={18} color="#FFFFFF" />
+        </LinearGradient>
+        <View style={styles.sectionHeaderText}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
+        </View>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function GradientChip({ label, selected, onPress, disabled }) {
+  if (selected) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.88} disabled={disabled}>
+        <LinearGradient colors={[theme.medium, theme.accent]} style={styles.gradientChip}>
+          <Text style={styles.gradientChipTextActive}>{label}</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  }
+  return (
+    <TouchableOpacity style={styles.gradientChipInactive} onPress={onPress} activeOpacity={0.88} disabled={disabled}>
+      <Text style={styles.gradientChipText}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function BottomSheetModal({ visible, onClose, title, children, maxHeight = 360 }) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity style={styles.sheetOverlay} activeOpacity={1} onPress={onClose}>
+        <View style={[styles.sheetContent, { maxHeight }]} onStartShouldSetResponder={() => true}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetHeader}>
+            <Text style={styles.sheetTitle}>{title}</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Ionicons name="close" size={24} color={theme.textPrimary} />
+            </TouchableOpacity>
+          </View>
+          {children}
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
 
 // Preferred delivery time: hour (1-12), minute (00, 15, 30, 45), AM/PM — dropdown only, no manual input
 function getPreferredTimeOptions() {
@@ -146,22 +178,6 @@ const PlanSubscriptionScreen = () => {
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
   const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
-  const dropletAnimA = useRef(new Animated.Value(0)).current;
-  const dropletAnimB = useRef(new Animated.Value(0)).current;
-  const dropletAnimC = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = (value, duration) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(value, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-          Animated.timing(value, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        ])
-      );
-    const a = loop(dropletAnimA, 3400), b = loop(dropletAnimB, 4200), c = loop(dropletAnimC, 3800);
-    a.start(); b.start(); c.start();
-    return () => { a.stop(); b.stop(); c.stop(); };
-  }, [dropletAnimA, dropletAnimB, dropletAnimC]);
-  const getDropletAnim = (phase) => phase === "b" ? dropletAnimB : phase === "c" ? dropletAnimC : dropletAnimA;
 
   const fetchActiveSubscriptions = useCallback(async () => {
     try {
@@ -353,7 +369,7 @@ const PlanSubscriptionScreen = () => {
         preferredTimeRangeStart: preferredTimeRangeStart.trim() || undefined,
         preferredTimeRangeEnd: preferredTimeRangeEnd.trim() || undefined,
       });
-      router.back();
+      goBackOr("/dashboard");
     } catch (err) {
       setError(err.message || "Failed to subscribe");
     } finally {
@@ -366,163 +382,142 @@ const PlanSubscriptionScreen = () => {
   };
 
   const weekdayNames = getWeekdayNames();
+  const showSubscribeForm = !isComingSoon && (selectedSlug === "basic" || selectedSlug === "family");
+  const showStickyFooter = showSubscribeForm && !productsLoading && !!planProducts?.products?.length;
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.pageBody}>
         <View style={styles.headerSection}>
           <LinearGradient
             colors={theme.gradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}
+            style={[styles.gradientBackground, { paddingTop: 12 + androidTopInset }]}
           >
-            <View style={styles.headerOverlay}>
-              {HEADER_DROPLETS.map((drop, idx) => {
-                const dropAnim = getDropletAnim(drop.phase);
-                return (
-                  <Animated.View
-                    key={`plan-drop-${idx}`}
-                    style={[styles.dropletWrap, {
-                      left: drop.left, right: drop.right, top: drop.top, width: drop.width, height: drop.height,
-                      opacity: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.16, 0.32] }),
-                      transform: [
-                        { translateY: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] }) },
-                        { scale: dropAnim.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1.05] }) },
-                      ],
-                    }]}
-                  >
-                    <Svg width="100%" height="100%" viewBox="0 0 60 80">
-                      <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.3)" />
-                    </Svg>
-                  </Animated.View>
-                );
-              })}
-            </View>
+            <DropletOverlay />
             <View style={styles.headerTopRow}>
-              <BackButton onPress={() => router.back()} />
-              <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
-              <TouchableOpacity
-                style={styles.headerMenuBtn}
-                activeOpacity={0.7}
-                onPress={() => router.push("/profile")}
-              >
-                <Ionicons name="menu" size={24} color="#FFFFFF" />
+              <BackButton />
+              <AppLogo size="header" />
+              <TouchableOpacity style={styles.headerMenuBtn} activeOpacity={0.7} onPress={() => setShowMenuModal(true)}>
+                <Ionicons name="menu" size={22} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-            <View style={styles.headerCenter}>
-              <View style={styles.headerInfoRow}>
-                <View style={styles.headerIconCircle}>
-                  <Ionicons name="document-text-outline" size={24} color="#FFFFFF" />
-                </View>
-                <View style={styles.headerTextWrap}>
-                  <Text style={styles.headerTitle}>My Plan</Text>
-                  <Text style={styles.headerSubtitle}>Select or add a new or modify your plan here</Text>
-                </View>
-              </View>
-            </View>
+            <Text style={styles.headerTitle}>My Plan</Text>
+            <Text style={styles.headerSubtitle}>Manage subscriptions or set up a new delivery plan</Text>
           </LinearGradient>
         </View>
 
         <View style={styles.contentSection}>
-          {/* Active plans - dropdown showing count and list (display only) */}
-          <Text style={styles.sectionLabel}>Active plans</Text>
-          <View style={styles.activePlansCard}>
-            <TouchableOpacity
-              style={styles.activePlansDropdown}
-              onPress={() => setActivePlansDropdownOpen((open) => !open)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="document-text-outline" size={22} color={theme.primary} style={{ marginRight: 10 }} />
-              <Text style={styles.activePlansDropdownText} numberOfLines={1}>
-                {activeSubscriptions.length === 0
-                  ? "No active plans"
-                  : `${activeSubscriptions.length} plan${activeSubscriptions.length > 1 ? "s" : ""} (tap to view)`}
-              </Text>
-              <Ionicons name={activePlansDropdownOpen ? "chevron-up" : "chevron-down"} size={20} color="#6B7C85" />
-            </TouchableOpacity>
-            {activePlansDropdownOpen &&
-              activeSubscriptions.map((sub) => (
-                <View key={sub.id} style={styles.activePlanItem}>
-                  <Text style={styles.activePlanItemName}>{sub.planName} – {sub.productLabel}</Text>
-                  <Text style={styles.activePlanItemMeta}>
-                    {sub.subscriptionId ? `ID: ${sub.subscriptionId} · ` : ""}{sub.frequency} • ₹{sub.totalPrice} • {sub.selectedDates?.length || 0} dates
-                  </Text>
-                </View>
-              ))}
-          </View>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            {activeSubscriptions.length > 0 ? (
+              <View style={styles.activeSummaryBanner}>
+                <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.activeSummaryGradient}>
+                  <View style={styles.activeSummaryIcon}>
+                    <Ionicons name="document-text-outline" size={22} color="#FFFFFF" />
+                  </View>
+                  <View>
+                    <Text style={styles.activeSummaryLabel}>Active subscriptions</Text>
+                    <Text style={styles.activeSummaryValue}>
+                      {activeSubscriptions.length} plan{activeSubscriptions.length > 1 ? "s" : ""} running
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </View>
+            ) : null}
 
-          <Text style={styles.sectionLabel}>Select new plan</Text>
-          <View style={styles.planTilesRow}>
+            <SectionCard icon="layers-outline" title="Active plans" subtitle="Your current subscriptions">
+              <TouchableOpacity
+                style={styles.activePlansDropdown}
+                onPress={() => setActivePlansDropdownOpen((open) => !open)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.activePlansDropdownText} numberOfLines={1}>
+                  {activeSubscriptions.length === 0
+                    ? "No active plans yet"
+                    : `${activeSubscriptions.length} active plan${activeSubscriptions.length > 1 ? "s" : ""}`}
+                </Text>
+                <Ionicons name={activePlansDropdownOpen ? "chevron-up" : "chevron-down"} size={20} color={theme.textMuted} />
+              </TouchableOpacity>
+              {activePlansDropdownOpen ? (
+                activeSubscriptions.length === 0 ? (
+                  <Text style={styles.emptyActiveText}>Subscribe below to start regular water deliveries.</Text>
+                ) : (
+                  activeSubscriptions.map((sub) => (
+                    <View key={sub.id} style={styles.activePlanItem}>
+                      <Text style={styles.activePlanItemName}>{sub.planName} – {sub.productLabel}</Text>
+                      <Text style={styles.activePlanItemMeta}>
+                        {sub.subscriptionId ? `ID: ${sub.subscriptionId} · ` : ""}
+                        {sub.frequency} • ₹{sub.totalPrice} • {sub.selectedDates?.length || 0} dates
+                      </Text>
+                    </View>
+                  ))
+                )
+              ) : null}
+            </SectionCard>
+
+            <Text style={styles.sectionEyebrow}>Choose a plan</Text>
+            <View style={styles.planTilesRow}>
             {PLAN_SLUGS.map((p) => {
               const isSelected = selectedSlug === p.slug;
               const comingSoon = p.slug === "active" || p.slug === "premium";
               return (
                 <TouchableOpacity
                   key={p.slug}
-                  style={[styles.planTile, isSelected && styles.planTileSelected]}
+                  style={[styles.planTileWrap, isSelected && styles.planTileWrapSelected]}
                   onPress={() => setSelectedSlug(p.slug)}
-                  activeOpacity={1}
+                  activeOpacity={0.88}
                 >
-                  <View style={[styles.planTileIconWrap, isSelected && styles.planTileIconWrapDark]}>
-                    <Ionicons
-                      name={p.icon}
-                      size={24}
-                      color={isSelected ? "#FFFFFF" : comingSoon ? "#9CA3AF" : theme.primary}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.planTileName,
-                      comingSoon && !isSelected && styles.planTileNameMuted,
-                      isSelected && styles.planTileNameWhite,
-                    ]}
-                    numberOfLines={2}
-                  >
-                    {p.name}
-                  </Text>
-                  {comingSoon && (
-                    <Text style={[styles.comingSoonBadge, isSelected && styles.comingSoonBadgeWhite]}>
-                      Coming soon
-                    </Text>
+                  {isSelected ? (
+                    <LinearGradient colors={[theme.medium, theme.accent]} style={styles.planTile}>
+                      <View style={styles.planTileIconWrapActive}>
+                        <Ionicons name={p.icon} size={24} color="#FFFFFF" />
+                      </View>
+                      <Text style={styles.planTileNameWhite} numberOfLines={2}>{p.name}</Text>
+                      {comingSoon ? <Text style={styles.comingSoonBadgeWhite}>Coming soon</Text> : null}
+                    </LinearGradient>
+                  ) : (
+                    <View style={[styles.planTile, comingSoon && styles.planTileMuted]}>
+                      <View style={styles.planTileIconWrap}>
+                        <Ionicons name={p.icon} size={24} color={comingSoon ? "#9CA3AF" : theme.accent} />
+                      </View>
+                      <Text style={[styles.planTileName, comingSoon && styles.planTileNameMuted]} numberOfLines={2}>{p.name}</Text>
+                      {comingSoon ? <Text style={styles.comingSoonBadge}>Coming soon</Text> : null}
+                    </View>
                   )}
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          {isComingSoon && (
+          {isComingSoon ? (
             <View style={styles.comingSoonCard}>
-              <Ionicons name="time-outline" size={48} color="#6B7C85" />
+              <View style={styles.comingSoonIcon}>
+                <Ionicons name="time-outline" size={36} color={theme.accent} />
+              </View>
               <Text style={styles.comingSoonTitle}>Coming soon</Text>
               <Text style={styles.comingSoonText}>This plan is not available yet. Choose Basic Plan or Family Pack.</Text>
             </View>
-          )}
+          ) : null}
 
-          {!isComingSoon && (selectedSlug === "basic" || selectedSlug === "family") && (
+          {showSubscribeForm ? (
             <>
               {productsLoading ? (
                 <View style={styles.loadingWrap}>
-                  <ActivityIndicator size="large" color={theme.primary} />
+                  <ActivityIndicator size="large" color={theme.accent} />
                 </View>
               ) : planProducts?.products?.length ? (
                 <>
-                  <Text style={styles.sectionLabel}>Frequency</Text>
-                  <View style={styles.frequencyRow}>
-                    {FREQUENCIES.map((f) => (
-                      <TouchableOpacity
-                        key={f.key}
-                        style={[styles.freqChip, frequency === f.key && styles.freqChipSelected]}
-                        onPress={() => setFrequency(f.key)}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[styles.freqChipText, frequency === f.key && styles.freqChipTextSelected]}>{f.label}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  <SectionCard icon="pulse-outline" title="Delivery frequency" subtitle="How often should we deliver?">
+                    <View style={styles.frequencyRow}>
+                      {FREQUENCIES.map((f) => (
+                        <GradientChip key={f.key} label={f.label} selected={frequency === f.key} onPress={() => setFrequency(f.key)} />
+                      ))}
+                    </View>
+                  </SectionCard>
 
-                  <Text style={styles.sectionLabel}>Product</Text>
-                  <View style={styles.productGrid}>
+                  <SectionCard icon="cube-outline" title="Product" subtitle="Pick size and pricing">
+                    <View style={styles.productGrid}>
                     {planProducts.products.map((prod) => {
                       const price = frequency === "daily" ? prod.priceDaily : frequency === "weekly" ? prod.priceWeekly : prod.priceMonthly;
                       const isSelected = selectedProduct?.productKey === prod.productKey;
@@ -532,370 +527,330 @@ const PlanSubscriptionScreen = () => {
                           key={prod.id}
                           style={styles.productCardWrapper}
                           onPress={() => setSelectedProduct(prod)}
-                          activeOpacity={1}
+                          activeOpacity={0.88}
                         >
-                          <View style={[styles.productCard, isSelected && styles.productCardSelected]}>
-                            <View style={[styles.productCardIconWrap, isSelected && styles.productCardIconWrapSelected]}>
-                              <Ionicons name={iconName} size={28} color={isSelected ? "#FFFFFF" : theme.primary} />
+                          {isSelected ? (
+                            <LinearGradient colors={[theme.medium, theme.accent]} style={styles.productCard}>
+                              <View style={styles.productCardIconWrapActive}>
+                                <Ionicons name={iconName} size={26} color="#FFFFFF" />
+                              </View>
+                              <Text style={styles.productCardLabelActive} numberOfLines={2}>{prod.productLabel}</Text>
+                              <Text style={styles.productCardPriceActive}>
+                                ₹{price} / {frequency === "daily" ? "day" : frequency === "weekly" ? "week" : "month"}
+                              </Text>
+                            </LinearGradient>
+                          ) : (
+                            <View style={styles.productCard}>
+                              <View style={styles.productCardIconWrap}>
+                                <Ionicons name={iconName} size={26} color={theme.accent} />
+                              </View>
+                              <Text style={styles.productCardLabel} numberOfLines={2}>{prod.productLabel}</Text>
+                              <Text style={styles.productCardPrice}>
+                                ₹{price} / {frequency === "daily" ? "day" : frequency === "weekly" ? "week" : "month"}
+                              </Text>
                             </View>
-                            <Text style={[styles.productCardLabel, isSelected && styles.productCardLabelSelected]} numberOfLines={2}>
-                              {prod.productLabel}
-                            </Text>
-                            <Text style={[styles.productCardPrice, isSelected && styles.productCardPriceSelected]}>
-                              ₹{price} / {frequency === "daily" ? "day" : frequency === "weekly" ? "week" : "month"}
-                            </Text>
-                          </View>
+                          )}
                         </TouchableOpacity>
                       );
                     })}
-                  </View>
+                    </View>
 
-                  <View style={styles.quantityRow}>
-                      <Text style={styles.sectionLabel}>Quantity (max {maxQty})</Text>
+                    <View style={styles.quantityRow}>
+                      <Text style={styles.quantityLabel}>Quantity (max {maxQty})</Text>
                       <View style={styles.quantityControls}>
-                        <TouchableOpacity
-                          style={styles.quantityBtn}
-                          onPress={() => setQuantity((q) => Math.max(1, q - 1))}
-                          disabled={quantity <= 1}
-                        >
-                          <Ionicons name="remove" size={22} color={quantity <= 1 ? "#9CA3AF" : "#1B2B34"} />
+                        <TouchableOpacity style={styles.quantityBtn} onPress={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1}>
+                          <Ionicons name="remove" size={18} color={quantity <= 1 ? "#9CA3AF" : theme.accent} />
                         </TouchableOpacity>
                         <Text style={styles.quantityValue}>{quantity}</Text>
-                        <TouchableOpacity
-                          style={styles.quantityBtn}
-                          onPress={() => setQuantity((q) => Math.min(maxQty, q + 1))}
-                          disabled={quantity >= maxQty}
-                        >
-                          <Ionicons name="add" size={22} color={quantity >= maxQty ? "#9CA3AF" : "#1B2B34"} />
+                        <TouchableOpacity style={styles.quantityBtn} onPress={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty}>
+                          <Ionicons name="add" size={18} color={quantity >= maxQty ? "#9CA3AF" : theme.accent} />
                         </TouchableOpacity>
                       </View>
                     </View>
+                  </SectionCard>
 
-                  <Text style={styles.sectionLabel}>
-                    {frequency === "daily" ? "Select delivery dates (up to 3 months)" : frequency === "weekly" ? "Select weekdays & number of weeks" : "Select days of month & number of months"}
-                  </Text>
-
-                  {frequency === "daily" && (
-                    <>
-                      <View style={styles.rangeToggles}>
-                        <TouchableOpacity
-                          style={[styles.rangeBtn, subscribeRange === "month" && styles.rangeBtnSelected]}
-                          onPress={() => applyRange("month")}
-                        >
-                          <Text style={[styles.rangeBtnText, subscribeRange === "month" && styles.rangeBtnTextSelected]}>Entire month</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.rangeBtn, subscribeRange === "3months" && styles.rangeBtnSelected]}
-                          onPress={() => applyRange("3months")}
-                        >
-                          <Text style={[styles.rangeBtnText, subscribeRange === "3months" && styles.rangeBtnTextSelected]}>3 months</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.rangeBtn, subscribeRange === "custom" && styles.rangeBtnSelected]}
-                          onPress={() => applyRange("custom")}
-                        >
-                          <Text style={[styles.rangeBtnText, subscribeRange === "custom" && styles.rangeBtnTextSelected]}>Custom</Text>
-                        </TouchableOpacity>
-                      </View>
-                      {(subscribeRange === "month" || subscribeRange === "3months") && selectedDates.length > 0 && (
-                        <TouchableOpacity style={styles.clearSelectionBtn} onPress={clearDateSelection} activeOpacity={0.8}>
-                          <Ionicons name="close-circle-outline" size={18} color="#6B7C85" />
-                          <Text style={styles.clearSelectionText}>Clear selection</Text>
-                        </TouchableOpacity>
-                      )}
-                      <View style={styles.calendarWrapper}>
-                      <View style={styles.calendarNav}>
-                        <TouchableOpacity
-                          onPress={() => setCalendarMonthOffset((o) => Math.max(0, o - 1))}
-                          disabled={calendarMonthOffset <= 0}
-                          style={styles.calendarNavBtn}
-                        >
-                          <Ionicons name="chevron-back" size={24} color={calendarMonthOffset <= 0 ? "#9CA3AF" : "#1B2B34"} />
-                        </TouchableOpacity>
-                        <Text style={styles.calendarMonthLabel}>
-                          {displayMonth.toLocaleString("default", { month: "long", year: "numeric" })}
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() => setCalendarMonthOffset((o) => Math.min(2, o + 1))}
-                          disabled={calendarMonthOffset >= 2}
-                          style={styles.calendarNavBtn}
-                        >
-                          <Ionicons name="chevron-forward" size={24} color={calendarMonthOffset >= 2 ? "#9CA3AF" : "#1B2B34"} />
-                        </TouchableOpacity>
-                      </View>
-                      <View style={styles.weekdayRow}>
-                        {weekdayNames.map((name) => (
-                          <Text key={name} style={styles.weekdayHead}>{name}</Text>
-                        ))}
-                      </View>
-                      <View style={styles.calendarGrid}>
-                        {Array.from({ length: firstDayOfWeek }, (_, i) => (
-                          <View key={`pad-${i}`} style={styles.calendarDay} />
-                        ))}
-                        {monthDates.map((d) => {
-                          const isSelected = selectedDates.includes(d.key);
-                          const isPast = d.key < dateToKey(today);
-                          return (
-                            <TouchableOpacity
-                              key={d.key}
-                              style={styles.calendarDay}
-                              onPress={() => !isPast && toggleDate(d.key)}
-                              disabled={isPast}
-                              activeOpacity={0.7}
-                            >
-                              <View style={[
-                                styles.calendarDayInner,
-                                isSelected && styles.calendarDayInnerSelected,
-                                isPast && styles.calendarDayInnerPast,
-                              ]}>
-                                <Text style={[styles.calendarDayText, isSelected && styles.calendarDayTextSelected, isPast && styles.calendarDayTextPast]}>
-                                  {d.day}
-                                </Text>
-                              </View>
+                  <SectionCard
+                    icon="calendar-outline"
+                    title="Delivery schedule"
+                    subtitle={
+                      frequency === "daily"
+                        ? "Select dates up to 3 months ahead"
+                        : frequency === "weekly"
+                          ? "Choose weekdays and duration"
+                          : "Choose days of month and duration"
+                    }
+                  >
+                    {frequency === "daily" ? (
+                      <>
+                        <View style={styles.rangeToggles}>
+                          <GradientChip label="Entire month" selected={subscribeRange === "month"} onPress={() => applyRange("month")} />
+                          <GradientChip label="3 months" selected={subscribeRange === "3months"} onPress={() => applyRange("3months")} />
+                          <GradientChip label="Custom" selected={subscribeRange === "custom"} onPress={() => applyRange("custom")} />
+                        </View>
+                        {(subscribeRange === "month" || subscribeRange === "3months") && selectedDates.length > 0 ? (
+                          <TouchableOpacity style={styles.clearSelectionBtn} onPress={clearDateSelection} activeOpacity={0.8}>
+                            <Ionicons name="close-circle-outline" size={18} color={theme.textMuted} />
+                            <Text style={styles.clearSelectionText}>Clear selection</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                        <View style={styles.calendarWrapper}>
+                          <View style={styles.calendarNav}>
+                            <TouchableOpacity onPress={() => setCalendarMonthOffset((o) => Math.max(0, o - 1))} disabled={calendarMonthOffset <= 0} style={styles.calendarNavBtn}>
+                              <Ionicons name="chevron-back" size={22} color={calendarMonthOffset <= 0 ? "#9CA3AF" : theme.textPrimary} />
                             </TouchableOpacity>
-                          );
-                        })}
-                      </View>
-                      </View>
-                    </>
-                  )}
-
-                  {frequency === "weekly" && (
-                    <View style={styles.weeklySection}>
-                      <Text style={styles.hint}>Select weekdays for delivery</Text>
-                      <View style={styles.weekdayChips}>
-                        {[0, 1, 2, 3, 4, 5, 6].map((day) => (
-                          <TouchableOpacity
-                            key={day}
-                            style={[styles.weekdayChip, weeklyWeekdays.includes(day) && styles.weekdayChipSelected]}
-                            onPress={() => toggleWeekday(day)}
-                          >
-                            <Text style={[styles.weekdayChipText, weeklyWeekdays.includes(day) && styles.weekdayChipTextSelected]}>
-                              {weekdayNames[day]}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                      <Text style={styles.hint}>Number of weeks</Text>
-                      <View style={styles.weeksStepper}>
-                        <TouchableOpacity style={styles.quantityBtn} onPress={() => setWeeklyWeeks((w) => Math.max(1, w - 1))}>
-                          <Ionicons name="remove" size={22} color="#1B2B34" />
-                        </TouchableOpacity>
-                        <Text style={styles.quantityValue}>{weeklyWeeks}</Text>
-                        <TouchableOpacity style={styles.quantityBtn} onPress={() => setWeeklyWeeks((w) => Math.min(52, w + 1))}>
-                          <Ionicons name="add" size={22} color="#1B2B34" />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
-
-                  {frequency === "monthly" && (
-                    <View style={styles.monthlySection}>
-                      <Text style={styles.hint}>Delivery days of month (e.g. 1, 15)</Text>
-                      <View style={styles.monthlyDaysRow}>
-                        {[1, 5, 10, 15, 20, 25].map((day) => (
-                          <TouchableOpacity
-                            key={day}
-                            style={[styles.monthlyDayChip, monthlyDays.includes(day) && styles.monthlyDayChipSelected]}
-                            onPress={() =>
-                              setMonthlyDays((prev) =>
-                                prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort((a, b) => a - b)
-                              )
-                            }
-                          >
-                            <Text style={[styles.monthlyDayChipText, monthlyDays.includes(day) && styles.monthlyDayChipTextSelected]}>{day}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                      <Text style={styles.hint}>Number of months</Text>
-                      <View style={styles.weeksStepper}>
-                        <TouchableOpacity style={styles.quantityBtn} onPress={() => setMonthlyMonths((m) => Math.max(1, m - 1))}>
-                          <Ionicons name="remove" size={22} color="#1B2B34" />
-                        </TouchableOpacity>
-                        <Text style={styles.quantityValue}>{monthlyMonths}</Text>
-                        <TouchableOpacity style={styles.quantityBtn} onPress={() => setMonthlyMonths((m) => Math.min(12, m + 1))}>
-                          <Ionicons name="add" size={22} color="#1B2B34" />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
-
-                  <Text style={styles.sectionLabel}>Delivery address</Text>
-                  <Text style={[styles.hint, { marginBottom: 8 }]}>Select the address for subscription delivery. You can add or edit addresses in Profile → Saved Addresses.</Text>
-                  {savedAddresses.length === 0 ? (
-                    <View style={styles.noAddressBox}>
-                      <Ionicons name="location-outline" size={24} color="#6B7C85" />
-                      <Text style={styles.noAddressText}>No saved addresses. Add one in Profile → Saved Addresses to continue.</Text>
-                      <TouchableOpacity style={styles.noAddressBtn} onPress={() => router.push("/saved-addresses")} activeOpacity={0.8}>
-                        <Text style={styles.noAddressBtnText}>Go to Saved Addresses</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <>
-                      <TouchableOpacity style={styles.deliveryTimeInput} onPress={() => setShowAddressPicker(true)} activeOpacity={0.8}>
-                        <Text style={{ color: selectedAddressId ? "#1B2B34" : "#9CA3AF", fontSize: 15 }} numberOfLines={2}>
-                          {selectedAddressId ? (savedAddresses.find((a) => a.id === selectedAddressId)?.fullAddress || "Select address") : "Select address"}
-                        </Text>
-                        <Ionicons name="chevron-down" size={20} color="#6B7C85" style={{ position: "absolute", right: 12, top: 14 }} />
-                      </TouchableOpacity>
-                      <Modal visible={showAddressPicker} transparent animationType="slide">
-                        <TouchableOpacity style={styles.menuModalOverlay} activeOpacity={1} onPress={() => setShowAddressPicker(false)}>
-                          <View style={[styles.menuModalContent, { maxHeight: 360 }]} onStartShouldSetResponder={() => true}>
-                            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" }}>
-                              <Text style={{ fontSize: 16, fontWeight: "700", color: "#1B2B34" }}>Select address</Text>
-                              <TouchableOpacity onPress={() => setShowAddressPicker(false)}><Ionicons name="close" size={24} color="#6B7C85" /></TouchableOpacity>
-                            </View>
-                            <ScrollView style={{ maxHeight: 300 }}>
-                              {savedAddresses.map((a) => (
-                                <TouchableOpacity
-                                  key={a.id}
-                                  style={[styles.menuModalItem, selectedAddressId === a.id && { backgroundColor: "#E0F2FE" }]}
-                                  onPress={() => { setSelectedAddressId(a.id); setShowAddressPicker(false); }}
-                                  activeOpacity={0.8}
-                                >
-                                  <Text style={styles.menuModalItemText} numberOfLines={2}>{a.fullAddress || "—"}</Text>
-                                  {selectedAddressId === a.id && <Ionicons name="checkmark" size={20} color={theme.primary} />}
-                                </TouchableOpacity>
-                              ))}
-                            </ScrollView>
+                            <Text style={styles.calendarMonthLabel}>{displayMonth.toLocaleString("default", { month: "long", year: "numeric" })}</Text>
+                            <TouchableOpacity onPress={() => setCalendarMonthOffset((o) => Math.min(2, o + 1))} disabled={calendarMonthOffset >= 2} style={styles.calendarNavBtn}>
+                              <Ionicons name="chevron-forward" size={22} color={calendarMonthOffset >= 2 ? "#9CA3AF" : theme.textPrimary} />
+                            </TouchableOpacity>
                           </View>
-                        </TouchableOpacity>
-                      </Modal>
-                    </>
-                  )}
+                          <View style={styles.weekdayRow}>
+                            {weekdayNames.map((name) => (
+                              <Text key={name} style={styles.weekdayHead}>{name}</Text>
+                            ))}
+                          </View>
+                          <View style={styles.calendarGrid}>
+                            {Array.from({ length: firstDayOfWeek }, (_, i) => (
+                              <View key={`pad-${i}`} style={styles.calendarDay} />
+                            ))}
+                            {monthDates.map((d) => {
+                              const isSelected = selectedDates.includes(d.key);
+                              const isPast = d.key < dateToKey(today);
+                              return (
+                                <TouchableOpacity key={d.key} style={styles.calendarDay} onPress={() => !isPast && toggleDate(d.key)} disabled={isPast} activeOpacity={0.7}>
+                                  {isSelected ? (
+                                    <LinearGradient colors={[theme.medium, theme.accent]} style={styles.calendarDayInner}>
+                                      <Text style={styles.calendarDayTextSelected}>{d.day}</Text>
+                                    </LinearGradient>
+                                  ) : (
+                                    <View style={[styles.calendarDayInner, isPast && styles.calendarDayInnerPast]}>
+                                      <Text style={[styles.calendarDayText, isPast && styles.calendarDayTextPast]}>{d.day}</Text>
+                                    </View>
+                                  )}
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        </View>
+                      </>
+                    ) : null}
 
-                  <Text style={styles.sectionLabel}>Preferred delivery time range</Text>
-                  <Text style={[styles.hint, { marginBottom: 8 }]}>Choose a 1-hour window when you want delivery (e.g. 11:00 AM – 12:00 PM). Set by you when selecting the plan.</Text>
-                  <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
-                    <TouchableOpacity style={[styles.deliveryTimeInput, { flex: 1 }]} onPress={() => setShowTimeStartPicker(true)} activeOpacity={0.8}>
-                      <Text style={{ color: preferredTimeRangeStart ? "#1B2B34" : "#9CA3AF", fontSize: 15 }}>{preferredTimeRangeStart || "From"}</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.deliveryTimeInput, { flex: 1 }]} onPress={() => setShowTimeEndPicker(true)} activeOpacity={0.8}>
-                      <Text style={{ color: preferredTimeRangeEnd ? "#1B2B34" : "#9CA3AF", fontSize: 15 }}>{preferredTimeRangeEnd || "To"}</Text>
-                    </TouchableOpacity>
-                  </View>
-                  <Modal visible={showTimeStartPicker} transparent animationType="slide">
-                    <TouchableOpacity style={styles.menuModalOverlay} activeOpacity={1} onPress={() => setShowTimeStartPicker(false)}>
-                      <View style={[styles.menuModalContent, { maxHeight: 320 }]} onStartShouldSetResponder={() => true}>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" }}>
-                          <Text style={{ fontSize: 16, fontWeight: "700", color: "#1B2B34" }}>From (start)</Text>
-                          <TouchableOpacity onPress={() => setShowTimeStartPicker(false)}><Ionicons name="close" size={24} color="#6B7C85" /></TouchableOpacity>
-                        </View>
-                        <ScrollView style={{ maxHeight: 260 }}>
-                          {PREFERRED_TIME_OPTIONS.filter((o) => o.value).map((opt) => (
-                            <TouchableOpacity key={opt.value} style={[styles.menuModalItem, preferredTimeRangeStart === opt.value && { backgroundColor: "#E0F2FE" }]} onPress={() => { setPreferredTimeRangeStart(opt.value); setShowTimeStartPicker(false); }} activeOpacity={0.8}>
-                              <Text style={styles.menuModalItemText}>{opt.label}</Text>
-                              {preferredTimeRangeStart === opt.value && <Ionicons name="checkmark" size={20} color={theme.primary} />}
-                            </TouchableOpacity>
+                    {frequency === "weekly" ? (
+                      <View style={styles.weeklySection}>
+                        <Text style={styles.hint}>Select weekdays for delivery</Text>
+                        <View style={styles.weekdayChips}>
+                          {[0, 1, 2, 3, 4, 5, 6].map((day) => (
+                            <GradientChip key={day} label={weekdayNames[day]} selected={weeklyWeekdays.includes(day)} onPress={() => toggleWeekday(day)} />
                           ))}
-                        </ScrollView>
-                      </View>
-                    </TouchableOpacity>
-                  </Modal>
-                  <Modal visible={showTimeEndPicker} transparent animationType="slide">
-                    <TouchableOpacity style={styles.menuModalOverlay} activeOpacity={1} onPress={() => setShowTimeEndPicker(false)}>
-                      <View style={[styles.menuModalContent, { maxHeight: 320 }]} onStartShouldSetResponder={() => true}>
-                        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" }}>
-                          <Text style={{ fontSize: 16, fontWeight: "700", color: "#1B2B34" }}>To (end)</Text>
-                          <TouchableOpacity onPress={() => setShowTimeEndPicker(false)}><Ionicons name="close" size={24} color="#6B7C85" /></TouchableOpacity>
                         </View>
-                        <ScrollView style={{ maxHeight: 260 }}>
-                          {PREFERRED_TIME_OPTIONS.filter((o) => o.value).map((opt) => (
-                            <TouchableOpacity key={opt.value} style={[styles.menuModalItem, preferredTimeRangeEnd === opt.value && { backgroundColor: "#E0F2FE" }]} onPress={() => { setPreferredTimeRangeEnd(opt.value); setShowTimeEndPicker(false); }} activeOpacity={0.8}>
-                              <Text style={styles.menuModalItemText}>{opt.label}</Text>
-                              {preferredTimeRangeEnd === opt.value && <Ionicons name="checkmark" size={20} color={theme.primary} />}
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
+                        <Text style={styles.hint}>Number of weeks</Text>
+                        <View style={styles.weeksStepper}>
+                          <TouchableOpacity style={styles.quantityBtn} onPress={() => setWeeklyWeeks((w) => Math.max(1, w - 1))}>
+                            <Ionicons name="remove" size={18} color={theme.accent} />
+                          </TouchableOpacity>
+                          <Text style={styles.quantityValue}>{weeklyWeeks}</Text>
+                          <TouchableOpacity style={styles.quantityBtn} onPress={() => setWeeklyWeeks((w) => Math.min(52, w + 1))}>
+                            <Ionicons name="add" size={18} color={theme.accent} />
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                    </TouchableOpacity>
-                  </Modal>
+                    ) : null}
+
+                    {frequency === "monthly" ? (
+                      <View style={styles.monthlySection}>
+                        <Text style={styles.hint}>Delivery days of month (e.g. 1, 15)</Text>
+                        <View style={styles.monthlyDaysRow}>
+                          {[1, 5, 10, 15, 20, 25].map((day) => (
+                            <GradientChip
+                              key={day}
+                              label={String(day)}
+                              selected={monthlyDays.includes(day)}
+                              onPress={() =>
+                                setMonthlyDays((prev) =>
+                                  prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort((a, b) => a - b)
+                                )
+                              }
+                            />
+                          ))}
+                        </View>
+                        <Text style={styles.hint}>Number of months</Text>
+                        <View style={styles.weeksStepper}>
+                          <TouchableOpacity style={styles.quantityBtn} onPress={() => setMonthlyMonths((m) => Math.max(1, m - 1))}>
+                            <Ionicons name="remove" size={18} color={theme.accent} />
+                          </TouchableOpacity>
+                          <Text style={styles.quantityValue}>{monthlyMonths}</Text>
+                          <TouchableOpacity style={styles.quantityBtn} onPress={() => setMonthlyMonths((m) => Math.min(12, m + 1))}>
+                            <Ionicons name="add" size={18} color={theme.accent} />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : null}
+                  </SectionCard>
+
+                  <SectionCard icon="location-outline" title="Delivery address" subtitle="Where should we deliver your subscription?">
+                    {savedAddresses.length === 0 ? (
+                      <View style={styles.noAddressBox}>
+                        <Ionicons name="location-outline" size={24} color={theme.accent} />
+                        <Text style={styles.noAddressText}>No saved addresses yet. Add one to continue.</Text>
+                        <TouchableOpacity style={styles.noAddressBtnWrap} onPress={() => router.push("/saved-addresses")} activeOpacity={0.9}>
+                          <LinearGradient colors={[theme.medium, theme.accent]} style={styles.noAddressBtn}>
+                            <Text style={styles.noAddressBtnText}>Go to Saved Addresses</Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <TouchableOpacity style={styles.pickerInput} onPress={() => setShowAddressPicker(true)} activeOpacity={0.85}>
+                        <Ionicons name="home-outline" size={18} color={theme.accent} />
+                        <Text style={[styles.pickerInputText, !selectedAddressId && styles.pickerInputPlaceholder]} numberOfLines={2}>
+                          {selectedAddressId ? savedAddresses.find((a) => a.id === selectedAddressId)?.fullAddress || "Select address" : "Select address"}
+                        </Text>
+                        <Ionicons name="chevron-down" size={18} color={theme.textMuted} />
+                      </TouchableOpacity>
+                    )}
+                  </SectionCard>
+
+                  <SectionCard icon="time-outline" title="Preferred delivery window" subtitle="Choose a 1-hour slot (e.g. 11:00 AM – 12:00 PM)">
+                    <View style={styles.timeRangeRow}>
+                      <TouchableOpacity style={styles.pickerInput} onPress={() => setShowTimeStartPicker(true)} activeOpacity={0.85}>
+                        <Ionicons name="sunny-outline" size={18} color={theme.accent} />
+                        <Text style={[styles.pickerInputText, !preferredTimeRangeStart && styles.pickerInputPlaceholder]}>{preferredTimeRangeStart || "From"}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.pickerInput} onPress={() => setShowTimeEndPicker(true)} activeOpacity={0.85}>
+                        <Ionicons name="moon-outline" size={18} color={theme.accent} />
+                        <Text style={[styles.pickerInputText, !preferredTimeRangeEnd && styles.pickerInputPlaceholder]}>{preferredTimeRangeEnd || "To"}</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </SectionCard>
 
                   <View style={styles.summaryCard}>
-                    <View style={styles.summaryRow}>
-                      <Ionicons name="wallet-outline" size={24} color={theme.primary} style={styles.summaryIcon} />
-                      <View style={styles.summaryContent}>
-                        <Text style={styles.summaryLabel}>Total</Text>
-                        <Text style={styles.summaryPrice}>₹{totalPrice}</Text>
-                        <Text style={styles.summaryMeta}>
-                          {selectedProduct?.productLabel} × {quantity} × {resolvedDates.length} delivery dates
-                        </Text>
+                    <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.summaryGradient}>
+                      <View style={styles.summaryLeft}>
+                        <View style={styles.summaryIconWrap}>
+                          <Ionicons name="wallet-outline" size={22} color="#FFFFFF" />
+                        </View>
+                        <View>
+                          <Text style={styles.summaryLabel}>Estimated total</Text>
+                          <Text style={styles.summaryMeta}>
+                            {selectedProduct?.productLabel} × {quantity} × {resolvedDates.length} deliveries
+                          </Text>
+                        </View>
                       </View>
-                    </View>
+                      <Text style={styles.summaryPrice}>₹{totalPrice}</Text>
+                    </LinearGradient>
                   </View>
 
                   {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-                  <TouchableOpacity
-                    style={[styles.subscribeBtn, (!canSubscribe || submitting) && styles.subscribeBtnDisabled]}
-                    onPress={handleSubscribe}
-                    disabled={!canSubscribe || submitting}
-                    activeOpacity={0.8}
-                  >
-                    {submitting ? (
-                      <ActivityIndicator color="#FFF" />
-                    ) : (
-                      <>
-                        <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" style={{ marginRight: 8 }} />
-                        <Text style={styles.subscribeBtnText}>Subscribe</Text>
-                      </>
-                    )}
-                  </TouchableOpacity>
                 </>
-              ) : !productsLoading && (
+              ) : !productsLoading ? (
                 <Text style={styles.noProducts}>No products for this plan.</Text>
-              )}
+              ) : null}
             </>
-          )}
+          ) : null}
+          </ScrollView>
         </View>
-      </ScrollView>
+      </View>
 
-      <Modal visible={showMenuModal} transparent animationType="fade">
-        <TouchableOpacity
-          style={styles.menuModalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowMenuModal(false)}
-        >
-          <View style={styles.menuModalContent} onStartShouldSetResponder={() => true}>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => { setShowMenuModal(false); router.push("/profile"); }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="person-outline" size={22} color="#1B2B34" />
-              <Text style={styles.menuModalItemText}>Profile</Text>
-              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => { setShowMenuModal(false); router.push("/order-history"); }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="receipt-outline" size={22} color="#1B2B34" />
-              <Text style={styles.menuModalItemText}>Order History</Text>
-              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => { setShowMenuModal(false); router.push("/water-intake"); }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="water-outline" size={22} color="#1B2B34" />
-              <Text style={styles.menuModalItemText}>Water Intake</Text>
-              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.menuModalItem}
-              onPress={() => { setShowMenuModal(false); router.push("/dashboard"); }}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="home-outline" size={22} color="#1B2B34" />
-              <Text style={styles.menuModalItemText}>Dashboard</Text>
-              <Ionicons name="chevron-forward" size={18} color="#6B7C85" />
-            </TouchableOpacity>
+      {showStickyFooter ? (
+        <View style={styles.footer}>
+          <View style={styles.footerSummary}>
+            <Text style={styles.footerLabel}>Plan total</Text>
+            <Text style={styles.footerTotal}>₹{totalPrice}</Text>
           </View>
+          <TouchableOpacity
+            style={[styles.subscribeBtnWrap, (!canSubscribe || submitting) && styles.subscribeBtnDisabled]}
+            onPress={handleSubscribe}
+            disabled={!canSubscribe || submitting}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={!canSubscribe || submitting ? ["#EEF3F7", "#E8EEF2"] : [theme.medium, theme.accent]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.subscribeBtn}
+            >
+              {submitting ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle-outline" size={20} color={!canSubscribe ? "#8A9AA3" : "#FFFFFF"} />
+                  <Text style={[styles.subscribeBtnText, !canSubscribe && styles.subscribeBtnTextDisabled]}>Subscribe</Text>
+                  <Ionicons name="arrow-forward" size={18} color={!canSubscribe ? "#8A9AA3" : "#FFFFFF"} />
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      <BottomSheetModal visible={showAddressPicker} onClose={() => setShowAddressPicker(false)} title="Select address" maxHeight={400}>
+        <ScrollView style={styles.sheetList} nestedScrollEnabled>
+          {savedAddresses.map((a) => (
+            <TouchableOpacity
+              key={a.id}
+              style={[styles.sheetItem, selectedAddressId === a.id && styles.sheetItemActive]}
+              onPress={() => { setSelectedAddressId(a.id); setShowAddressPicker(false); }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.sheetItemText} numberOfLines={2}>{a.fullAddress || "—"}</Text>
+              {selectedAddressId === a.id ? <Ionicons name="checkmark-circle" size={20} color={theme.accent} /> : null}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </BottomSheetModal>
+
+      <BottomSheetModal visible={showTimeStartPicker} onClose={() => setShowTimeStartPicker(false)} title="From (start)" maxHeight={360}>
+        <ScrollView style={styles.sheetList} nestedScrollEnabled>
+          {PREFERRED_TIME_OPTIONS.filter((o) => o.value).map((opt) => (
+            <TouchableOpacity
+              key={opt.value}
+              style={[styles.sheetItem, preferredTimeRangeStart === opt.value && styles.sheetItemActive]}
+              onPress={() => { setPreferredTimeRangeStart(opt.value); setShowTimeStartPicker(false); }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.sheetItemText}>{opt.label}</Text>
+              {preferredTimeRangeStart === opt.value ? <Ionicons name="checkmark-circle" size={20} color={theme.accent} /> : null}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </BottomSheetModal>
+
+      <BottomSheetModal visible={showTimeEndPicker} onClose={() => setShowTimeEndPicker(false)} title="To (end)" maxHeight={360}>
+        <ScrollView style={styles.sheetList} nestedScrollEnabled>
+          {PREFERRED_TIME_OPTIONS.filter((o) => o.value).map((opt) => (
+            <TouchableOpacity
+              key={opt.value}
+              style={[styles.sheetItem, preferredTimeRangeEnd === opt.value && styles.sheetItemActive]}
+              onPress={() => { setPreferredTimeRangeEnd(opt.value); setShowTimeEndPicker(false); }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.sheetItemText}>{opt.label}</Text>
+              {preferredTimeRangeEnd === opt.value ? <Ionicons name="checkmark-circle" size={20} color={theme.accent} /> : null}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </BottomSheetModal>
+
+      <BottomSheetModal visible={showMenuModal} onClose={() => setShowMenuModal(false)} title="Quick links" maxHeight={320}>
+        <TouchableOpacity style={styles.sheetItem} onPress={() => { setShowMenuModal(false); router.push("/profile"); }} activeOpacity={0.85}>
+          <Ionicons name="person-outline" size={20} color={theme.textPrimary} />
+          <Text style={styles.sheetItemText}>Profile</Text>
+          <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
         </TouchableOpacity>
-      </Modal>
+        <TouchableOpacity style={styles.sheetItem} onPress={() => { setShowMenuModal(false); router.push("/order-history"); }} activeOpacity={0.85}>
+          <Ionicons name="receipt-outline" size={20} color={theme.textPrimary} />
+          <Text style={styles.sheetItemText}>Order History</Text>
+          <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.sheetItem} onPress={() => { setShowMenuModal(false); router.push("/water-intake"); }} activeOpacity={0.85}>
+          <Ionicons name="water-outline" size={20} color={theme.textPrimary} />
+          <Text style={styles.sheetItemText}>Water Intake</Text>
+          <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.sheetItem} onPress={() => { setShowMenuModal(false); router.push("/dashboard"); }} activeOpacity={0.85}>
+          <Ionicons name="home-outline" size={20} color={theme.textPrimary} />
+          <Text style={styles.sheetItemText}>Dashboard</Text>
+          <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+        </TouchableOpacity>
+      </BottomSheetModal>
     </SafeAreaView>
   );
 };
@@ -903,239 +858,370 @@ const PlanSubscriptionScreen = () => {
 export default PlanSubscriptionScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
-  scrollContent: { paddingBottom: 40 },
-  headerSection: { minHeight: 236, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingHorizontal: 20, paddingBottom: 34 },
-  headerOverlay: { ...StyleSheet.absoluteFillObject },
-  dropletWrap: { position: "absolute", alignItems: "center", justifyContent: "center" },
-  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 30 },
-  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
-  headerMenuBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" },
-  headerCenter: { alignItems: "flex-start", justifyContent: "center", marginTop: 2, width: "100%" },
-  headerInfoRow: { flexDirection: "row", alignItems: "center" },
-  headerTextWrap: { flex: 1, marginLeft: 12 },
-  headerIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center", marginBottom: 2 },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
-  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
-  contentSection: {
-    marginTop: -16,
-    backgroundColor: theme.screenBackground,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 0,
-  },
-  sectionLabel: { fontSize: 15, fontWeight: "700", color: "#1B2B34", marginBottom: 10 },
-  activePlansCard: {
-    backgroundColor: "rgba(255,255,255,0.78)",
+  container: { flex: 1, backgroundColor: theme.screenBackground },
+  pageBody: { flex: 1 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 150 },
+  headerSection: { flexShrink: 0, overflow: "hidden" },
+  gradientBackground: { paddingHorizontal: 20, paddingBottom: 32 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
+  logoGlass: {
+    backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 0,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.34)",
   },
-  activePlansDropdown: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 4 },
-  activePlansDropdownText: { flex: 1, fontSize: 15, fontWeight: "600", color: "#1B2B34" },
-  activePlanItem: { borderTopWidth: 1, borderTopColor: "#E5E7EB", paddingVertical: 12, paddingHorizontal: 4 },
-  activePlanItemName: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
-  activePlanItemMeta: { fontSize: 13, color: "#6B7C85", marginTop: 4 },
-  planTilesRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 },
-  planTile: {
-    width: "48%",
-    minWidth: 140,
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 0,
-  },
-  planTileSelected: {
-    backgroundColor: theme.primary,
-    borderWidth: 2,
-    borderColor: theme.primary,
-  },
-  planTileIconWrap: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.selectedTint, justifyContent: "center", alignItems: "center", marginBottom: 10 },
-  planTileIconWrapDark: { backgroundColor: "rgba(255,255,255,0.25)" },
-  planTileName: { fontSize: 14, fontWeight: "700", color: "#1B2B34" },
-  planTileNameMuted: { color: "#6B7C85" },
-  planTileNameWhite: { color: "#FFFFFF" },
-  comingSoonBadge: { fontSize: 11, color: theme.primary, marginTop: 6, fontWeight: "600" },
-  comingSoonBadgeWhite: { color: "rgba(255,255,255,0.9)" },
-  comingSoonCard: {
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 20,
-    padding: 32,
+  headerLogoLight: { width: 108, height: 30 },
+  headerMenuBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.34)",
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 0,
   },
-  comingSoonTitle: { fontSize: 18, fontWeight: "700", color: "#1B2B34", marginTop: 12 },
-  comingSoonText: { fontSize: 14, color: "#6B7C85", marginTop: 8, textAlign: "center" },
-  loadingWrap: { padding: 40, alignItems: "center" },
-  frequencyRow: { flexDirection: "row", gap: 10, marginBottom: 16 },
-  freqChip: {
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.78)",
+  headerTitle: { fontSize: 24, fontWeight: "800", color: "#FFFFFF", letterSpacing: -0.4 },
+  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.92)", marginTop: 6, lineHeight: 18 },
+
+  contentSection: {
+    flex: 1,
+    marginTop: -24,
+    backgroundColor: theme.contentPanelBackground,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.9)",
+    overflow: "hidden",
   },
-  freqChipSelected: {
-    backgroundColor: theme.primary,
+
+  activeSummaryBanner: { borderRadius: 18, overflow: "hidden", marginBottom: 14 },
+  activeSummaryGradient: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
+  activeSummaryIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  freqChipText: { fontSize: 14, fontWeight: "600", color: "#1B2B34" },
-  freqChipTextSelected: { color: "#FFFFFF" },
-  productGrid: {
+  activeSummaryLabel: { fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.85)", textTransform: "uppercase", letterSpacing: 0.4 },
+  activeSummaryValue: { fontSize: 16, fontWeight: "800", color: "#FFFFFF", marginTop: 2 },
+
+  sectionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 6 },
+      android: { elevation: 0 },
+    }),
+  },
+  sectionHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
+  sectionIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  sectionHeaderText: { flex: 1 },
+  sectionTitle: { fontSize: 16, fontWeight: "700", color: theme.textPrimary },
+  sectionSubtitle: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  sectionEyebrow: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+
+  activePlansDropdown: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    marginHorizontal: -6,
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F8FCFD",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  activePlansDropdownText: { flex: 1, fontSize: 14, fontWeight: "600", color: theme.textPrimary, marginRight: 8 },
+  emptyActiveText: { fontSize: 13, color: theme.textMuted, marginTop: 10, lineHeight: 18 },
+  activePlanItem: {
+    borderTopWidth: 1,
+    borderTopColor: "rgba(214,234,242,0.95)",
+    paddingTop: 12,
+    marginTop: 12,
+  },
+  activePlanItemName: { fontSize: 14, fontWeight: "700", color: theme.textPrimary },
+  activePlanItemMeta: { fontSize: 12, color: theme.textMuted, marginTop: 4 },
+
+  planTilesRow: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 16 },
+  planTileWrap: { width: "48%", minWidth: 140, borderRadius: 18, overflow: "hidden" },
+  planTileWrapSelected: {
+    ...Platform.select({
+      ios: { shadowColor: theme.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 },
+      android: { elevation: 0 },
+    }),
+  },
+  planTile: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 16,
+    minHeight: 128,
+    borderWidth: 1.5,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  planTileMuted: { opacity: 0.75 },
+  planTileIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  planTileIconWrapActive: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  planTileName: { fontSize: 14, fontWeight: "700", color: theme.textPrimary },
+  planTileNameMuted: { color: theme.textMuted },
+  planTileNameWhite: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
+  comingSoonBadge: { fontSize: 11, color: theme.accent, marginTop: 6, fontWeight: "600" },
+  comingSoonBadgeWhite: { fontSize: 11, color: "rgba(255,255,255,0.9)", marginTop: 6, fontWeight: "600" },
+
+  comingSoonCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 28,
+    alignItems: "center",
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
   },
-  productCardWrapper: {
-    width: "33.33%",
-    paddingHorizontal: 6,
-    paddingTop: 6,
-    paddingBottom: 10,
-    minWidth: 0,
+  comingSoonIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
   },
+  comingSoonTitle: { fontSize: 18, fontWeight: "700", color: theme.textPrimary, marginTop: 14 },
+  comingSoonText: { fontSize: 14, color: theme.textMuted, marginTop: 8, textAlign: "center", lineHeight: 20 },
+
+  loadingWrap: { padding: 40, alignItems: "center" },
+  frequencyRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  gradientChip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12 },
+  gradientChipInactive: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: "#F8FCFD",
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  gradientChipText: { fontSize: 13, fontWeight: "600", color: theme.textPrimary },
+  gradientChipTextActive: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
+
+  productGrid: { flexDirection: "row", flexWrap: "wrap", marginHorizontal: -4, marginBottom: 4 },
+  productCardWrapper: { width: "33.33%", paddingHorizontal: 4, paddingTop: 4, paddingBottom: 8, minWidth: 0 },
   productCard: {
-    backgroundColor: "rgba(255,255,255,0.78)",
+    backgroundColor: "#F8FCFD",
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 8,
     alignItems: "center",
-    minHeight: 120,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 0,
+    minHeight: 118,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
     flex: 1,
   },
-  productCardSelected: {
-    backgroundColor: theme.primary,
-    borderWidth: 2,
-    borderColor: theme.primary,
-  },
   productCardIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.selectedTint,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(51,175,193,0.1)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 8,
   },
-  productCardIconWrapSelected: { backgroundColor: "rgba(255,255,255,0.25)" },
-  productCardLabel: { fontSize: 12, fontWeight: "600", color: "#1B2B34", textAlign: "center", marginBottom: 4 },
-  productCardLabelSelected: { color: "#FFFFFF" },
-  productCardPrice: { fontSize: 12, fontWeight: "700", color: theme.primary },
-  productCardPriceSelected: { color: "#FFFFFF" },
-  quantityRow: { marginBottom: 16 },
-  quantityControls: { flexDirection: "row", alignItems: "center", gap: 16 },
-  quantityBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.selectedTint, justifyContent: "center", alignItems: "center" },
-  quantityValue: { fontSize: 18, fontWeight: "700", color: "#1B2B34", minWidth: 32, textAlign: "center" },
-  rangeToggles: { flexDirection: "row", gap: 8, marginBottom: 12 },
-  rangeBtn: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.78)" },
-  rangeBtnSelected: { backgroundColor: theme.primary },
-  rangeBtnText: { fontSize: 13, fontWeight: "600", color: "#1B2B34" },
-  rangeBtnTextSelected: { color: "#FFFFFF" },
-  clearSelectionBtn: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", marginBottom: 12, paddingVertical: 6, paddingHorizontal: 10, gap: 6 },
-  clearSelectionText: { fontSize: 13, fontWeight: "600", color: "#6B7C85" },
-  calendarWrapper: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 0,
+  productCardIconWrapActive: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
   },
-  calendarNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
-  calendarNavBtn: { padding: 8 },
-  calendarMonthLabel: { fontSize: 16, fontWeight: "700", color: "#1B2B34" },
-  weekdayRow: { flexDirection: "row", marginBottom: 8 },
-  weekdayHead: { flex: 1, fontSize: 11, fontWeight: "600", color: "#6B7C85", textAlign: "center" },
+  productCardLabel: { fontSize: 11, fontWeight: "600", color: theme.textPrimary, textAlign: "center", marginBottom: 4 },
+  productCardLabelActive: { fontSize: 11, fontWeight: "600", color: "#FFFFFF", textAlign: "center", marginBottom: 4 },
+  productCardPrice: { fontSize: 11, fontWeight: "700", color: theme.accent },
+  productCardPriceActive: { fontSize: 11, fontWeight: "700", color: "#FFFFFF" },
+
+  quantityRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 12 },
+  quantityLabel: { fontSize: 14, fontWeight: "600", color: theme.textPrimary },
+  quantityControls: { flexDirection: "row", alignItems: "center", gap: 12 },
+  quantityBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  quantityValue: { fontSize: 17, fontWeight: "800", color: theme.textPrimary, minWidth: 28, textAlign: "center" },
+
+  rangeToggles: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
+  clearSelectionBtn: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", marginBottom: 12, gap: 6 },
+  clearSelectionText: { fontSize: 13, fontWeight: "600", color: theme.textMuted },
+
+  calendarWrapper: {
+    backgroundColor: "#F8FCFD",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  calendarNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  calendarNavBtn: { padding: 6 },
+  calendarMonthLabel: { fontSize: 15, fontWeight: "700", color: theme.textPrimary },
+  weekdayRow: { flexDirection: "row", marginBottom: 6 },
+  weekdayHead: { flex: 1, fontSize: 11, fontWeight: "600", color: theme.textMuted, textAlign: "center" },
   calendarGrid: { flexDirection: "row", flexWrap: "wrap" },
   calendarDay: { width: "14.28%", aspectRatio: 1, justifyContent: "center", alignItems: "center", padding: 2 },
-  calendarDayInner: { width: 34, height: 34, borderRadius: 17, justifyContent: "center", alignItems: "center", alignSelf: "center", overflow: "hidden" },
-  calendarDayInnerSelected: { backgroundColor: theme.primary },
+  calendarDayInner: { width: 32, height: 32, borderRadius: 16, justifyContent: "center", alignItems: "center" },
   calendarDayInnerPast: { opacity: 0.35 },
-  calendarDayText: { fontSize: 13, fontWeight: "600", color: "#1B2B34" },
-  calendarDayTextSelected: { color: "#FFFFFF" },
+  calendarDayText: { fontSize: 12, fontWeight: "600", color: theme.textPrimary },
+  calendarDayTextSelected: { fontSize: 12, fontWeight: "700", color: "#FFFFFF" },
   calendarDayTextPast: { color: "#9CA3AF" },
-  hint: { fontSize: 13, color: "#6B7C85", marginBottom: 8 },
-  deliveryTimeInput: {
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: "#1B2B34",
-    marginBottom: 20,
+
+  hint: { fontSize: 13, color: theme.textMuted, marginBottom: 8 },
+  weeklySection: { marginBottom: 4 },
+  weekdayChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
+  weeksStepper: { flexDirection: "row", alignItems: "center", gap: 12 },
+  monthlySection: { marginBottom: 4 },
+  monthlyDaysRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
+
+  pickerInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#F8FCFD",
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "rgba(214,234,242,0.95)",
+    flex: 1,
   },
-  noAddressBox: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 12, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)", alignItems: "center" },
-  noAddressText: { fontSize: 14, color: "#6B7C85", textAlign: "center", marginTop: 8 },
-  noAddressBtn: { marginTop: 12, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: theme.primary, borderRadius: 10 },
-  noAddressBtnText: { fontSize: 14, fontWeight: "600", color: "#FFF" },
-  weeklySection: { marginBottom: 20 },
-  weekdayChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  weekdayChip: { paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.78)" },
-  weekdayChipSelected: { backgroundColor: theme.primary },
-  weekdayChipText: { fontSize: 13, fontWeight: "600", color: "#1B2B34" },
-  weekdayChipTextSelected: { color: "#FFFFFF" },
-  weeksStepper: { flexDirection: "row", alignItems: "center", gap: 16 },
-  monthlySection: { marginBottom: 20 },
-  monthlyDaysRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 },
-  monthlyDayChip: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.78)" },
-  monthlyDayChipSelected: { backgroundColor: theme.primary },
-  monthlyDayChipText: { fontSize: 14, fontWeight: "600", color: "#1B2B34" },
-  monthlyDayChipTextSelected: { color: "#FFFFFF" },
-  summaryCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 0,
+  pickerInputText: { flex: 1, fontSize: 14, fontWeight: "600", color: theme.textPrimary },
+  pickerInputPlaceholder: { color: "#9CA3AF", fontWeight: "500" },
+  timeRangeRow: { flexDirection: "row", gap: 10 },
+
+  noAddressBox: {
+    backgroundColor: "#F8FCFD",
+    borderRadius: 14,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
   },
-  summaryRow: { flexDirection: "row", alignItems: "center" },
-  summaryIcon: { marginRight: 12 },
-  summaryContent: { flex: 1 },
-  summaryLabel: { fontSize: 13, color: "#6B7C85", marginBottom: 2 },
-  summaryPrice: { fontSize: 22, fontWeight: "700", color: "#1B2B34" },
-  summaryMeta: { fontSize: 12, color: "#6B7C85", marginTop: 4 },
-  errorText: { fontSize: 14, color: "#EF4444", marginBottom: 12 },
-  subscribeBtn: { backgroundColor: theme.primary, paddingVertical: 16, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center" },
-  subscribeBtnDisabled: { backgroundColor: "#9CA3AF", opacity: 0.8 },
-  subscribeBtnText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF" },
-  noProducts: { fontSize: 14, color: "#6B7C85", textAlign: "center", paddingVertical: 20 },
-  menuModalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-start", paddingTop: 60, paddingRight: 20, alignItems: "flex-end" },
-  menuModalContent: { backgroundColor: "#FFFFFF", borderRadius: 16, paddingVertical: 8, minWidth: 220, elevation: 4, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 8 },
-  menuModalItem: { flexDirection: "row", alignItems: "center", paddingVertical: 14, paddingHorizontal: 18 },
-  menuModalItemText: { flex: 1, fontSize: 16, fontWeight: "600", color: "#1B2B34", marginLeft: 12 },
+  noAddressText: { fontSize: 14, color: theme.textMuted, textAlign: "center", marginTop: 8, lineHeight: 20 },
+  noAddressBtnWrap: { marginTop: 14, borderRadius: 12, overflow: "hidden", alignSelf: "stretch" },
+  noAddressBtn: { paddingVertical: 12, alignItems: "center" },
+  noAddressBtnText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
+
+  summaryCard: { borderRadius: 18, overflow: "hidden", marginBottom: 12 },
+  summaryGradient: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16 },
+  summaryLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  summaryIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  summaryLabel: { fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.85)", textTransform: "uppercase", letterSpacing: 0.4 },
+  summaryMeta: { fontSize: 12, color: "rgba(255,255,255,0.9)", marginTop: 4 },
+  summaryPrice: { fontSize: 24, fontWeight: "800", color: "#FFFFFF" },
+
+  errorText: { fontSize: 14, color: "#EF4444", marginBottom: 12, textAlign: "center" },
+  noProducts: { fontSize: 14, color: theme.textMuted, textAlign: "center", paddingVertical: 20 },
+
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 28 : 20,
+    backgroundColor: theme.contentPanelBackground,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(214,234,242,0.95)",
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 10 },
+      android: { elevation: 0 },
+    }),
+  },
+  footerSummary: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  footerLabel: { fontSize: 13, fontWeight: "600", color: theme.textMuted },
+  footerTotal: { fontSize: 22, fontWeight: "800", color: theme.accent },
+  subscribeBtnWrap: { borderRadius: 16, overflow: "hidden" },
+  subscribeBtnDisabled: { opacity: 0.95 },
+  subscribeBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    minHeight: 54,
+  },
+  subscribeBtnText: { fontSize: 16, fontWeight: "700", color: "#FFFFFF", flex: 1, textAlign: "center" },
+  subscribeBtnTextDisabled: { color: "#8A9AA3" },
+
+  sheetOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  sheetContent: {
+    backgroundColor: theme.contentPanelBackground,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === "ios" ? 28 : 20,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(107,124,133,0.35)",
+    alignSelf: "center",
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  sheetHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  sheetTitle: { fontSize: 18, fontWeight: "700", color: theme.textPrimary },
+  sheetList: { maxHeight: 300 },
+  sheetItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(214,234,242,0.95)",
+  },
+  sheetItemActive: { backgroundColor: "rgba(51,175,193,0.08)", borderRadius: 12, paddingHorizontal: 10 },
+  sheetItemText: { flex: 1, fontSize: 15, fontWeight: "600", color: theme.textPrimary },
 });

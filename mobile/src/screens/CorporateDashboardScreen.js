@@ -12,7 +12,6 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import BackButton from "@/src/components/BackButton";
 import { theme } from "@/src/theme";
 
 const DEPT_TABS = ["Sales", "Tech", "HR", "Ops", "Mktg"];
@@ -92,7 +91,7 @@ const CorporateDashboardScreen = () => {
             style={styles.gradientBackground}
           >
             <View style={styles.headerRow}>
-              <BackButton onPress={() => router.back()} />
+              <View style={styles.headerSpacer} />
               <TouchableOpacity style={styles.bellButton} activeOpacity={0.7}>
                 <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
               </TouchableOpacity>
@@ -350,9 +349,10 @@ const styles = StyleSheet.create({
   headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 120, overflow: "hidden" },
   gradientBackground: { flex: 1, paddingTop: 14, paddingHorizontal: 20, paddingBottom: 16 },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  headerSpacer: { width: 40, height: 40 },
   bellButton: { padding: 8, marginLeft: 8 },
   appTitle: { fontSize: 18, fontWeight: "700", color: "#FFFFFF", textAlign: "center", marginTop: 8 },
-  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 24, paddingHorizontal: 20 },
+  contentPanel: { marginTop: -20, marginLeft: 2, marginRight: 2, backgroundColor: "#F8FCFD", borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 24, paddingHorizontal: 20 },
   hubTitle: { fontSize: 24, fontWeight: "700", color: "#1B2B34", marginBottom: 4 },
   hubSubtitle: { fontSize: 14, color: "#6B7C85", marginBottom: 20 },
   card: { backgroundColor: "rgba(255,255,255,0.85)", borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", elevation: 3 },

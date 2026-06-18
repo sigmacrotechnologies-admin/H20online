@@ -1,28 +1,48 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TextInput, ActivityIndicator, Image, Platform, StatusBar } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TextInput, ActivityIndicator, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import BackButton from "@/src/components/BackButton";
+import SupplierScreenShell from "@/src/components/supplier/SupplierScreenShell";
+import {
+  SectionCard,
+  FilterChip,
+  GradientButton,
+  EmptyState,
+  SupplierPageHeader,
+  ui,
+} from "@/src/components/supplier/supplierUi";
 import { theme } from "@/src/theme";
 import { api } from "@/src/api/client";
 
+const STATUS_OPTIONS = [
+  { value: "", label: "All" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "delivered", label: "Delivered" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
+function statusMeta(status) {
+  if (status === "cancelled") {
+    return { label: "Cancelled", color: "#DC2626", bg: "rgba(220,38,38,0.12)", icon: "close-circle-outline" };
+  }
+  if (status === "in_progress") {
+    return { label: "In progress", color: theme.accent, bg: "rgba(30,143,177,0.12)", icon: "bicycle-outline" };
+  }
+  if (status === "delivered") {
+    return { label: "Delivered", color: "#059669", bg: "rgba(5,150,105,0.12)", icon: "checkmark-circle-outline" };
+  }
+  return { label: status || "Unknown", color: theme.textMuted, bg: "rgba(107,124,133,0.12)", icon: "help-circle-outline" };
+}
+
 export default function SupplierOrderHistoryScreen() {
   const router = useRouter();
-  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
   const [data, setData] = useState({ orders: [], total: 0 });
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState("");
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [search, setSearch] = useState("");
-  const STATUS_OPTIONS = [
-    { value: "", label: "All" },
-    { value: "in_progress", label: "In Progress" },
-    { value: "delivered", label: "Delivered" },
-    { value: "cancelled", label: "Cancelled" },
-  ];
-  const statusLabel = STATUS_OPTIONS.find((s) => s.value === status)?.label || "All";
+
   const load = () => {
     setLoading(true);
     const params = { page, limit: 20 };
@@ -33,159 +53,197 @@ export default function SupplierOrderHistoryScreen() {
   useEffect(() => { load(); }, [page, status]);
   useEffect(() => { const t = setTimeout(() => { if (search !== undefined) load(); }, 400); return () => clearTimeout(t); }, [search]);
 
+  const totalPages = Math.ceil(data.total / 20) || 1;
+  const deliveredOnPage = data.orders.filter((o) => o.status === "delivered").length;
+  const activeOnPage = data.orders.filter((o) => o.status === "in_progress").length;
+
+  const renderOrderCard = (o) => {
+    const meta = statusMeta(o.status);
+    const date = o.createdAt ? new Date(o.createdAt) : null;
+    const itemCount = (o.myItems || o.items || []).length;
+
+    return (
+      <View key={o.id} style={styles.orderCard}>
+        <View style={styles.orderCardTop}>
+          <LinearGradient colors={[theme.medium, theme.accent]} style={styles.orderIcon}>
+            <Ionicons name="receipt-outline" size={20} color="#FFFFFF" />
+          </LinearGradient>
+          <View style={styles.orderMain}>
+            <Text style={styles.orderId}>#{o.id.slice(-6)}</Text>
+            <Text style={styles.orderCustomer} numberOfLines={1}>
+              {o.customerName || o.customerEmail || "Customer"}
+            </Text>
+            {date ? (
+              <Text style={styles.orderDate}>
+                {date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                {" · "}
+                {date.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}
+              </Text>
+            ) : null}
+          </View>
+          <View style={[styles.statusChip, { backgroundColor: meta.bg }]}>
+            <Ionicons name={meta.icon} size={12} color={meta.color} />
+            <Text style={[styles.statusChipText, { color: meta.color }]}>{meta.label}</Text>
+          </View>
+        </View>
+
+        <View style={styles.orderCardBottom}>
+          <View style={styles.orderMetaItem}>
+            <Ionicons name="cube-outline" size={14} color={theme.textMuted} />
+            <Text style={styles.orderMetaText}>
+              {itemCount} item{itemCount !== 1 ? "s" : ""}
+            </Text>
+          </View>
+          <Text style={styles.orderTotal}>₹{Number(o.myTotal || o.total).toLocaleString()}</Text>
+        </View>
+      </View>
+    );
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerPanel}>
-        <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}>
-          <View style={styles.headerTopRow}>
-            <BackButton onPress={() => router.back()} />
-            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
-            <View style={styles.headerTopSpacer} />
-          </View>
-          <View style={styles.headerInfoRow}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="time-outline" size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.headerTextWrap}>
-              <Text style={styles.headerTitle}>Order history</Text>
-              <Text style={styles.headerSubtitle}>Track completed, active and cancelled orders</Text>
-            </View>
-          </View>
-          <View style={styles.headerControls}>
+    <SupplierScreenShell
+      showMenu
+      tallHeader
+      headerExtra={
+        <SupplierPageHeader
+          icon="time-outline"
+          title="Order history"
+          subtitle="Track completed, active and cancelled orders"
+          stats={[
+            { icon: "layers-outline", label: "Total", value: String(data.total || 0) },
+            { icon: "checkmark-circle-outline", label: "Delivered", value: String(deliveredOnPage) },
+            { icon: "bicycle-outline", label: "Active", value: String(activeOnPage) },
+          ]}
+        />
+      }
+    >
+      <ScrollView contentContainerStyle={ui.scrollContent} showsVerticalScrollIndicator={false}>
+        <SectionCard icon="search-outline" title="Search orders" subtitle="Find by customer or address">
+          <View style={styles.searchRow}>
+            <Ionicons name="search-outline" size={18} color={theme.textMuted} />
             <TextInput
-              style={styles.headerSearchInput}
+              style={styles.searchInput}
               value={search}
               onChangeText={setSearch}
               placeholder="Search customer, address"
               placeholderTextColor="#9CA3AF"
             />
-            <View style={styles.dropdownWrap}>
-              <TouchableOpacity style={styles.dropdownBtn} onPress={() => setShowStatusDropdown((v) => !v)} activeOpacity={0.85}>
-                <Text style={styles.dropdownBtnText}>{statusLabel}</Text>
-                <Ionicons name={showStatusDropdown ? "chevron-up" : "chevron-down"} size={18} color="#1B2B34" />
-              </TouchableOpacity>
-              {showStatusDropdown && (
-                <View style={styles.dropdownMenu}>
-                  {STATUS_OPTIONS.map((opt) => (
-                    <TouchableOpacity
-                      key={opt.value || "all"}
-                      style={[styles.dropdownItem, status === opt.value && styles.dropdownItemSelected]}
-                      onPress={() => {
-                        setStatus(opt.value);
-                        setPage(1);
-                        setShowStatusDropdown(false);
-                      }}
-                    >
-                      <Text style={[styles.dropdownItemText, status === opt.value && styles.dropdownItemTextSelected]}>{opt.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
+          </View>
+        </SectionCard>
+
+        <SectionCard icon="funnel-outline" title="Filter by status" subtitle="Browse orders by delivery state">
+          <View style={ui.filterRow}>
+            {STATUS_OPTIONS.map((opt) => (
+              <FilterChip
+                key={opt.value || "all"}
+                label={opt.label}
+                selected={status === opt.value}
+                onPress={() => {
+                  setStatus(opt.value);
+                  setPage(1);
+                }}
+              />
+            ))}
+          </View>
+        </SectionCard>
+
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.accent} style={styles.loader} />
+        ) : data.orders.length === 0 ? (
+          <EmptyState
+            icon="receipt-outline"
+            title="No orders found"
+            subtitle={search.trim() || status ? "Try adjusting your search or filter." : "Your order history will appear here."}
+          />
+        ) : (
+          <>
+            <View style={styles.listHeadingRow}>
+              <Text style={styles.listHeading}>
+                {STATUS_OPTIONS.find((s) => s.value === status)?.label || "All"} orders
+              </Text>
+              <Text style={styles.listCount}>{data.orders.length} shown</Text>
             </View>
-          </View>
-        </LinearGradient>
-      </View>
-      <View style={styles.contentSection}>
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24 }} /> : (
-          data.orders.length === 0 ? <Text style={styles.empty}>No orders</Text> : (
-            data.orders.map((o) => (
-              <View key={o.id} style={styles.card}>
-                <Text style={styles.cardId}>#{o.id.slice(-6)}</Text>
-                <Text style={styles.cardCustomer}>{o.customerName || o.customerEmail}</Text>
-                <Text style={styles.cardTotal}>₹{Number(o.myTotal || o.total).toLocaleString()}</Text>
-                <Text style={styles.cardStatus}>{o.status}</Text>
-                <Text style={styles.cardDate}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString() : ""}</Text>
-              </View>
-            ))
-          )
+            {data.orders.map(renderOrderCard)}
+          </>
         )}
-        {data.total > 20 && (
+
+        {data.total > 20 ? (
           <View style={styles.pagination}>
-            <TouchableOpacity style={styles.pageBtn} disabled={page <= 1} onPress={() => setPage((p) => p - 1)}><Text style={styles.pageBtnText}>Prev</Text></TouchableOpacity>
-            <Text style={styles.pageInfo}>Page {page}</Text>
-            <TouchableOpacity style={styles.pageBtn} disabled={page * 20 >= data.total} onPress={() => setPage((p) => p + 1)}><Text style={styles.pageBtnText}>Next</Text></TouchableOpacity>
+            <GradientButton
+              label="Previous"
+              variant="outline"
+              icon="chevron-back"
+              onPress={() => setPage((p) => p - 1)}
+              disabled={page <= 1}
+              style={{ flex: 1 }}
+            />
+            <Text style={styles.pageInfo}>
+              Page {page} of {totalPages}
+            </Text>
+            <GradientButton
+              label="Next"
+              variant="outline"
+              icon="chevron-forward"
+              onPress={() => setPage((p) => p + 1)}
+              disabled={page * 20 >= data.total}
+              style={{ flex: 1 }}
+            />
           </View>
-        )}
-        </ScrollView>
-      </View>
-    </SafeAreaView>
+        ) : null}
+      </ScrollView>
+    </SupplierScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
-  headerPanel: { minHeight: 304, overflow: "visible", zIndex: 2 },
-  gradientBackground: { flex: 1, paddingBottom: 28, paddingHorizontal: 20 },
-  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 22 },
-  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
-  headerTopSpacer: { width: 40, height: 40 },
-  headerInfoRow: { flexDirection: "row", alignItems: "center" },
-  headerIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center" },
-  headerTextWrap: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
-  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
-  headerControls: { marginTop: 14, marginBottom: 8, zIndex: 20 },
-  headerSearchInput: {
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: Platform.OS === "android" ? 10 : 12,
-    fontSize: 15,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
-    elevation: 0,
-    color: "#1B2B34",
-  },
-  dropdownWrap: { zIndex: 50 },
-  dropdownBtn: {
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
+  searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-  },
-  dropdownBtnText: { fontSize: 14, color: "#1B2B34", fontWeight: "600" },
-  dropdownMenu: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    backgroundColor: theme.contentPanelBackground,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: "rgba(225,235,242,1)",
-    marginTop: 6,
-    overflow: "hidden",
+    borderColor: "rgba(214,234,242,0.95)",
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === "android" ? 4 : 6,
+    gap: 8,
   },
-  dropdownItem: { paddingHorizontal: 12, paddingVertical: 11, backgroundColor: "#FFFFFF" },
-  dropdownItemSelected: { backgroundColor: theme.selectedTint },
-  dropdownItemText: { fontSize: 14, color: "#1B2B34" },
-  dropdownItemTextSelected: { color: theme.primary, fontWeight: "700" },
-  contentSection: {
-    marginTop: -8,
-    backgroundColor: theme.screenBackground,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 16,
-    paddingHorizontal: 20,
-    flex: 1,
-    overflow: "hidden",
-    zIndex: 6,
-    elevation: 6,
+  searchInput: { flex: 1, fontSize: 15, color: theme.textPrimary, paddingVertical: 8 },
+  loader: { marginTop: 32 },
+  listHeadingRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
+  listHeading: { fontSize: 17, fontWeight: "700", color: theme.textPrimary },
+  listCount: { fontSize: 12, fontWeight: "600", color: theme.textMuted },
+  orderCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 8 },
+      android: { elevation: 0 },
+    }),
   },
-  scroll: { flex: 1 },
-  scrollContent: { paddingTop: 8, paddingBottom: 24 },
-  empty: { textAlign: "center", color: "#6B7C85", marginTop: 24 },
-  card: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)" },
-  cardId: { fontSize: 12, color: "#6B7C85" },
-  cardCustomer: { fontSize: 16, fontWeight: "700", color: "#1B2B34", marginTop: 4 },
-  cardTotal: { fontSize: 15, color: theme.primary, marginTop: 4 },
-  cardStatus: { fontSize: 13, color: "#6B7C85", marginTop: 2 },
-  cardDate: { fontSize: 12, color: "#6B7C85", marginTop: 2 },
-  pagination: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 16, marginVertical: 20 },
-  pageBtn: { paddingVertical: 8, paddingHorizontal: 16, backgroundColor: theme.primary, borderRadius: 8 },
-  pageBtnText: { color: "#FFF", fontWeight: "600" },
-  pageInfo: { color: "#1B2B34" },
+  orderCardTop: { flexDirection: "row", alignItems: "center", gap: 12 },
+  orderIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  orderMain: { flex: 1, minWidth: 0 },
+  orderId: { fontSize: 12, fontWeight: "600", color: theme.textMuted },
+  orderCustomer: { fontSize: 15, fontWeight: "700", color: theme.textPrimary, marginTop: 2 },
+  orderDate: { fontSize: 12, color: theme.textMuted, marginTop: 3 },
+  statusChip: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999 },
+  statusChipText: { fontSize: 11, fontWeight: "700" },
+  orderCardBottom: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(214,234,242,0.8)",
+    gap: 12,
+  },
+  orderMetaItem: { flexDirection: "row", alignItems: "center", gap: 4 },
+  orderMetaText: { fontSize: 12, color: theme.textMuted, fontWeight: "500" },
+  orderTotal: { marginLeft: "auto", fontSize: 17, fontWeight: "800", color: theme.accent },
+  pagination: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8, marginBottom: 8 },
+  pageInfo: { fontSize: 13, fontWeight: "600", color: theme.textSecondary, minWidth: 90, textAlign: "center" },
 });

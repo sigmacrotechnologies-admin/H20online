@@ -26,8 +26,14 @@ export function AuthProvider({ children }) {
         if (stored) {
           setAuthToken(stored);
           setTokenState(stored);
-          const u = await api.users.me();
-          setUser(u);
+          try {
+            const u = await api.users.me();
+            setUser(u);
+          } catch (_) {
+            setAuthToken(null);
+            setTokenState(null);
+            if (AsyncStorage) await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+          }
         }
       } catch (_) {}
       setLoading(false);

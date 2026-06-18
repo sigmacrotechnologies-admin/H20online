@@ -14,7 +14,6 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api/client";
-import BackButton from "@/src/components/BackButton";
 import { theme } from "@/src/theme";
 
 const TILES = [
@@ -74,7 +73,7 @@ export default function DeliveryDashboardScreen() {
             style={styles.gradientBackground}
           >
             <View style={styles.headerTopRow}>
-              <BackButton onPress={() => router.back()} />
+              <View style={styles.headerSpacer} />
               <TouchableOpacity style={styles.headerMenuBtn} onPress={() => setMenuVisible(true)} activeOpacity={0.8}>
                 <Ionicons name="menu" size={24} color="#FFFFFF" />
               </TouchableOpacity>
@@ -177,6 +176,7 @@ const styles = StyleSheet.create({
   headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 200, overflow: "hidden" },
   gradientBackground: { flex: 1, paddingTop: 24, paddingHorizontal: 36, paddingBottom: 36 },
   headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 0 },
+  headerSpacer: { width: 40, height: 40 },
   headerMenuBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" },
   headerCenter: { alignItems: "center", justifyContent: "center", marginTop: -14, width: "100%" },
   headerIconCircle: {
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   headerAvatar: { width: 72, height: 72, borderRadius: 36 },
   headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF", textAlign: "center", paddingBottom: 4 },
   headerSubtitle: { fontSize: 14, color: "rgba(255,255,255,0.95)" },
-  contentPanel: { marginTop: -16, marginLeft: 2, marginRight: 2, backgroundColor: theme.screenBackground, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingTop: 28, paddingHorizontal: 20 },
+  contentPanel: { marginTop: -16, marginLeft: 2, marginRight: 2, backgroundColor: "#F8FCFD", borderTopLeftRadius: 32, borderTopRightRadius: 32, paddingTop: 28, paddingHorizontal: 20 },
   tileGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
   tile: {
     width: "48%",

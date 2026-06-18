@@ -1,16 +1,8 @@
 import { useState, useEffect } from "react";
 import { api } from "../api/client";
 import { useAuth } from "../context/AuthContext";
-
-const tableWrap = { overflowX: "auto", background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
-const table = { width: "100%", borderCollapse: "collapse" };
-const th = { textAlign: "left", padding: "12px 16px", borderBottom: "2px solid #E5E7EB", fontWeight: 600, color: "#1B2B34" };
-const td = { padding: "12px 16px", borderBottom: "1px solid #E5E7EB", color: "#1B2B34" };
-const input = { padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", marginRight: 8 };
-const btn = { padding: "8px 16px", borderRadius: 8, border: "none", fontWeight: 600, cursor: "pointer" };
-const btnPrimary = { ...btn, background: "#1EA7FD", color: "#fff" };
-const btnDanger = { ...btn, background: "#EF4444", color: "#fff" };
-const btnSmall = { ...btn, background: "#E0F2FE", color: "#1B2B34", padding: "6px 12px", fontSize: 13 };
+import PageHeader from "../components/PageHeader";
+import LoadingState from "../components/LoadingState";
 
 export default function Users() {
   const [list, setList] = useState([]);
@@ -79,46 +71,45 @@ export default function Users() {
   };
 
   return (
-    <div>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Users</h1>
-      <p style={{ color: "#6B7C85", marginBottom: 24 }}>Search, filter and manage app users (customers & suppliers).</p>
-      <div style={{ marginBottom: 16, display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center" }}>
+    <div className="admin-page">
+      <PageHeader title="Users" subtitle="Search, filter and manage app users (customers & suppliers)." />
+      <div className="filters-bar">
         <input
           type="text"
+          className="input input-wide"
           placeholder="Search name, email, phone"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ ...input, minWidth: 220 }}
         />
-        <select value={role} onChange={(e) => setRole(e.target.value)} style={input}>
+        <select className="select" value={role} onChange={(e) => setRole(e.target.value)}>
           <option value="">All roles</option>
           <option value="customer">Customer</option>
           <option value="supplier">Supplier</option>
         </select>
-        <select value={sort} onChange={(e) => setSort(e.target.value)} style={input}>
+        <select className="select" value={sort} onChange={(e) => setSort(e.target.value)}>
           <option value="createdAt">Date</option>
           <option value="name">Name</option>
           <option value="email">Email</option>
         </select>
-        <select value={order} onChange={(e) => setOrder(e.target.value)} style={input}>
+        <select className="select" value={order} onChange={(e) => setOrder(e.target.value)}>
           <option value="desc">Desc</option>
           <option value="asc">Asc</option>
         </select>
       </div>
       {loading ? (
-        <p>Loading...</p>
+        <LoadingState />
       ) : (
         <>
-          <div style={tableWrap}>
-            <table style={table}>
+          <div className="table-wrap">
+            <table className="data-table">
               <thead>
                 <tr>
-                  <th style={th}>User ID</th>
-                  <th style={th}>Name</th>
-                  <th style={th}>Email</th>
-                  <th style={th}>Phone</th>
-                  <th style={th}>Role</th>
-                  <th style={th}>Actions</th>
+                  <th>User ID</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Role</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,45 +117,45 @@ export default function Users() {
                   <tr key={u.id}>
                     {editing?.id === u.id ? (
                       <>
-                        <td style={td}>{u.userCode || u.id}</td>
-                        <td style={td}>
+                        <td>{u.userCode || u.id}</td>
+                        <td>
                           <input
+                            className="input"
                             value={editing.name}
                             onChange={(e) => setEditing((x) => ({ ...x, name: e.target.value }))}
-                            style={{ ...input, width: "100%", margin: 0 }}
                           />
                         </td>
-                        <td style={td}>
+                        <td>
                           <input
+                            className="input"
                             value={editing.email}
                             onChange={(e) => setEditing((x) => ({ ...x, email: e.target.value }))}
-                            style={{ ...input, width: "100%", margin: 0 }}
                           />
                         </td>
-                        <td style={td}>
+                        <td>
                           <input
+                            className="input"
                             value={editing.phone || ""}
                             onChange={(e) => setEditing((x) => ({ ...x, phone: e.target.value }))}
-                            style={{ ...input, width: "100%", margin: 0 }}
                           />
                         </td>
-                        <td style={td}>{u.role}</td>
-                        <td style={td}>
-                          <button style={btnPrimary} onClick={handleSaveEdit} disabled={saveLoading}>Save</button>
-                          <button style={btnSmall} onClick={() => setEditing(null)}>Cancel</button>
+                        <td>{u.role}</td>
+                        <td>
+                          <button className="btn btn-primary btn-sm" onClick={handleSaveEdit} disabled={saveLoading}>Save</button>
+                          <button className="btn btn-secondary btn-sm" onClick={() => setEditing(null)}>Cancel</button>
                         </td>
                       </>
                     ) : (
                       <>
-                        <td style={td}>{u.userCode || u.id}</td>
-                        <td style={td}>{u.name}</td>
-                        <td style={td}>{u.email}</td>
-                        <td style={td}>{u.phone || "—"}</td>
-                        <td style={td}>{u.role}</td>
-                        <td style={td}>
-                          <button style={btnSmall} onClick={() => setEditing({ ...u })}>Edit</button>
+                        <td>{u.userCode || u.id}</td>
+                        <td>{u.name}</td>
+                        <td>{u.email}</td>
+                        <td>{u.phone || "—"}</td>
+                        <td><span className="badge badge-progress">{u.role}</span></td>
+                        <td>
+                          <button className="btn btn-secondary btn-sm" onClick={() => setEditing({ ...u })}>Edit</button>
                           {canDeleteUser && ["customer", "supplier"].includes(u.role) && (
-                            <button style={{ ...btnSmall, marginLeft: 8, background: "#FEE2E2", color: "#B91C1C" }} onClick={() => handleDelete(u.id)}>Delete</button>
+                            <button className="btn btn-danger btn-sm" onClick={() => handleDelete(u.id)}>Delete</button>
                           )}
                         </td>
                       </>
@@ -174,12 +165,12 @@ export default function Users() {
               </tbody>
             </table>
           </div>
-          <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ color: "#6B7C85" }}>Total: {total}</span>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button style={btnSmall} disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
-              <span style={{ alignSelf: "center" }}>Page {page}</span>
-              <button style={btnSmall} disabled={page * limit >= total} onClick={() => setPage((p) => p + 1)}>Next</button>
+          <div className="pagination-bar">
+            <span className="pagination-meta">Total: {total}</span>
+            <div className="pagination-controls">
+              <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Previous</button>
+              <span>Page {page}</span>
+              <button className="btn btn-secondary btn-sm" disabled={page * limit >= total} onClick={() => setPage((p) => p + 1)}>Next</button>
             </div>
           </div>
         </>

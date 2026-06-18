@@ -12,24 +12,25 @@ import {
   Image,
   Platform,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import { useCart } from "@/src/context/CartContext";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
+import AppLogo from "@/src/components/AppLogo";
 import { theme } from "@/src/theme";
 import ProductRatingsModal from "@/src/components/ProductRatingsModal";
-import { useFocusEffect } from "expo-router";
 
 const FILTERS = [
-  { id: "all", label: "All" },
-  { id: "price", label: "Price" },
-  { id: "delivery", label: "Delivery Time" },
-  { id: "rating", label: "Rating" },
-  { id: "distance", label: "Supplier Distance" },
+  { id: "all", label: "All", icon: "grid-outline" },
+  { id: "price", label: "Price", icon: "pricetag-outline" },
+  { id: "delivery", label: "Fastest", icon: "flash-outline" },
+  { id: "rating", label: "Top rated", icon: "star-outline" },
+  { id: "distance", label: "Nearest", icon: "navigate-outline" },
 ];
 
 const SIZE_RANGES = [
@@ -55,6 +56,100 @@ const HEADER_DROPLETS = [
   { right: 66, top: 78, width: 14, height: 20 },
   { right: 18, top: 26, width: 18, height: 24 },
 ];
+
+const PRODUCT_ASSET_MAP = {
+  "asset://water-camper": require("../../assets/images/Product-icon/Water-Camper.png"),
+  "asset://water-bottle": require("../../assets/images/Product-icon/water-bottle.png"),
+  "asset://plastic-bottle": require("../../assets/images/Product-icon/plastic-bottle.png"),
+  "asset://gallon-bottle": require("../../assets/images/Product-icon/gallon-bottle.png"),
+  "asset://gallon-1": require("../../assets/images/Product-icon/gallon (1).png"),
+  "asset://gallon-2": require("../../assets/images/Product-icon/gallon2.png"),
+  "asset://gallon-3": require("../../assets/images/Product-icon/gallon3.png"),
+  "asset://water-dispenser": require("../../assets/images/Product-icon/water-dispenser.png"),
+  "asset://tank-truck": require("../../assets/images/Product-icon/tank-truck.png"),
+};
+const defaultProductIcon = require("../../assets/images/Product-icon/Water-Camper.png");
+
+function getProductImageSource(item) {
+  if (item?.imageUrl && PRODUCT_ASSET_MAP[item.imageUrl]) return PRODUCT_ASSET_MAP[item.imageUrl];
+  if (item?.imageUrl) {
+    const raw = String(item.imageUrl).trim();
+    const isSafeRemote = raw.startsWith("http://") || raw.startsWith("https://");
+    const isSafeLocal = raw.startsWith("file://") || raw.startsWith("content://");
+    if (isSafeRemote || isSafeLocal) return { uri: raw };
+  }
+  return defaultProductIcon;
+}
+
+function ProductCard({ item, onAddToCart, onBuyNow, onToggleCompare, onViewRatings }) {
+  const badgeLabel =
+    item.badge === "subscription" ? "Sub" : item.badge === "premium" ? "Pro" : null;
+
+  return (
+    <View style={styles.gridCard}>
+      <View style={styles.gridImageWrap}>
+        <LinearGradient colors={["#E0F7FA", "#F8FDFF"]} style={styles.gridImageBg}>
+          <Image source={getProductImageSource(item)} style={styles.gridImage} resizeMode="contain" />
+        </LinearGradient>
+        {badgeLabel ? (
+          <View style={[styles.gridBadge, item.badge === "premium" && styles.gridBadgePremium]}>
+            <Text style={styles.gridBadgeText}>{badgeLabel}</Text>
+          </View>
+        ) : null}
+        <TouchableOpacity
+          style={[styles.gridCompareBtn, item.compareSelected && styles.gridCompareBtnActive]}
+          onPress={() => onToggleCompare(item.id)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name={item.compareSelected ? "git-compare" : "git-compare-outline"} size={14} color={item.compareSelected ? "#FFFFFF" : theme.accent} />
+        </TouchableOpacity>
+        {!item.inStock ? (
+          <View style={styles.gridStockOverlay}>
+            <Text style={styles.gridStockText}>Out</Text>
+          </View>
+        ) : null}
+      </View>
+
+      <TouchableOpacity onPress={() => onViewRatings(item)} activeOpacity={0.85}>
+        <View style={styles.gridRatingRow}>
+          <Ionicons name="star" size={11} color="#EAB308" />
+          <Text style={styles.gridRatingText}>{item.rating}</Text>
+          <Text style={styles.gridRatingCount}>({item.reviewCount})</Text>
+        </View>
+      </TouchableOpacity>
+
+      <Text style={styles.gridName} numberOfLines={2}>{item.productName}</Text>
+      <Text style={styles.gridSupplier} numberOfLines={1}>{item.supplierName}</Text>
+
+      <View style={styles.gridMetaRow}>
+        <Ionicons name="time-outline" size={11} color={theme.textMuted} />
+        <Text style={styles.gridMetaText} numberOfLines={1}>{item.delivery}</Text>
+      </View>
+
+      <Text style={styles.gridPrice}>₹{item.price}</Text>
+      <Text style={styles.gridPriceUnit}>per {item.priceUnit || "unit"}</Text>
+
+      {item.inStock ? (
+        <View style={styles.gridActions}>
+          <TouchableOpacity style={styles.gridCartBtn} onPress={() => onAddToCart(item)} activeOpacity={0.85}>
+            <Ionicons name="cart-outline" size={16} color={theme.accent} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.gridBuyWrap} onPress={() => onBuyNow(item)} activeOpacity={0.9}>
+            <LinearGradient colors={[theme.medium, theme.accent]} style={styles.gridBuyBtn}>
+              <Text style={styles.gridBuyText}>Buy</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={styles.gridActions}>
+          <View style={styles.gridUnavailable}>
+            <Text style={styles.gridUnavailableText}>Unavailable</Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
 
 const OrderScreen = () => {
   const router = useRouter();
@@ -103,7 +198,7 @@ const OrderScreen = () => {
     } catch (_) {
       setSavedAddresses([]);
     }
-  }, [location]);
+  }, [location, setCheckoutDetails]);
 
   useFocusEffect(
     useCallback(() => {
@@ -118,7 +213,6 @@ const OrderScreen = () => {
   const [useCaseSelected, setUseCaseSelected] = useState([]);
   const [sizeSliderMin, setSizeSliderMin] = useState(1);
   const [sizeSliderMax, setSizeSliderMax] = useState(500);
-
   const [ratingsModalProduct, setRatingsModalProduct] = useState(null);
   const [showRatingsModal, setShowRatingsModal] = useState(false);
   const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
@@ -182,6 +276,9 @@ const OrderScreen = () => {
     return list;
   }, [products, searchQuery, activeFilter, sizeRangeSelected, extraSelected, useCaseSelected, sizeSliderMin, sizeSliderMax]);
 
+  const activeFilterCount =
+    sizeRangeSelected.length + extraSelected.length + useCaseSelected.length + (sizeSliderMin > 1 || sizeSliderMax < 500 ? 1 : 0);
+
   const handleBuyNow = (item) => {
     if (!item.inStock) return;
     const selectedByLocation = savedAddresses.find((a) => (a.fullAddress || "").trim() === (location || "").trim());
@@ -197,204 +294,215 @@ const OrderScreen = () => {
     router.push("/checkout");
   };
 
-  const PRODUCT_ASSET_MAP = {
-    "asset://water-camper": require("../../assets/images/Product-icon/Water-Camper.png"),
-    "asset://water-bottle": require("../../assets/images/Product-icon/water-bottle.png"),
-    "asset://plastic-bottle": require("../../assets/images/Product-icon/plastic-bottle.png"),
-    "asset://gallon-bottle": require("../../assets/images/Product-icon/gallon-bottle.png"),
-    "asset://gallon-1": require("../../assets/images/Product-icon/gallon (1).png"),
-    "asset://gallon-2": require("../../assets/images/Product-icon/gallon2.png"),
-    "asset://gallon-3": require("../../assets/images/Product-icon/gallon3.png"),
-    "asset://water-dispenser": require("../../assets/images/Product-icon/water-dispenser.png"),
-    "asset://tank-truck": require("../../assets/images/Product-icon/tank-truck.png"),
+  const retryLoadProducts = () => {
+    setProductsLoading(true);
+    setProductsError(null);
+    api.products
+      .list()
+      .then((raw) => {
+        const list = Array.isArray(raw) ? raw : [];
+        setProducts(list.map((p) => ({ ...p, compareSelected: false })));
+      })
+      .catch((e) => setProductsError(e?.message || "Request failed"))
+      .finally(() => setProductsLoading(false));
   };
-  // Default icon if product has no assigned image.
-  const defaultProductIcon = require("../../assets/images/Product-icon/Water-Camper.png");
-  const getProductImageSource = (item) => {
-    if (item?.imageUrl && PRODUCT_ASSET_MAP[item.imageUrl]) return PRODUCT_ASSET_MAP[item.imageUrl];
-    if (item?.imageUrl) {
-      const raw = String(item.imageUrl).trim();
-      const isSafeRemote = raw.startsWith("http://") || raw.startsWith("https://");
-      const isSafeLocal = raw.startsWith("file://") || raw.startsWith("content://");
-      if (isSafeRemote || isSafeLocal) return { uri: raw };
+
+  const renderEmpty = () => {
+    if (productsLoading) {
+      return (
+        <View style={styles.emptyWrap}>
+          <ActivityIndicator size="large" color={theme.accent} />
+          <Text style={styles.emptyTitle}>Loading products</Text>
+          <Text style={styles.emptyText}>Finding the best water suppliers near you…</Text>
+        </View>
+      );
     }
-    return defaultProductIcon;
+    if (productsError) {
+      return (
+        <View style={styles.emptyWrap}>
+          <View style={styles.emptyIcon}>
+            <Ionicons name="cloud-offline-outline" size={32} color={theme.accent} />
+          </View>
+          <Text style={styles.emptyTitle}>Could not load products</Text>
+          <Text style={styles.emptyText}>{productsError}</Text>
+          <Text style={styles.emptyTextSub}>Check backend is running and EXPO_PUBLIC_API_URL in mobile/.env</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={retryLoadProducts} activeOpacity={0.85}>
+            <Text style={styles.retryBtnText}>Try again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.emptyWrap}>
+        <View style={styles.emptyIcon}>
+          <Ionicons name="water-outline" size={32} color={theme.accent} />
+        </View>
+        <Text style={styles.emptyTitle}>No products found</Text>
+        <Text style={styles.emptyText}>Try adjusting filters or run npm run seed in the backend folder.</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={retryLoadProducts} activeOpacity={0.85}>
+          <Text style={styles.retryBtnText}>Refresh</Text>
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.headerSection}>
-        <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}>
-          <View style={styles.headerOverlay}>
-            {HEADER_DROPLETS.map((d, i) => (
-              <View key={`order-drop-${i}`} style={[styles.dropletWrap, { left: d.left, right: d.right, top: d.top, width: d.width, height: d.height }]}>
-                <Svg width="100%" height="100%" viewBox="0 0 60 80">
-                  <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.28)" />
-                </Svg>
-              </View>
-            ))}
-          </View>
-          <View style={styles.headerTopRow}>
-            <BackButton onPress={() => router.back()} />
-            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
-            <TouchableOpacity style={styles.headerIconBtn} onPress={() => router.push("/cart")} activeOpacity={0.7}>
-              <Ionicons name="cart-outline" size={22} color="#FFFFFF" />
-              {cartCount > 0 && (
-                <View style={styles.cartBadge}>
-                  <Text style={styles.cartBadgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
+      <View style={styles.pageBody}>
+        <View style={styles.headerSection}>
+          <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, { paddingTop: 12 + androidTopInset }]}>
+            <View style={styles.headerOverlay} pointerEvents="none">
+              {HEADER_DROPLETS.map((d, i) => (
+                <View key={`order-drop-${i}`} style={[styles.dropletWrap, { left: d.left, right: d.right, top: d.top, width: d.width, height: d.height }]}>
+                  <Svg width="100%" height="100%" viewBox="0 0 60 80">
+                    <Path d="M30 6 C47 24 57 41 57 54 C57 69 45 78 30 78 C15 78 3 69 3 54 C3 41 13 24 30 6 Z" fill="rgba(255,255,255,0.28)" />
+                  </Svg>
                 </View>
-              )}
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity style={styles.locationRow} onPress={() => setShowLocationPicker(true)} activeOpacity={0.8}>
-            <Ionicons name="location-outline" size={22} color={theme.primary} />
-            <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
-            <Ionicons name="chevron-down" size={20} color="#6B7C85" />
-          </TouchableOpacity>
-          <View style={styles.searchRow}>
-            <View style={styles.searchBox}>
-              <Ionicons name="search" size={20} color="#6B7C85" />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search water suppliers or brands"
-                placeholderTextColor="#9CA3AF"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
+              ))}
             </View>
-            <TouchableOpacity style={styles.filterIconBtn} onPress={() => setShowFilterSheet(true)} activeOpacity={0.7}>
-              <Ionicons name="options-outline" size={24} color="#1B2B34" />
-            </TouchableOpacity>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterScrollContent}>
-            {FILTERS.map((f) => (
-              <TouchableOpacity
-                key={f.id}
-                style={[styles.filterChip, activeFilter === f.id && styles.filterChipActive]}
-                onPress={() => setActiveFilter(f.id)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.filterChipInner}>
-                  <Text style={[styles.filterChipText, activeFilter === f.id && styles.filterChipTextActive]}>
-                    {f.label}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </LinearGradient>
-      </View>
 
-      <View style={styles.contentSection}>
-      <FlatList
-        data={filteredAndSortedProducts}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.listContent, filteredAndSortedProducts.length === 0 && styles.listContentEmpty]}
-        ListEmptyComponent={
-          productsLoading ? (
-            <View style={styles.emptyWrap}><Text style={styles.emptyText}>Loading products…</Text></View>
-          ) : productsError ? (
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>Could not load products.</Text>
-              <Text style={styles.emptyTextSub}>Backend running? Same Wi‑Fi? In mobile/.env set EXPO_PUBLIC_API_URL=http://YOUR_PC_IP:5000 then restart Expo (npm start -c)</Text>
-              <Text style={[styles.emptyText, { marginTop: 8 }]}>{productsError}</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={() => { setProductsLoading(true); setProductsError(null); api.products.list().then((raw) => { const list = Array.isArray(raw) ? raw : []; setProducts(list.map((p) => ({ ...p, compareSelected: false }))); }).catch((e) => setProductsError(e?.message || "Request failed")).finally(() => setProductsLoading(false)); }} activeOpacity={0.8}>
-                <Text style={styles.retryBtnText}>Retry</Text>
+            <View style={styles.headerTopRow}>
+              <BackButton />
+              <AppLogo size="header" />
+              <TouchableOpacity style={styles.headerIconBtn} onPress={() => router.push("/cart")} activeOpacity={0.7}>
+                <Ionicons name="cart-outline" size={22} color="#FFFFFF" />
+                {cartCount > 0 ? (
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>{cartCount > 99 ? "99+" : cartCount}</Text>
+                  </View>
+                ) : null}
               </TouchableOpacity>
             </View>
-          ) : (
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>No products in database.</Text>
-              <Text style={styles.emptyTextSub}>In backend folder run: npm run seed</Text>
-              <TouchableOpacity style={styles.retryBtn} onPress={() => { setProductsLoading(true); api.products.list().then((raw) => { const list = Array.isArray(raw) ? raw : []; setProducts(list.map((p) => ({ ...p, compareSelected: false }))); }).catch((e) => setProductsError(e?.message || "Request failed")).finally(() => setProductsLoading(false)); }} activeOpacity={0.8}>
-                <Text style={styles.retryBtnText}>Retry</Text>
+
+            <Text style={styles.headerTitle}>Order water</Text>
+            <TouchableOpacity style={styles.locationCard} onPress={() => setShowLocationPicker(true)} activeOpacity={0.88}>
+              <LinearGradient colors={["rgba(255,255,255,0.96)", "#FFFFFF"]} style={styles.locationCardInner}>
+                <View style={styles.locationIconWrap}>
+                  <Ionicons name="location" size={18} color={theme.accent} />
+                </View>
+                <View style={styles.locationTextWrap}>
+                  <Text style={styles.locationLabel}>Deliver to</Text>
+                  <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
+                </View>
+                <Ionicons name="chevron-down" size={18} color={theme.textMuted} />
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <View style={styles.headerSearchSection}>
+              <View style={styles.headerSearchBox}>
+                <Ionicons name="search-outline" size={18} color={theme.textMuted} />
+                <TextInput
+                  style={styles.headerSearchInput}
+                  placeholder="Search products or suppliers"
+                  placeholderTextColor="#9CA3AF"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+                {searchQuery ? (
+                  <TouchableOpacity onPress={() => setSearchQuery("")} activeOpacity={0.7}>
+                    <Ionicons name="close-circle" size={16} color={theme.textMuted} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              <TouchableOpacity style={styles.headerFilterBtn} onPress={() => setShowFilterSheet(true)} activeOpacity={0.85}>
+                <Ionicons name="options-outline" size={18} color={theme.accent} />
+                {activeFilterCount > 0 ? (
+                  <View style={styles.filterBadge}>
+                    <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+                  </View>
+                ) : null}
               </TouchableOpacity>
             </View>
-          )
-        }
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            {item.badge && (
-              <View style={[styles.badge, item.badge === "premium" && styles.badgePremium]}>
-                <Text style={styles.badgeText}>{item.badge === "subscription" ? "Available on Subscription" : "Premium Brand"}</Text>
-              </View>
-            )}
-            <View style={styles.cardTopRow}>
-              <View style={styles.cardTitleWrap}>
-                <Text style={styles.productName}>{item.productName}</Text>
-                <Text style={styles.supplierName}>{item.supplierName}</Text>
-                <Text style={styles.priceText}>₹{item.price} / {item.priceUnit}</Text>
-              </View>
-              <View style={styles.cardIconWrap}>
-                <Image source={getProductImageSource(item)} style={styles.productIconImage} resizeMode="contain" />
-              </View>
-            </View>
-            <View style={styles.cardMeta}>
-              <Text style={styles.ratingText}><Ionicons name="star" size={14} color="#EAB308" /> {item.rating} ({item.reviewCount} Reviews)</Text>
-              <TouchableOpacity
-                style={styles.viewRatingsLink}
-                onPress={() => {
-                  setRatingsModalProduct(item);
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.headerSortContent}>
+              {FILTERS.map((f) => {
+                const active = activeFilter === f.id;
+                return (
+                  <TouchableOpacity key={f.id} onPress={() => setActiveFilter(f.id)} activeOpacity={0.88}>
+                    {active ? (
+                      <LinearGradient colors={["rgba(255,255,255,0.95)", "#FFFFFF"]} style={styles.headerFilterChipActive}>
+                        <Ionicons name={f.icon} size={13} color={theme.accent} />
+                        <Text style={styles.headerFilterChipTextActive}>{f.label}</Text>
+                      </LinearGradient>
+                    ) : (
+                      <View style={styles.headerFilterChip}>
+                        <Ionicons name={f.icon} size={13} color="rgba(255,255,255,0.9)" />
+                        <Text style={styles.headerFilterChipText}>{f.label}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </LinearGradient>
+        </View>
+
+        <View style={styles.contentSection}>
+          <FlatList
+            key={filteredAndSortedProducts.length === 0 ? "order-empty" : "order-grid"}
+            style={styles.productList}
+            data={filteredAndSortedProducts}
+            keyExtractor={(item) => String(item.id)}
+            numColumns={filteredAndSortedProducts.length === 0 ? 1 : 2}
+            columnWrapperStyle={filteredAndSortedProducts.length > 0 ? styles.gridRow : undefined}
+            contentContainerStyle={[
+              styles.listContent,
+              filteredAndSortedProducts.length === 0 && styles.listContentEmpty,
+              comparedSuppliers.length > 0 && styles.listContentWithFooter,
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            ListHeaderComponent={
+              productsLoading ? null : filteredAndSortedProducts.length > 0 ? (
+                <View style={styles.listHeader}>
+                  <Text style={styles.listHeaderTitle}>{filteredAndSortedProducts.length} products</Text>
+                  <Text style={styles.listHeaderSub}>Compare up to 2 items</Text>
+                </View>
+              ) : null
+            }
+            ListEmptyComponent={renderEmpty}
+            renderItem={({ item }) => (
+              <ProductCard
+                item={item}
+                onAddToCart={addToCart}
+                onBuyNow={handleBuyNow}
+                onToggleCompare={toggleCompare}
+                onViewRatings={(product) => {
+                  setRatingsModalProduct(product);
                   setShowRatingsModal(true);
                 }}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.viewRatingsText}>View ratings</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.deliveryRow}>
-              <Ionicons name="time-outline" size={16} color="#6B7C85" />
-              <Text style={styles.deliveryText}>Est. {item.delivery}</Text>
-            </View>
-            {!item.inStock && <Text style={styles.outOfStock}>Out of Stock</Text>}
-            <View style={styles.cardActions}>
-              {item.inStock ? (
-                <>
-                  <TouchableOpacity style={styles.addCartBtn} onPress={() => addToCart(item)} activeOpacity={0.8}>
-                    <Text style={styles.addCartText}>Add to Cart</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.buyNowBtn} onPress={() => handleBuyNow(item)} activeOpacity={0.8}>
-                    <Text style={styles.buyNowBtnText}>Buy Now</Text>
-                  </TouchableOpacity>
-                </>
-              ) : (
-                <>
-                  <TouchableOpacity style={styles.unavailableBtn} disabled><Text style={styles.unavailableText}>Unavailable</Text></TouchableOpacity>
-                  <TouchableOpacity style={styles.notifyBtn} activeOpacity={0.8}><Text style={styles.notifyText}>Notify Me</Text></TouchableOpacity>
-                </>
-              )}
-            </View>
-            <TouchableOpacity style={styles.compareRow} onPress={() => toggleCompare(item.id)} activeOpacity={0.7}>
-              <View style={[styles.checkbox, item.compareSelected && styles.checkboxChecked]}>
-                {item.compareSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
-              </View>
-              <Text style={styles.compareLabel}>Compare Supplier</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
+              />
+            )}
+          />
+        </View>
       </View>
 
-      {comparedSuppliers.length > 0 && (
+      {comparedSuppliers.length > 0 ? (
         <View style={styles.stickyFooter}>
-          <Text style={styles.footerLabel}>{comparedSuppliers.length} supplier{comparedSuppliers.length > 1 ? "s" : ""} selected</Text>
-          <TouchableOpacity style={styles.compareFooterBtn} onPress={() => setShowCompareModal(true)} activeOpacity={0.8}>
-            <Text style={styles.compareFooterBtnText}>Compare</Text>
-          </TouchableOpacity>
-          <Text style={styles.footerHint}>Tap to compare prices & services</Text>
+          <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.stickyFooterGradient}>
+            <View>
+              <Text style={styles.footerLabel}>{comparedSuppliers.length} selected for compare</Text>
+              <Text style={styles.footerHint}>Compare price, rating & delivery</Text>
+            </View>
+            <TouchableOpacity style={styles.compareFooterBtn} onPress={() => setShowCompareModal(true)} activeOpacity={0.85}>
+              <Text style={styles.compareFooterBtnText}>Compare</Text>
+              <Ionicons name="git-compare-outline" size={16} color={theme.accent} />
+            </TouchableOpacity>
+          </LinearGradient>
         </View>
-      )}
+      ) : null}
 
-      {/* Compare Suppliers Modal */}
       <Modal visible={showCompareModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.compareModal}>
+            <View style={styles.sheetHandle} />
             <View style={styles.compareModalHeader}>
-              <TouchableOpacity onPress={() => setShowCompareModal(false)}><Ionicons name="chevron-back" size={24} color="#1B2B34" /></TouchableOpacity>
-              <Text style={styles.compareModalTitle}>Compare Suppliers</Text>
-              <View style={{ width: 24 }} />
+              <Text style={styles.compareModalTitle}>Compare suppliers</Text>
+              <TouchableOpacity onPress={() => setShowCompareModal(false)}>
+                <Ionicons name="close" size={24} color={theme.textPrimary} />
+              </TouchableOpacity>
             </View>
-            <ScrollView style={styles.compareScroll} contentContainerStyle={styles.compareScrollContent}>
+            <ScrollView style={styles.compareScroll} contentContainerStyle={styles.compareScrollContent} showsVerticalScrollIndicator={false}>
               <View style={styles.compareCardsRow}>
                 {comparedSuppliers.map((p) => (
                   <View key={p.id} style={styles.compareCard}>
@@ -405,52 +513,44 @@ const OrderScreen = () => {
                     <Text style={styles.compareCardProduct} numberOfLines={2}>{p.productName}</Text>
                   </View>
                 ))}
-                {comparedSuppliers.length === 1 && <View style={styles.compareCard}><Text style={styles.compareCardPlaceholder}>Select one more supplier to compare</Text></View>}
+                {comparedSuppliers.length === 1 ? (
+                  <View style={styles.compareCard}>
+                    <Ionicons name="add-circle-outline" size={28} color={theme.textMuted} />
+                    <Text style={styles.compareCardPlaceholder}>Select one more product</Text>
+                  </View>
+                ) : null}
               </View>
-              {comparedSuppliers.length >= 2 && (
+              {comparedSuppliers.length >= 2 ? (
                 <>
-                  <View style={styles.compareSection}>
-                    <Text style={styles.compareSectionTitle}>PRICE PER JAR</Text>
-                    <View style={styles.compareSectionRow}>
-                      <Text style={styles.compareLeft}>₹{comparedSuppliers[0].price}</Text>
-                      <Text style={styles.compareRight}>₹{comparedSuppliers[1].price}  BEST VALUE</Text>
+                  {[
+                    { title: "Price per unit", left: `₹${comparedSuppliers[0].price}`, right: `₹${comparedSuppliers[1].price}`, best: comparedSuppliers[1].price <= comparedSuppliers[0].price ? "right" : "left" },
+                    { title: "Customer rating", left: `${comparedSuppliers[0].rating} ★ (${comparedSuppliers[0].reviewCount})`, right: `${comparedSuppliers[1].rating} ★ (${comparedSuppliers[1].reviewCount})`, best: comparedSuppliers[1].rating >= comparedSuppliers[0].rating ? "right" : "left" },
+                    { title: "Estimated delivery", left: comparedSuppliers[0].delivery, right: comparedSuppliers[1].delivery, best: null },
+                  ].map((row) => (
+                    <View key={row.title} style={styles.compareSection}>
+                      <Text style={styles.compareSectionTitle}>{row.title}</Text>
+                      <View style={styles.compareSectionRow}>
+                        <Text style={[styles.compareCell, row.best === "left" && styles.compareCellBest]}>{row.left}</Text>
+                        <Text style={[styles.compareCell, styles.compareCellRight, row.best === "right" && styles.compareCellBest]}>{row.right}</Text>
+                      </View>
                     </View>
-                  </View>
-                  <View style={styles.compareSection}>
-                    <Text style={styles.compareSectionTitle}>CUSTOMER RATING</Text>
-                    <View style={styles.compareSectionRow}>
-                      <Text style={styles.compareLeft}>TOP RATED  {comparedSuppliers[0].rating} ★  {comparedSuppliers[0].reviewCount} reviews</Text>
-                      <Text style={styles.compareRight}>{comparedSuppliers[1].rating} ★  {comparedSuppliers[1].reviewCount} reviews</Text>
-                    </View>
-                  </View>
-                  <View style={styles.compareSection}>
-                    <Text style={styles.compareSectionTitle}>ESTIMATED DELIVERY</Text>
-                    <View style={styles.compareSectionRow}>
-                      <Text style={styles.compareLeft}>FASTER  {comparedSuppliers[0].delivery}</Text>
-                      <Text style={styles.compareRight}>{comparedSuppliers[1].delivery}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.compareSection}>
-                    <Text style={styles.compareSectionTitle}>SERVICES & STOCK</Text>
-                    <View style={styles.compareSectionRow}>
-                      <View><Text style={styles.inStockGreen}>In Stock</Text><TouchableOpacity style={styles.subBtnSmall}><Text style={styles.subBtnSmallText}>Subscription</Text></TouchableOpacity></View>
-                      <View><Text style={styles.lowStock}>Low Stock</Text><TouchableOpacity style={styles.subBtnSmall}><Text style={styles.subBtnSmallText}>Subscription</Text></TouchableOpacity></View>
-                    </View>
-                  </View>
+                  ))}
                 </>
-              )}
+              ) : null}
             </ScrollView>
           </View>
         </View>
       </Modal>
 
-      {/* Filter sheet - from bottom */}
       <Modal visible={showFilterSheet} transparent animationType="slide">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowFilterSheet(false)}>
           <View style={styles.filterSheetContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.sheetHandle} />
             <View style={styles.filterSheetHeader}>
-              <Text style={styles.filterSheetTitle}>Filters</Text>
-              <TouchableOpacity onPress={() => setShowFilterSheet(false)}><Ionicons name="close" size={24} color="#1B2B34" /></TouchableOpacity>
+              <Text style={styles.filterSheetTitle}>Filter products</Text>
+              <TouchableOpacity onPress={() => setShowFilterSheet(false)}>
+                <Ionicons name="close" size={24} color={theme.textPrimary} />
+              </TouchableOpacity>
             </View>
             <ScrollView style={styles.filterSheetScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.filterSectionLabel}>Size (jar / bottle)</Text>
@@ -462,10 +562,9 @@ const OrderScreen = () => {
                       key={r.id}
                       style={[styles.filterSheetChip, selected && styles.filterSheetChipActive]}
                       onPress={() => toggleFilterOption(sizeRangeSelected, setSizeRangeSelected, r.id)}
-                      activeOpacity={0.8}
+                      activeOpacity={0.85}
                     >
                       <Text style={[styles.filterSheetChipText, selected && styles.filterSheetChipTextActive]}>{r.label}</Text>
-                      {selected && <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" style={{ marginLeft: 4 }} />}
                     </TouchableOpacity>
                   );
                 })}
@@ -473,66 +572,47 @@ const OrderScreen = () => {
               <View style={styles.filterSliderRow}>
                 <Text style={styles.filterSliderLabel}>Capacity range (L)</Text>
                 <View style={styles.filterStepperRow}>
-                  <View style={styles.filterStepper}>
-                    <Text style={styles.filterStepperLabel}>Min</Text>
-                    <View style={styles.filterStepperControls}>
-                      <TouchableOpacity style={styles.filterStepperBtn} onPress={() => setSizeSliderMin((m) => Math.max(1, m - 5))}>
-                        <Ionicons name="remove" size={20} color="#1B2B34" />
-                      </TouchableOpacity>
-                      <Text style={styles.filterStepperValue}>{sizeSliderMin}</Text>
-                      <TouchableOpacity style={styles.filterStepperBtn} onPress={() => setSizeSliderMin((m) => Math.min(sizeSliderMax - 1, m + 5))}>
-                        <Ionicons name="add" size={20} color="#1B2B34" />
-                      </TouchableOpacity>
+                  {[
+                    { label: "Min", value: sizeSliderMin, dec: () => setSizeSliderMin((m) => Math.max(1, m - 5)), inc: () => setSizeSliderMin((m) => Math.min(sizeSliderMax - 1, m + 5)) },
+                    { label: "Max", value: sizeSliderMax, dec: () => setSizeSliderMax((x) => Math.max(sizeSliderMin + 1, x - 50)), inc: () => setSizeSliderMax((x) => Math.min(5000, x + 50)) },
+                  ].map((step) => (
+                    <View key={step.label} style={styles.filterStepper}>
+                      <Text style={styles.filterStepperLabel}>{step.label}</Text>
+                      <View style={styles.filterStepperControls}>
+                        <TouchableOpacity style={styles.filterStepperBtn} onPress={step.dec}>
+                          <Ionicons name="remove" size={18} color={theme.textPrimary} />
+                        </TouchableOpacity>
+                        <Text style={styles.filterStepperValue}>{step.value}</Text>
+                        <TouchableOpacity style={styles.filterStepperBtn} onPress={step.inc}>
+                          <Ionicons name="add" size={18} color={theme.textPrimary} />
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                  <View style={styles.filterStepper}>
-                    <Text style={styles.filterStepperLabel}>Max</Text>
-                    <View style={styles.filterStepperControls}>
-                      <TouchableOpacity style={styles.filterStepperBtn} onPress={() => setSizeSliderMax((x) => Math.max(sizeSliderMin + 1, x - 50))}>
-                        <Ionicons name="remove" size={20} color="#1B2B34" />
-                      </TouchableOpacity>
-                      <Text style={styles.filterStepperValue}>{sizeSliderMax}</Text>
-                      <TouchableOpacity style={styles.filterStepperBtn} onPress={() => setSizeSliderMax((x) => Math.min(5000, x + 50))}>
-                        <Ionicons name="add" size={20} color="#1B2B34" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+                  ))}
                 </View>
               </View>
-
               <Text style={styles.filterSectionLabel}>Bulk & tanker</Text>
               <View style={styles.filterOptionsRow}>
                 {EXTRA_OPTIONS.map((o) => {
                   const selected = extraSelected.includes(o.id);
                   return (
-                    <TouchableOpacity
-                      key={o.id}
-                      style={styles.filterOptionRow}
-                      onPress={() => toggleFilterOption(extraSelected, setExtraSelected, o.id)}
-                      activeOpacity={0.8}
-                    >
+                    <TouchableOpacity key={o.id} style={styles.filterOptionRow} onPress={() => toggleFilterOption(extraSelected, setExtraSelected, o.id)} activeOpacity={0.85}>
                       <View style={[styles.filterCheckbox, selected && styles.filterCheckboxChecked]}>
-                        {selected && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                        {selected ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
                       </View>
                       <Text style={styles.filterOptionLabel}>{o.label}</Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
-
-              <Text style={styles.filterSectionLabel}>Order for (individual)</Text>
+              <Text style={styles.filterSectionLabel}>Order for</Text>
               <View style={styles.filterOptionsRow}>
                 {USE_CASE_OPTIONS.map((o) => {
                   const selected = useCaseSelected.includes(o.id);
                   return (
-                    <TouchableOpacity
-                      key={o.id}
-                      style={styles.filterOptionRow}
-                      onPress={() => toggleFilterOption(useCaseSelected, setUseCaseSelected, o.id)}
-                      activeOpacity={0.8}
-                    >
+                    <TouchableOpacity key={o.id} style={styles.filterOptionRow} onPress={() => toggleFilterOption(useCaseSelected, setUseCaseSelected, o.id)} activeOpacity={0.85}>
                       <View style={[styles.filterCheckbox, selected && styles.filterCheckboxChecked]}>
-                        {selected && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                        {selected ? <Ionicons name="checkmark" size={14} color="#FFFFFF" /> : null}
                       </View>
                       <Text style={styles.filterOptionLabel}>{o.label}</Text>
                     </TouchableOpacity>
@@ -543,40 +623,51 @@ const OrderScreen = () => {
             <View style={styles.filterSheetFooter}>
               <TouchableOpacity
                 style={styles.filterClearBtn}
-                onPress={() => { setSizeRangeSelected([]); setExtraSelected([]); setUseCaseSelected([]); setSizeSliderMin(1); setSizeSliderMax(500); }}
-                activeOpacity={0.8}
+                onPress={() => {
+                  setSizeRangeSelected([]);
+                  setExtraSelected([]);
+                  setUseCaseSelected([]);
+                  setSizeSliderMin(1);
+                  setSizeSliderMax(500);
+                }}
+                activeOpacity={0.85}
               >
                 <Text style={styles.filterClearText}>Clear all</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.filterApplyBtn} onPress={() => setShowFilterSheet(false)} activeOpacity={0.8}>
-                <Text style={styles.filterApplyText}>Apply</Text>
+              <TouchableOpacity style={styles.filterApplyBtn} onPress={() => setShowFilterSheet(false)} activeOpacity={0.9}>
+                <LinearGradient colors={[theme.medium, theme.accent]} style={styles.filterApplyGradient}>
+                  <Text style={styles.filterApplyText}>Apply filters</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
         </TouchableOpacity>
       </Modal>
 
-      {/* Location picker */}
       <Modal visible={showLocationPicker} transparent animationType="slide">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowLocationPicker(false)}>
           <View style={styles.locationSheetContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.sheetHandle} />
             <View style={styles.filterSheetHeader}>
-              <Text style={styles.filterSheetTitle}>Select location</Text>
-              <TouchableOpacity onPress={() => setShowLocationPicker(false)}><Ionicons name="close" size={24} color="#1B2B34" /></TouchableOpacity>
+              <Text style={styles.filterSheetTitle}>Delivery location</Text>
+              <TouchableOpacity onPress={() => setShowLocationPicker(false)}>
+                <Ionicons name="close" size={24} color={theme.textPrimary} />
+              </TouchableOpacity>
             </View>
-            <ScrollView style={styles.locationList}>
+            <ScrollView style={styles.locationList} showsVerticalScrollIndicator={false}>
               <TouchableOpacity
                 style={styles.locationOptionRow}
                 onPress={() => {
                   setLocation("Current location");
                   setShowLocationPicker(false);
                 }}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
-                <Ionicons name="navigate-circle-outline" size={20} color={theme.primary} />
+                <View style={styles.locationOptionIcon}>
+                  <Ionicons name="navigate-circle-outline" size={20} color={theme.accent} />
+                </View>
                 <Text style={styles.locationOptionText}>Use current location</Text>
               </TouchableOpacity>
-
               {savedAddresses.map((a) => (
                 <TouchableOpacity
                   key={a.id}
@@ -595,23 +686,26 @@ const OrderScreen = () => {
                     });
                     setShowLocationPicker(false);
                   }}
-                  activeOpacity={0.8}
+                  activeOpacity={0.85}
                 >
-                  <Ionicons name="location-outline" size={20} color="#1B2B34" />
+                  <View style={styles.locationOptionIcon}>
+                    <Ionicons name="location-outline" size={20} color={theme.accent} />
+                  </View>
                   <Text style={styles.locationOptionText} numberOfLines={2}>{a.fullAddress || "Saved address"}</Text>
                 </TouchableOpacity>
               ))}
-
               <TouchableOpacity
-                style={[styles.locationOptionRow, { borderBottomWidth: 0 }]}
+                style={[styles.locationOptionRow, styles.locationOptionRowLast]}
                 onPress={() => {
                   setShowLocationPicker(false);
                   router.push("/saved-addresses");
                 }}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
-                <Ionicons name="add-circle-outline" size={20} color={theme.primary} />
-                <Text style={[styles.locationOptionText, { color: theme.primary, fontWeight: "700" }]}>Add address</Text>
+                <View style={styles.locationOptionIcon}>
+                  <Ionicons name="add-circle-outline" size={20} color={theme.accent} />
+                </View>
+                <Text style={[styles.locationOptionText, styles.locationOptionAdd]}>Add new address</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -633,257 +727,446 @@ const OrderScreen = () => {
 export default OrderScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
-  headerSection: { height: 286, overflow: "hidden", zIndex: 1 },
-  gradientBackground: { flex: 1, paddingHorizontal: 20, paddingBottom: 10 },
+  container: { flex: 1, backgroundColor: theme.screenBackground },
+  pageBody: { flex: 1 },
+  headerSection: { flexShrink: 0, overflow: "hidden", zIndex: 1 },
+  gradientBackground: { paddingHorizontal: 20, paddingBottom: 32 },
   headerOverlay: { ...StyleSheet.absoluteFillObject },
   dropletWrap: { position: "absolute", alignItems: "center", justifyContent: "center" },
-  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 },
-  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
-  headerIconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center", position: "relative" },
-  cartBadge: { position: "absolute", top: 2, right: 2, minWidth: 18, height: 18, borderRadius: 9, backgroundColor: theme.primary, justifyContent: "center", alignItems: "center", paddingHorizontal: 4 },
-  cartBadgeText: { fontSize: 11, fontWeight: "700", color: "#FFFFFF" },
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.78)",
-    marginHorizontal: 0,
-    marginBottom: 10,
-    paddingVertical: 11,
-    paddingHorizontal: 14,
-    minHeight: 46,
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 8 },
+  logoGlass: {
+    backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 16,
-    gap: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 0,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
+    borderColor: "rgba(255,255,255,0.34)",
   },
-  locationText: { flex: 1, fontSize: 15, color: "#1B2B34" },
-  searchRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 0, marginBottom: 12, gap: 10, minHeight: 46 },
-  searchBox: {
+  headerLogoLight: { width: 108, height: 30 },
+  headerIconBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
+  },
+  cartBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: theme.accent,
+  },
+  cartBadgeText: { fontSize: 10, fontWeight: "800", color: theme.accent },
+  headerTitle: { fontSize: 22, fontWeight: "800", color: "#FFFFFF", letterSpacing: -0.4, marginBottom: 12 },
+  locationCard: { borderRadius: 18, overflow: "hidden" },
+  locationCardInner: { flexDirection: "row", alignItems: "center", padding: 14, gap: 12 },
+  locationIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(51,175,193,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  locationTextWrap: { flex: 1, minWidth: 0 },
+  locationLabel: { fontSize: 11, fontWeight: "600", color: theme.textMuted, textTransform: "uppercase", letterSpacing: 0.4 },
+  locationText: { fontSize: 14, fontWeight: "700", color: theme.textPrimary, marginTop: 2 },
+
+  headerSearchSection: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 12, marginBottom: 10 },
+  headerSearchBox: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.78)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    minHeight: 46,
-    gap: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 0,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
+    paddingHorizontal: 12,
+    minHeight: 44,
+    gap: 8,
   },
-  searchInput: { flex: 1, fontSize: 15, color: "#1B2B34", padding: 0 },
-  filterIconBtn: { width: 42, height: 42, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.78)", justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.85)" },
-  filterScroll: { height: Platform.OS === "android" ? 52 : 48, marginBottom: 8, flexGrow: 0, paddingTop: 0, paddingBottom: 0 },
-  filterScrollContent: { paddingHorizontal: 0, flexDirection: "row", alignItems: "center", paddingVertical: Platform.OS === "android" ? 6 : 5 },
+  headerSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.textPrimary,
+    padding: 0,
+    ...(Platform.OS === "android" ? { includeFontPadding: false, textAlignVertical: "center" } : {}),
+  },
+  headerFilterBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+    flexShrink: 0,
+  },
+  headerSortContent: { paddingBottom: 4, alignItems: "center", paddingRight: 12 },
+  headerFilterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginRight: 8,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
+  },
+  headerFilterChipActive: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginRight: 8,
+  },
+  headerFilterChipText: { fontSize: 12, fontWeight: "600", color: "rgba(255,255,255,0.95)" },
+  headerFilterChipTextActive: { fontSize: 12, fontWeight: "700", color: theme.accent },
+
   contentSection: {
-    marginTop: -10,
-    backgroundColor: theme.screenBackground,
+    flex: 1,
+    marginTop: -24,
+    backgroundColor: theme.contentPanelBackground,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
-    paddingTop: 18,
-    flex: 1,
-    overflow: "hidden",
-    zIndex: 3,
-    elevation: 2,
-  },
-  filterChip: { borderRadius: 14, backgroundColor: "rgba(255,255,255,0.88)", marginRight: 8, flexShrink: 0, minHeight: Platform.OS === "android" ? 40 : 38, justifyContent: "center", overflow: "visible", borderWidth: 1, borderColor: "rgba(255,255,255,0.9)" },
-  filterChipActive: { backgroundColor: theme.primary },
-  filterChipInner: { paddingHorizontal: 12, paddingVertical: Platform.OS === "android" ? 7 : 6, justifyContent: "center", minHeight: Platform.OS === "android" ? 40 : 38 },
-  filterChipText: { fontSize: 12, lineHeight: Platform.OS === "android" ? 16 : 15, fontWeight: "600", color: "#1B2B34", includeFontPadding: false, textAlignVertical: "center" },
-  filterChipTextActive: { color: "#FFFFFF" },
-  filterSheetContent: {
-    backgroundColor: theme.screenBackground,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    marginTop: "25%",
-    maxHeight: "75%",
-    paddingBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 16,
-  },
-  filterSheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 20, paddingBottom: 12 },
-  filterSheetTitle: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
-  filterSheetScroll: { maxHeight: 400, paddingHorizontal: 20 },
-  filterSectionLabel: { fontSize: 14, fontWeight: "700", color: "#6B7C85", marginTop: 16, marginBottom: 10 },
-  filterChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  filterSheetChip: { flexDirection: "row", alignItems: "center", backgroundColor: "#f0f7fcd7", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14 },
-  filterSheetChipActive: { backgroundColor: theme.primary },
-  filterSheetChipText: { fontSize: 14, fontWeight: "600", color: "#1B2B34" },
-  filterSheetChipTextActive: { color: "#FFFFFF" },
-  filterSliderRow: { marginTop: 8, marginBottom: 8 },
-  filterSliderLabel: { fontSize: 13, fontWeight: "600", color: "#1B2B34", marginBottom: 10 },
-  filterStepperRow: { flexDirection: "row", gap: 20 },
-  filterStepper: { flex: 1 },
-  filterStepperLabel: { fontSize: 12, color: "#6B7C85", marginBottom: 6 },
-  filterStepperControls: { flexDirection: "row", alignItems: "center", backgroundColor: "#f0f7fcd7", borderRadius: 12, paddingVertical: 8, paddingHorizontal: 12 },
-  filterStepperBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: "#FFFFFF", justifyContent: "center", alignItems: "center" },
-  filterStepperValue: { flex: 1, fontSize: 16, fontWeight: "700", color: "#1B2B34", textAlign: "center" },
-  filterOptionsRow: { gap: 4 },
-  filterOptionRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12, paddingHorizontal: 4 },
-  filterCheckbox: { width: 24, height: 24, borderRadius: 6, borderWidth: 2, borderColor: "#9CA3AF", marginRight: 12, justifyContent: "center", alignItems: "center" },
-  filterCheckboxChecked: { backgroundColor: theme.primary, borderColor: theme.primary },
-  filterOptionLabel: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
-  filterSheetFooter: { flexDirection: "row", paddingHorizontal: 20, paddingTop: 16, gap: 12 },
-  filterClearBtn: { flex: 1, backgroundColor: "#f0f7fcd7", paddingVertical: 14, borderRadius: 14, alignItems: "center" },
-  filterClearText: { fontSize: 16, fontWeight: "600", color: "#1B2B34" },
-  filterApplyBtn: { flex: 1, backgroundColor: theme.primary, paddingVertical: 14, borderRadius: 14, alignItems: "center" },
-  filterApplyText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
-  listContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 100 },
-  listContentEmpty: { flexGrow: 1 },
-  emptyWrap: { paddingVertical: 40, paddingHorizontal: 24, alignItems: "center", justifyContent: "center" },
-  emptyText: { fontSize: 15, color: "#6B7C85", textAlign: "center" },
-  emptyTextSub: { fontSize: 13, color: "#9CA3AF", textAlign: "center", marginTop: 6 },
-  retryBtn: { marginTop: 16, backgroundColor: theme.primary, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 14 },
-  retryBtnText: { fontSize: 15, fontWeight: "600", color: "#FFFFFF" },
-  card: {
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 20,
-    padding: 18,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 0,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
+    borderColor: "rgba(255,255,255,0.9)",
+    overflow: "hidden",
+    zIndex: 2,
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      android: { elevation: 0 },
+    }),
   },
-  badge: { alignSelf: "flex-start", backgroundColor: theme.primary, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, marginBottom: 10 },
-  badgePremium: { backgroundColor: "#8B5CF6" },
-  badgeText: { fontSize: 11, fontWeight: "600", color: "#FFFFFF" },
-  cardTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  cardTitleWrap: { flex: 1, paddingRight: 10 },
-  productName: { fontSize: 16, fontWeight: "700", color: "#1B2B34", marginBottom: 4 },
-  supplierName: { fontSize: 13, color: "#6B7C85" },
-  cardIconWrap: { width: 66, height: 66, borderRadius: 14, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center", marginTop: 6 },
-  productIconImage: { width: 52, height: 52 },
-  cardMeta: { marginTop: 10 },
-  ratingText: { fontSize: 13, color: "#1B2B34" },
-  viewRatingsLink: { marginTop: 4 },
-  viewRatingsText: { fontSize: 12, fontWeight: "700", color: theme.primary },
-  priceText: { fontSize: 15, fontWeight: "800", color: theme.primary, marginTop: 8 },
-  deliveryRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
-  deliveryText: { fontSize: 13, color: "#6B7C85" },
-  outOfStock: { fontSize: 13, color: "#EF4444", marginTop: 6, fontWeight: "600" },
-  cardActions: { flexDirection: "row", gap: 10, marginTop: 14 },
-  addCartBtn: { flex: 1, backgroundColor: theme.medium, paddingVertical: 13, minHeight: 48, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  addCartText: { fontSize: 14, lineHeight: 18, fontWeight: "600", color: "#FFFFFF" },
-  buyNowBtn: { flex: 1, backgroundColor: theme.primary, paddingVertical: 13, minHeight: 48, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  buyNowBtnText: { fontSize: 14, lineHeight: 18, fontWeight: "600", color: "#FFFFFF" },
-  unavailableBtn: { flex: 1, backgroundColor: "#E5E7EB", paddingVertical: 13, minHeight: 48, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  unavailableText: { fontSize: 14, lineHeight: 18, color: "#6B7C85" },
-  notifyBtn: { flex: 1, backgroundColor: "#10B981", paddingVertical: 13, minHeight: 48, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  notifyText: { fontSize: 14, lineHeight: 18, fontWeight: "600", color: "#FFFFFF" },
-  compareRow: { flexDirection: "row", alignItems: "center", marginTop: 12, gap: 8 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: "#9CA3AF", justifyContent: "center", alignItems: "center" },
-  checkboxChecked: { backgroundColor: theme.primary, borderColor: theme.primary },
-  compareLabel: { fontSize: 13, color: "#6B7C85" },
-  stickyFooter: {
+  filterBadge: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    top: 4,
+    right: 4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: theme.accent,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  filterBadgeText: { fontSize: 9, fontWeight: "800", color: "#FFFFFF" },
+
+  productList: { flex: 1 },
+  listContent: { paddingHorizontal: 16, paddingTop: 18, paddingBottom: 24 },
+  listContentEmpty: { flexGrow: 1, paddingBottom: 40 },
+  listContentWithFooter: { paddingBottom: 110 },
+  listHeader: { marginBottom: 12, paddingHorizontal: 4 },
+  listHeaderTitle: { fontSize: 15, fontWeight: "800", color: theme.textPrimary },
+  listHeaderSub: { fontSize: 11, color: theme.textMuted, marginTop: 2 },
+
+  gridRow: { justifyContent: "space-between", gap: 10, marginBottom: 10 },
+  gridCard: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 8 },
+      android: { elevation: 0 },
+    }),
+  },
+  gridImageWrap: { position: "relative", height: 118 },
+  gridImageBg: { flex: 1, alignItems: "center", justifyContent: "center" },
+  gridImage: { width: 72, height: 72 },
+  gridBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: theme.accent,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  gridBadgePremium: { backgroundColor: "#7C3AED" },
+  gridBadgeText: { fontSize: 8, fontWeight: "800", color: "#FFFFFF", textTransform: "uppercase" },
+  gridCompareBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  gridCompareBtnActive: { backgroundColor: theme.accent, borderColor: theme.accent },
+  gridStockOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255,255,255,0.75)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gridStockText: { fontSize: 11, fontWeight: "800", color: "#DC2626" },
+  gridRatingRow: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 10, paddingTop: 8 },
+  gridRatingText: { fontSize: 11, fontWeight: "800", color: theme.textPrimary },
+  gridRatingCount: { fontSize: 10, color: theme.textMuted },
+  gridName: { fontSize: 13, fontWeight: "700", color: theme.textPrimary, lineHeight: 17, paddingHorizontal: 10, marginTop: 4, minHeight: 34 },
+  gridSupplier: { fontSize: 10, fontWeight: "600", color: theme.accent, paddingHorizontal: 10, marginTop: 2 },
+  gridMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, marginTop: 4 },
+  gridMetaText: { flex: 1, fontSize: 10, color: theme.textMuted },
+  gridPrice: { fontSize: 18, fontWeight: "800", color: theme.accent, paddingHorizontal: 10, marginTop: 6 },
+  gridPriceUnit: { fontSize: 10, color: theme.textMuted, paddingHorizontal: 10, marginTop: 1 },
+  gridActions: { flexDirection: "row", gap: 6, padding: 10, paddingTop: 8 },
+  gridCartBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "rgba(51,175,193,0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  gridBuyWrap: { flex: 1 },
+  gridBuyBtn: { height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  gridBuyText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
+  gridUnavailable: {
+    flex: 1,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  gridUnavailableText: { fontSize: 12, fontWeight: "600", color: theme.textMuted },
+
+  emptyWrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 48, paddingHorizontal: 28 },
+  emptyIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 22,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: "800", color: theme.textPrimary, marginBottom: 8 },
+  emptyText: { fontSize: 14, color: theme.textMuted, textAlign: "center", lineHeight: 20 },
+  emptyTextSub: { fontSize: 12, color: "#9CA3AF", textAlign: "center", marginTop: 8, lineHeight: 18 },
+  retryBtn: {
+    marginTop: 18,
+    backgroundColor: theme.accent,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+  },
+  retryBtnText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
+
+  stickyFooter: { position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 50 },
+  stickyFooterGradient: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: 14,
-    paddingBottom: 26,
-    backgroundColor: theme.primary,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.35)",
-    zIndex: 50,
-    elevation: 16,
+    paddingBottom: Platform.OS === "ios" ? 28 : 18,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
-  footerLabel: { fontSize: 14, color: "#FFFFFF", fontWeight: "600" },
-  compareFooterBtn: { backgroundColor: "#FFFFFF", paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 },
-  compareFooterBtnText: { fontSize: 14, fontWeight: "700", color: theme.primary },
-  footerHint: { position: "absolute", bottom: 4, left: 0, right: 0, textAlign: "center", fontSize: 11, color: "rgba(255,255,255,0.9)" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  locationSheetContent: {
-    backgroundColor: theme.screenBackground,
+  footerLabel: { fontSize: 14, fontWeight: "800", color: "#FFFFFF" },
+  footerHint: { fontSize: 12, color: "rgba(255,255,255,0.88)", marginTop: 2 },
+  compareFooterBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  compareFooterBtnText: { fontSize: 14, fontWeight: "800", color: theme.accent },
+
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(0,0,0,0.12)",
+    alignSelf: "center",
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  filterSheetContent: {
+    backgroundColor: theme.contentPanelBackground,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: "70%",
+    maxHeight: "82%",
+    paddingBottom: 20,
+  },
+  filterSheetHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingBottom: 12 },
+  filterSheetTitle: { fontSize: 20, fontWeight: "800", color: theme.textPrimary },
+  filterSheetScroll: { maxHeight: 420, paddingHorizontal: 20 },
+  filterSectionLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: theme.textMuted,
+    marginTop: 14,
+    marginBottom: 10,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  filterChipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  filterSheetChip: {
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  filterSheetChipActive: { backgroundColor: theme.accent, borderColor: theme.accent },
+  filterSheetChipText: { fontSize: 13, fontWeight: "600", color: theme.textPrimary },
+  filterSheetChipTextActive: { color: "#FFFFFF" },
+  filterSliderRow: { marginTop: 8, marginBottom: 8 },
+  filterSliderLabel: { fontSize: 13, fontWeight: "600", color: theme.textPrimary, marginBottom: 10 },
+  filterStepperRow: { flexDirection: "row", gap: 12 },
+  filterStepper: { flex: 1 },
+  filterStepperLabel: { fontSize: 11, fontWeight: "600", color: theme.textMuted, marginBottom: 6 },
+  filterStepperControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  filterStepperBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  filterStepperValue: { flex: 1, fontSize: 16, fontWeight: "800", color: theme.textPrimary, textAlign: "center" },
+  filterOptionsRow: { gap: 2 },
+  filterOptionRow: { flexDirection: "row", alignItems: "center", paddingVertical: 12 },
+  filterCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
+    marginRight: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  filterCheckboxChecked: { backgroundColor: theme.accent, borderColor: theme.accent },
+  filterOptionLabel: { fontSize: 14, fontWeight: "600", color: theme.textPrimary },
+  filterSheetFooter: { flexDirection: "row", paddingHorizontal: 20, paddingTop: 14, gap: 10 },
+  filterClearBtn: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    paddingVertical: 14,
+    borderRadius: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  filterClearText: { fontSize: 15, fontWeight: "700", color: theme.textPrimary },
+  filterApplyBtn: { flex: 1, borderRadius: 16, overflow: "hidden" },
+  filterApplyGradient: { paddingVertical: 14, alignItems: "center" },
+  filterApplyText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
+
+  locationSheetContent: {
+    backgroundColor: theme.contentPanelBackground,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "72%",
     paddingBottom: 16,
   },
   locationList: { maxHeight: 420, paddingHorizontal: 20 },
   locationOptionRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "rgba(214,234,242,0.95)",
   },
-  locationOptionText: { flex: 1, fontSize: 15, color: "#1B2B34" },
+  locationOptionRowLast: { borderBottomWidth: 0 },
+  locationOptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  locationOptionText: { flex: 1, fontSize: 14, fontWeight: "600", color: theme.textPrimary, lineHeight: 19 },
+  locationOptionAdd: { color: theme.link, fontWeight: "700" },
+
   compareModal: {
-    backgroundColor: "#E0F2F7",
+    backgroundColor: theme.contentPanelBackground,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "85%",
     paddingBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 16,
   },
-  compareModalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 20, paddingBottom: 12 },
-  compareModalTitle: { fontSize: 20, fontWeight: "700", color: "#1B2B34" },
+  compareModalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12 },
+  compareModalTitle: { fontSize: 20, fontWeight: "800", color: theme.textPrimary },
   compareScroll: { flexGrow: 0 },
   compareScrollContent: { paddingHorizontal: 20, paddingBottom: 24 },
-  compareCardsRow: { flexDirection: "row", gap: 12, marginBottom: 20 },
+  compareCardsRow: { flexDirection: "row", gap: 12, marginBottom: 16 },
   compareCard: {
     flex: 1,
-    backgroundColor: "#f0f7fcd7",
-    borderRadius: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
     padding: 16,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 6,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
   },
-  compareCardIcon: { width: 48, height: 48, borderRadius: 24, backgroundColor: "#E0F2FE", justifyContent: "center", alignItems: "center", marginBottom: 10 },
-  compareCardIconImage: { width: 28, height: 28 },
-  compareCardName: { fontSize: 14, fontWeight: "700", color: "#1B2B34", textAlign: "center" },
-  compareCardProduct: { fontSize: 12, color: "#6B7C85", marginTop: 4, textAlign: "center" },
-  compareCardPlaceholder: { fontSize: 13, color: "#6B7C85", textAlign: "center" },
+  compareCardIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  compareCardIconImage: { width: 36, height: 36 },
+  compareCardName: { fontSize: 13, fontWeight: "800", color: theme.textPrimary, textAlign: "center" },
+  compareCardProduct: { fontSize: 11, color: theme.textMuted, marginTop: 4, textAlign: "center" },
+  compareCardPlaceholder: { fontSize: 12, color: theme.textMuted, textAlign: "center", marginTop: 8 },
   compareSection: {
-    backgroundColor: "#f0f7fcd7",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
   },
-  compareSectionTitle: { fontSize: 12, fontWeight: "700", color: "#6B7C85", marginBottom: 10, letterSpacing: 0.5 },
-  compareSectionRow: { flexDirection: "row", justifyContent: "space-between" },
-  compareLeft: { fontSize: 14, color: "#1B2B34", flex: 1 },
-  compareRight: { fontSize: 14, color: "#10B981", fontWeight: "600", flex: 1, textAlign: "right" },
-  inStockGreen: { fontSize: 13, color: "#10B981", fontWeight: "600" },
-  lowStock: { fontSize: 13, color: "#F59E0B", fontWeight: "600" },
-  subBtnSmall: { marginTop: 6, alignSelf: "flex-start", backgroundColor: theme.primary, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  subBtnSmallText: { fontSize: 12, fontWeight: "600", color: "#FFFFFF" },
+  compareSectionTitle: { fontSize: 11, fontWeight: "700", color: theme.textMuted, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.4 },
+  compareSectionRow: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
+  compareCell: { flex: 1, fontSize: 13, fontWeight: "600", color: theme.textPrimary },
+  compareCellRight: { textAlign: "right" },
+  compareCellBest: { color: "#059669", fontWeight: "800" },
 });

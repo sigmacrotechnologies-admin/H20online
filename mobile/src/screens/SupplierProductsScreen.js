@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator, Alert, Image, Platform, StatusBar, Modal, TextInput } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Image, TextInput, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import BackButton from "@/src/components/BackButton";
+import SupplierScreenShell from "@/src/components/supplier/SupplierScreenShell";
+import {
+  SectionCard,
+  GradientButton,
+  EmptyState,
+  ModernSheet,
+  SupplierPageHeader,
+  ui,
+} from "@/src/components/supplier/supplierUi";
 import { theme } from "@/src/theme";
 import { api } from "@/src/api/client";
+
 const DEFAULT_PRODUCT_IMAGE = "https://placehold.co/400x300?text=H2O+Product";
 const PRODUCT_ASSET_MAP = {
   "asset://water-camper": require("../../assets/images/Product-icon/Water-Camper.png"),
@@ -21,7 +29,6 @@ const PRODUCT_ASSET_MAP = {
 
 export default function SupplierProductsScreen() {
   const router = useRouter();
-  const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -87,218 +94,217 @@ export default function SupplierProductsScreen() {
     : products;
   const totalStockAvailable = products.reduce((sum, p) => sum + Math.max(0, Number(p?.stockQty || 0)), 0);
 
+  const inStockCount = products.filter((p) => p.inStock !== false).length;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerPanel}>
-        <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}>
-          <View style={styles.headerTopRow}>
-            <BackButton onPress={() => router.back()} />
-            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
-            <View style={styles.headerTopSpacer} />
-          </View>
-          <View style={styles.headerInfoRow}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="cube-outline" size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.headerTextWrap}>
-              <Text style={styles.headerTitle}>My products</Text>
-              <Text style={styles.headerSubtitle}>Manage your product catalog</Text>
-            </View>
-          </View>
-          <View style={styles.topStatsRow}>
-            <View style={styles.topStatCard}>
-              <View style={styles.topStatIcon}>
-                <Ionicons name="layers-outline" size={15} color="#065F46" />
-              </View>
-              <View style={styles.topStatTextWrap}>
-                <Text style={styles.topStatLabel}>Total stock available</Text>
-                <Text style={styles.topStatValue}>{totalStockAvailable}</Text>
-              </View>
-            </View>
-            <View style={styles.topStatCard}>
-              <View style={styles.topStatIcon}>
-                <Ionicons name="cube-outline" size={15} color="#1D4ED8" />
-              </View>
-              <View style={styles.topStatTextWrap}>
-                <Text style={styles.topStatLabel}>Total products</Text>
-                <Text style={styles.topStatValue}>{products.length}</Text>
-              </View>
-            </View>
-          </View>
-          <View style={styles.topSearchRow}>
-            <Ionicons name="search-outline" size={17} color="#6B7C85" />
-            <TextInput
-              style={styles.topSearchInput}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search by product ID, name or type"
-              placeholderTextColor="#9CA3AF"
-            />
-          </View>
-        </LinearGradient>
-      </View>
-      <View style={styles.contentSection}>
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentWrap}>
-        {loading ? <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24 }} /> : (
-          filteredProducts.length === 0 ? <Text style={styles.empty}>{products.length === 0 ? "No products. Add from dashboard." : "No product found for this search."}</Text> : (
-            filteredProducts.map((p) => (
-              <View key={p.id} style={styles.card}>
-                <View style={styles.cardTopRow}>
+    <SupplierScreenShell
+      showMenu
+      tallHeader
+      headerExtra={
+        <SupplierPageHeader
+          icon="cube-outline"
+          title="My products"
+          subtitle="Manage your product catalog"
+          stats={[
+            { icon: "pricetags-outline", label: "Products", value: String(products.length) },
+            { icon: "checkmark-circle-outline", label: "In stock", value: String(inStockCount) },
+            { icon: "layers-outline", label: "Total stock", value: String(totalStockAvailable) },
+          ]}
+        />
+      }
+    >
+      <ScrollView contentContainerStyle={ui.scrollContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.searchRow}>
+          <Ionicons name="search-outline" size={18} color={theme.textMuted} />
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search by product ID, name or type"
+            placeholderTextColor={theme.textMuted}
+          />
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={18} color={theme.textMuted} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
+
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 24 }} />
+        ) : filteredProducts.length === 0 ? (
+          <EmptyState
+            icon="cube-outline"
+            title={products.length === 0 ? "No products yet" : "No matches found"}
+            subtitle={products.length === 0 ? "Add products from your dashboard to get started." : "Try a different search term."}
+          />
+        ) : (
+          <SectionCard icon="pricetags-outline" title="Your catalog" subtitle={`${filteredProducts.length} product${filteredProducts.length === 1 ? "" : "s"}`}>
+            {filteredProducts.map((p) => (
+              <View key={p.id} style={styles.productCard}>
+                <View style={styles.productTopRow}>
                   <Image
                     source={
                       p.imageUrl && PRODUCT_ASSET_MAP[p.imageUrl]
                         ? PRODUCT_ASSET_MAP[p.imageUrl]
                         : { uri: p.imageUrl || DEFAULT_PRODUCT_IMAGE }
                     }
-                    style={styles.cardImage}
+                    style={styles.productImage}
                   />
-                  <View style={styles.cardTextWrap}>
-                    <Text style={styles.cardName}>{p.productName || p.name}</Text>
-                    <Text style={styles.cardMeta}>Product ID: {p.id}</Text>
-                    <Text style={styles.cardMeta}>{(p.productType || "jar").toUpperCase()} • {p.capacityL || 20}L</Text>
-                    <Text style={styles.cardPrice}>₹{Number(p.price || 0).toLocaleString()} • {p.priceUnit || ""}</Text>
-                    <Text style={styles.cardMeta}>{p.inStock === false ? "Out of stock" : "In stock"} • {p.delivery || "20-30 min"}</Text>
-                    <Text style={styles.stockText}>Available stock: {Number(p.stockQty || 0)}</Text>
+                  <View style={styles.productTextWrap}>
+                    <Text style={styles.productName}>{p.productName || p.name}</Text>
+                    <Text style={styles.productMeta}>ID: {p.id}</Text>
+                    <Text style={styles.productMeta}>
+                      {(p.productType || "jar").toUpperCase()} • {p.capacityL || 20}L
+                    </Text>
+                    <Text style={styles.productPrice}>
+                      ₹{Number(p.price || 0).toLocaleString()} • {p.priceUnit || ""}
+                    </Text>
+                    <View style={styles.productBadgeRow}>
+                      <View style={[styles.stockBadge, p.inStock === false && styles.stockBadgeOut]}>
+                        <Text style={[styles.stockBadgeText, p.inStock === false && styles.stockBadgeTextOut]}>
+                          {p.inStock === false ? "Out of stock" : "In stock"}
+                        </Text>
+                      </View>
+                      <Text style={styles.deliveryText}>{p.delivery || "20-30 min"}</Text>
+                    </View>
+                    <Text style={styles.stockQtyText}>Available stock: {Number(p.stockQty || 0)}</Text>
                   </View>
                 </View>
-                <View style={styles.cardActionsRow}>
-                  <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(p)}>
-                    <Text style={styles.editBtnText}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.removeBtn} onPress={() => handleRemove(p)}>
-                    <Text style={styles.removeBtnText}>Remove</Text>
-                  </TouchableOpacity>
+                <View style={styles.productActions}>
+                  <GradientButton
+                    label="Edit"
+                    icon="create-outline"
+                    onPress={() => openEdit(p)}
+                    style={styles.actionBtn}
+                  />
+                  <GradientButton
+                    label="Remove"
+                    icon="trash-outline"
+                    variant="danger"
+                    onPress={() => handleRemove(p)}
+                    style={styles.actionBtn}
+                  />
                 </View>
               </View>
-            ))
-          )
+            ))}
+          </SectionCard>
         )}
       </ScrollView>
-      </View>
-      <Modal visible={!!editing} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit product</Text>
-              <TouchableOpacity onPress={() => setEditing(null)}><Ionicons name="close" size={24} color="#1B2B34" /></TouchableOpacity>
-            </View>
-            {editing ? (
-              <>
-                <Text style={styles.modalLabel}>Product ID</Text>
-                <Text style={styles.modalIdText}>{editing.id}</Text>
-                <Text style={styles.modalLabel}>Product name</Text>
-                <TextInput style={styles.modalInput} value={editing.productName} onChangeText={(v) => setEditing((e) => ({ ...e, productName: v }))} />
-                <Text style={styles.modalLabel}>Price</Text>
-                <TextInput style={styles.modalInput} value={editing.price} onChangeText={(v) => setEditing((e) => ({ ...e, price: v }))} keyboardType="decimal-pad" />
-                <Text style={styles.modalLabel}>Price unit</Text>
-                <TextInput style={styles.modalInput} value={editing.priceUnit} onChangeText={(v) => setEditing((e) => ({ ...e, priceUnit: v }))} />
-                <Text style={styles.modalLabel}>Delivery</Text>
-                <TextInput style={styles.modalInput} value={editing.delivery} onChangeText={(v) => setEditing((e) => ({ ...e, delivery: v }))} />
-                <Text style={styles.modalLabel}>Capacity (L)</Text>
-                <TextInput style={styles.modalInput} value={editing.capacityL} onChangeText={(v) => setEditing((e) => ({ ...e, capacityL: v }))} keyboardType="number-pad" />
-                <Text style={styles.modalLabel}>Available stock units</Text>
-                <TextInput style={styles.modalInput} value={editing.stockQty} onChangeText={(v) => setEditing((e) => ({ ...e, stockQty: v }))} keyboardType="number-pad" />
-                <TouchableOpacity style={[styles.saveBtn, savingEdit && { opacity: 0.7 }]} onPress={saveEdit} disabled={savingEdit}>
-                  <Text style={styles.saveBtnText}>{savingEdit ? "Saving..." : "Save changes"}</Text>
-                </TouchableOpacity>
-              </>
-            ) : null}
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+
+      <ModernSheet
+        visible={!!editing}
+        title="Edit product"
+        subtitle={editing?.productName || "Update product details"}
+        icon="create-outline"
+        onClose={() => setEditing(null)}
+        footer={
+          <GradientButton
+            label={savingEdit ? "Saving..." : "Save changes"}
+            icon="checkmark-circle-outline"
+            onPress={saveEdit}
+            disabled={savingEdit}
+            loading={savingEdit}
+          />
+        }
+      >
+        {editing ? (
+          <>
+            <Text style={ui.inputLabel}>Product ID</Text>
+            <Text style={styles.modalIdText}>{editing.id}</Text>
+            <Text style={ui.inputLabel}>Product name</Text>
+            <TextInput
+              style={ui.input}
+              value={editing.productName}
+              onChangeText={(v) => setEditing((e) => ({ ...e, productName: v }))}
+            />
+            <Text style={ui.inputLabel}>Price</Text>
+            <TextInput
+              style={ui.input}
+              value={editing.price}
+              onChangeText={(v) => setEditing((e) => ({ ...e, price: v }))}
+              keyboardType="decimal-pad"
+            />
+            <Text style={ui.inputLabel}>Price unit</Text>
+            <TextInput
+              style={ui.input}
+              value={editing.priceUnit}
+              onChangeText={(v) => setEditing((e) => ({ ...e, priceUnit: v }))}
+            />
+            <Text style={ui.inputLabel}>Delivery</Text>
+            <TextInput
+              style={ui.input}
+              value={editing.delivery}
+              onChangeText={(v) => setEditing((e) => ({ ...e, delivery: v }))}
+            />
+            <Text style={ui.inputLabel}>Capacity (L)</Text>
+            <TextInput
+              style={ui.input}
+              value={editing.capacityL}
+              onChangeText={(v) => setEditing((e) => ({ ...e, capacityL: v }))}
+              keyboardType="number-pad"
+            />
+            <Text style={ui.inputLabel}>Available stock units</Text>
+            <TextInput
+              style={ui.input}
+              value={editing.stockQty}
+              onChangeText={(v) => setEditing((e) => ({ ...e, stockQty: v }))}
+              keyboardType="number-pad"
+            />
+          </>
+        ) : null}
+      </ModernSheet>
+    </SupplierScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 0 },
-  headerPanel: { minHeight: 330, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingBottom: 18, paddingHorizontal: 20 },
-  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 22 },
-  headerLogoLight: { width: 124, height: 34, marginLeft: 0 },
-  headerTopSpacer: { width: 40, height: 40 },
-  headerInfoRow: { flexDirection: "row", alignItems: "center" },
-  headerIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center" },
-  headerTextWrap: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
-  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
-  topStatsRow: { marginTop: 14, flexDirection: "row", gap: 8 },
-  topStatCard: {
-    flex: 1,
+  searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.88)",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-  },
-  topStatIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: "rgba(255,255,255,0.9)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 8,
-  },
-  topStatTextWrap: { flex: 1 },
-  topStatLabel: { fontSize: 11, color: "#456173" },
-  topStatValue: { fontSize: 14, fontWeight: "800", color: "#1B2B34", marginTop: 1 },
-  topSearchRow: {
-    marginTop: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255,255,255,0.78)",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.88)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    minHeight: 40,
-  },
-  topSearchInput: { flex: 1, marginLeft: 8, fontSize: 13, color: "#1B2B34", paddingVertical: 0 },
-  contentSection: {
-    marginTop: -16,
-    backgroundColor: theme.screenBackground,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingTop: 18,
-    flex: 1,
-    overflow: "hidden",
-  },
-  content: { flex: 1 },
-  contentWrap: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24 },
-  empty: { textAlign: "center", color: "#6B7C85", marginTop: 24 },
-  card: {
-    backgroundColor: "rgba(255,255,255,0.78)",
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+    gap: 10,
+  },
+  searchInput: { flex: 1, fontSize: 15, color: theme.textPrimary, paddingVertical: 0 },
+  productCard: {
+    backgroundColor: theme.contentPanelBackground,
+    borderRadius: 16,
+    padding: 14,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.85)",
-    elevation: 0,
+    borderColor: "rgba(214,234,242,0.95)",
   },
-  cardTopRow: { flexDirection: "row", alignItems: "center" },
-  cardImage: { width: 64, height: 64, borderRadius: 12, backgroundColor: "#E8F1F7", marginRight: 12 },
-  cardTextWrap: { flex: 1 },
-  cardName: { fontSize: 16, fontWeight: "700", color: "#1B2B34" },
-  cardMeta: { fontSize: 12, color: "#6B7C85", marginTop: 3 },
-  cardPrice: { fontSize: 14, color: theme.primary, marginTop: 4 },
-  stockText: { fontSize: 12, color: "#0F766E", marginTop: 4, fontWeight: "700" },
-  cardActionsRow: { marginTop: 10, flexDirection: "row", gap: 12 },
-  editBtn: { alignSelf: "flex-start", backgroundColor: "#E0F2FE", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 },
-  editBtnText: { fontSize: 13, color: "#0C4A6E", fontWeight: "700" },
-  removeBtn: { alignSelf: "flex-start" },
-  removeBtnText: { fontSize: 14, color: "#DC2626", fontWeight: "600" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.45)", justifyContent: "flex-end" },
-  modalContent: { backgroundColor: "#fff", borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 20, maxHeight: "88%" },
-  modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: "#1B2B34" },
-  modalLabel: { fontSize: 13, fontWeight: "600", color: "#1B2B34", marginBottom: 6, marginTop: 8 },
-  modalInput: { backgroundColor: "#f0f7fc", borderRadius: 10, borderWidth: 1, borderColor: "#E2E8F0", paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, color: "#1B2B34" },
-  modalIdText: { fontSize: 13, color: "#6B7C85", fontWeight: "600" },
-  saveBtn: { marginTop: 16, backgroundColor: theme.primary, borderRadius: 14, alignItems: "center", paddingVertical: 14 },
-  saveBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  productTopRow: { flexDirection: "row", alignItems: "flex-start" },
+  productImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+    backgroundColor: "rgba(30,143,177,0.08)",
+    marginRight: 12,
+  },
+  productTextWrap: { flex: 1 },
+  productName: { fontSize: 16, fontWeight: "800", color: theme.textPrimary },
+  productMeta: { fontSize: 12, color: theme.textMuted, marginTop: 3 },
+  productPrice: { fontSize: 14, fontWeight: "700", color: theme.accent, marginTop: 6 },
+  productBadgeRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  stockBadge: {
+    backgroundColor: "rgba(15,118,110,0.1)",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  stockBadgeOut: { backgroundColor: "rgba(220,38,38,0.08)" },
+  stockBadgeText: { fontSize: 11, fontWeight: "700", color: "#0F766E" },
+  stockBadgeTextOut: { color: "#DC2626" },
+  deliveryText: { fontSize: 11, color: theme.textMuted, fontWeight: "600" },
+  stockQtyText: { fontSize: 12, color: "#0F766E", marginTop: 6, fontWeight: "700" },
+  productActions: { flexDirection: "row", gap: 10, marginTop: 14 },
+  actionBtn: { flex: 1 },
+  modalIdText: { fontSize: 14, color: theme.textMuted, fontWeight: "600", marginBottom: 8 },
 });

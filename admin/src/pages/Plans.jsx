@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import PageHeader from "../components/PageHeader";
+import LoadingState from "../components/LoadingState";
 import { api } from "../api/client";
 
 const card = { background: "#f0f7fcd7", borderRadius: 16, padding: 24, marginBottom: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
@@ -179,22 +181,21 @@ export default function Plans() {
     }
   };
 
-  if (loading) return <p>Loading...</p>;
+  if (loading) return <LoadingState />;
 
   return (
-    <div>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Plans & rates</h1>
-      <p style={{ color: "#6B7C85", marginBottom: 16 }}>
-        Edit plans, add or remove products, set product ID/label and daily/weekly/monthly rates. Changes appear for customers on the subscription page.
-      </p>
-      <button type="button" style={btnSmall} onClick={generateAllMissingIds}>
+    <div className="admin-page">
+      <PageHeader
+        title="Plans & rates"
+        subtitle="Edit plans, add or remove products, set product ID/label and daily/weekly/monthly rates. Changes appear for customers on the subscription page."
+      />
+      <button type="button" className="btn btn-secondary btn-sm" onClick={generateAllMissingIds} style={{ marginBottom: 24 }}>
         Generate Product ID for all products that don't have one
       </button>
-      <div style={{ marginBottom: 24 }} />
       {plans.map((plan) => (
-        <div key={plan.id} style={card}>
-          <h2 style={{ marginTop: 0, marginBottom: 16 }}>{plan.name} ({plan.slug})</h2>
-          <p style={{ marginBottom: 16, fontSize: 14, color: "#6B7C85" }}>
+        <div key={plan.id} className="card">
+          <h2 className="card-title">{plan.name} ({plan.slug})</h2>
+          <p className="card-subtitle">
             Max qty per product:{" "}
             <input
               type="number"
@@ -213,23 +214,23 @@ export default function Plans() {
               <span style={{ marginLeft: 8, color: "#059669" }}>Available now — you can add products below.</span>
             )}
           </p>
-          <table style={table}>
+          <table className="data-table">
             <thead>
               <tr>
-                <th style={th}>Product ID</th>
-                <th style={th}>Product key</th>
-                <th style={th}>Label</th>
-                <th style={th}>Image</th>
-                <th style={th}>Daily (₹)</th>
-                <th style={th}>Weekly (₹)</th>
-                <th style={th}>Monthly (₹)</th>
-                <th style={th}>Actions</th>
+                <th>Product ID</th>
+                <th>Product key</th>
+                <th>Label</th>
+                <th>Image</th>
+                <th>Daily (₹)</th>
+                <th>Weekly (₹)</th>
+                <th>Monthly (₹)</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {(plan.products || []).map((pp) => (
                 <tr key={pp.id}>
-                  <td style={td}>
+                  <td>
                     <input
                       key={pp.id + (pp.productId || "")}
                       defaultValue={pp.productId || ""}
@@ -249,7 +250,7 @@ export default function Plans() {
                       {saving === pp.id ? "…" : "Generate"}
                     </button>
                   </td>
-                  <td style={td}>
+                  <td>
                     <input
                       defaultValue={pp.productKey}
                       onBlur={(e) => {
@@ -260,7 +261,7 @@ export default function Plans() {
                       placeholder="e.g. 1l-bottle"
                     />
                   </td>
-                  <td style={td}>
+                  <td>
                     <input
                       defaultValue={pp.productLabel}
                       onBlur={(e) => {
@@ -270,7 +271,7 @@ export default function Plans() {
                       style={inputWide}
                     />
                   </td>
-                  <td style={td}>
+                  <td>
                     <select
                       defaultValue={pp.imageUrl || ""}
                       onBlur={(e) => {
@@ -286,7 +287,7 @@ export default function Plans() {
                       ))}
                     </select>
                   </td>
-                  <td style={td}>
+                  <td>
                     <input
                       type="number"
                       min={0}
@@ -296,10 +297,10 @@ export default function Plans() {
                         const v = Number(e.target.value);
                         if (!Number.isNaN(v) && v >= 0) updateProduct(pp, "priceDaily", v);
                       }}
-                      style={input}
+                      className="input"
                     />
                   </td>
-                  <td style={td}>
+                  <td>
                     <input
                       type="number"
                       min={0}
@@ -308,10 +309,10 @@ export default function Plans() {
                         const v = Number(e.target.value);
                         if (!Number.isNaN(v) && v >= 0) updateProduct(pp, "priceWeekly", v);
                       }}
-                      style={input}
+                      className="input"
                     />
                   </td>
-                  <td style={td}>
+                  <td>
                     <input
                       type="number"
                       min={0}
@@ -320,13 +321,13 @@ export default function Plans() {
                         const v = Number(e.target.value);
                         if (!Number.isNaN(v) && v >= 0) updateProduct(pp, "priceMonthly", v);
                       }}
-                      style={input}
+                      className="input"
                     />
                   </td>
-                  <td style={td}>
+                  <td>
                     <button
                       type="button"
-                      style={btnDanger}
+                      className="btn btn-danger btn-sm"
                       onClick={() => deleteProduct(plan, pp)}
                       disabled={saving === pp.id}
                     >
@@ -378,7 +379,7 @@ export default function Plans() {
                   placeholder="Daily ₹"
                   value={newProduct.priceDaily || ""}
                   onChange={(e) => setNewProduct((n) => ({ ...n, priceDaily: e.target.value }))}
-                  style={input}
+                  className="input"
                 />
                 <input
                   type="number"
@@ -386,7 +387,7 @@ export default function Plans() {
                   placeholder="Weekly ₹"
                   value={newProduct.priceWeekly || ""}
                   onChange={(e) => setNewProduct((n) => ({ ...n, priceWeekly: e.target.value }))}
-                  style={input}
+                  className="input"
                 />
                 <input
                   type="number"
@@ -394,17 +395,17 @@ export default function Plans() {
                   placeholder="Monthly ₹"
                   value={newProduct.priceMonthly || ""}
                   onChange={(e) => setNewProduct((n) => ({ ...n, priceMonthly: e.target.value }))}
-                  style={input}
+                  className="input"
                 />
                 <button
                   type="button"
-                  style={btnPrimary}
+                  className="btn btn-primary"
                   onClick={() => addProduct(plan)}
                   disabled={saving === "add-" + plan.id}
                 >
                   {saving === "add-" + plan.id ? "Adding…" : "Add product"}
                 </button>
-                <button type="button" style={btnSmall} onClick={() => setAddingForPlanId(null)}>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setAddingForPlanId(null)}>
                   Cancel
                 </button>
               </div>

@@ -1,9 +1,7 @@
 import { useState, useEffect } from "react";
 import { api } from "../api/client";
-
-const card = { background: "#f0f7fcd7", borderRadius: 16, padding: 24, marginBottom: 16 };
-const input = { padding: "10px 14px", borderRadius: 8, border: "1px solid #E5E7EB", width: "100%", marginBottom: 12 };
-const btn = { padding: "10px 20px", borderRadius: 8, border: "none", background: "#1EA7FD", color: "#fff", fontWeight: 600, cursor: "pointer" };
+import PageHeader from "../components/PageHeader";
+import LoadingState from "../components/LoadingState";
 
 export default function SupplierSupport() {
   const [threads, setThreads] = useState([]);
@@ -45,48 +43,52 @@ export default function SupplierSupport() {
   };
 
   return (
-    <div>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Supplier support</h1>
-      <p style={{ color: "#6B7C85", marginBottom: 24 }}>Threads from suppliers. Reply and they see it in the app.</p>
-      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 24 }}>
-        <div style={card}>
-          <h3 style={{ marginTop: 0 }}>Threads</h3>
-          {loading ? <p>Loading...</p> : threads.length === 0 ? <p>No threads yet</p> : (
-            threads.map((t) => (
-              <div
-                key={t.id}
-                style={{
-                  padding: "12px 14px",
-                  borderRadius: 12,
-                  marginBottom: 8,
-                  background: selected?.supplierId === t.supplierId ? "#E0F2FE" : "rgba(255,255,255,0.8)",
-                  cursor: "pointer",
-                }}
-                onClick={() => setSelected(t)}
-              >
-                <div style={{ fontWeight: 600 }}>{t.supplierName || t.supplierEmail}</div>
-                <div style={{ fontSize: 13, color: "#6B7C85", marginTop: 4 }}>{t.lastMessage ? (t.lastMessage.slice(0, 40) + (t.lastMessage.length > 40 ? "…" : "")) : "No messages"}</div>
-              </div>
-            ))
-          )}
+    <div className="admin-page">
+      <PageHeader title="Supplier support" subtitle="Threads from suppliers. Reply and they see it in the app." />
+      <div className="support-grid">
+        <div className="card">
+          <h3 className="card-title">Threads</h3>
+          <div className="thread-list">
+            {loading ? (
+              <LoadingState label="Loading threads..." />
+            ) : threads.length === 0 ? (
+              <div className="empty-state">No threads yet</div>
+            ) : (
+              threads.map((t) => (
+                <div
+                  key={t.id}
+                  className={`thread-item${selected?.supplierId === t.supplierId ? " active" : ""}`}
+                  onClick={() => setSelected(t)}
+                >
+                  <div className="thread-item-title">{t.supplierName || t.supplierEmail}</div>
+                  <div className="thread-item-meta">
+                    {t.lastMessage ? t.lastMessage.slice(0, 50) + (t.lastMessage.length > 50 ? "…" : "") : "No messages"}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
-        <div style={card}>
+        <div className="card">
           {!selected ? (
-            <p style={{ color: "#6B7C85" }}>Select a thread</p>
+            <div className="empty-state">Select a thread</div>
           ) : (
             <>
-              <h3 style={{ marginTop: 0 }}>{selected.supplierName} ({selected.supplierEmail})</h3>
-              <div style={{ maxHeight: 320, overflowY: "auto", marginBottom: 16 }}>
+              <h3 className="card-title">{selected.supplierName}</h3>
+              <p className="card-subtitle">{selected.supplierEmail}</p>
+              <div className="message-thread">
                 {messages.map((m, i) => (
-                  <div key={i} style={{ marginBottom: 12, padding: 10, borderRadius: 12, background: m.from === "admin" ? "#E0F2FE" : "rgba(255,255,255,0.9)" }}>
-                    <div style={{ fontSize: 12, color: "#6B7C85", marginBottom: 4 }}>{m.from === "admin" ? "You" : "Supplier"}</div>
-                    <div>{m.text}</div>
-                    {m.createdAt && <div style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>{new Date(m.createdAt).toLocaleString()}</div>}
+                  <div key={i} className={`message-bubble ${m.from === "admin" ? "admin" : "user"}`}>
+                    <div className="message-from">{m.from === "admin" ? "You" : "Supplier"}</div>
+                    <div className="message-text">{m.text}</div>
+                    {m.createdAt && <div className="message-time">{new Date(m.createdAt).toLocaleString()}</div>}
                   </div>
                 ))}
               </div>
-              <textarea style={{ ...input, minHeight: 80 }} value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Reply to supplier..." />
-              <button style={btn} onClick={sendReply} disabled={sending}>{sending ? "Sending..." : "Send reply"}</button>
+              <textarea className="textarea" value={reply} onChange={(e) => setReply(e.target.value)} placeholder="Reply to supplier..." />
+              <button className="btn btn-primary" onClick={sendReply} disabled={sending}>
+                {sending ? "Sending..." : "Send reply"}
+              </button>
             </>
           )}
         </div>

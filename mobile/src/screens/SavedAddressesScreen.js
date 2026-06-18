@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -6,29 +6,404 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  TextInput,
   Modal,
   ActivityIndicator,
   Alert,
   Image,
   Platform,
   StatusBar,
+  RefreshControl,
+  KeyboardAvoidingView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
+import AppLogo from "@/src/components/AppLogo";
+import DropletOverlay from "@/src/components/modern/DropletOverlay";
+import { ModernInput } from "@/src/components/modern";
 import { theme } from "@/src/theme";
 
 const FIELDS = [
-  { key: "houseNumber", label: "House / Building no.", placeholder: "e.g. 12, Tower A" },
-  { key: "locality", label: "Locality / Area", placeholder: "e.g. Sector 5" },
-  { key: "city", label: "City", placeholder: "e.g. Mumbai" },
-  { key: "state", label: "State", placeholder: "e.g. Maharashtra" },
-  { key: "pinCode", label: "PIN code", placeholder: "e.g. 400001", keyboardType: "number-pad" },
-  { key: "phoneNumber", label: "Phone number *", placeholder: "e.g. 9876543210", keyboardType: "phone-pad" },
+  { key: "houseNumber", label: "House / Building no.", placeholder: "e.g. 12, Tower A", icon: "home-outline" },
+  { key: "locality", label: "Locality / Area", placeholder: "e.g. Sector 5", icon: "map-outline" },
+  { key: "city", label: "City", placeholder: "e.g. Mumbai", icon: "business-outline" },
+  { key: "state", label: "State", placeholder: "e.g. Maharashtra", icon: "flag-outline" },
+  { key: "pinCode", label: "PIN code", placeholder: "e.g. 400001", keyboardType: "number-pad", icon: "mail-outline" },
+  { key: "phoneNumber", label: "Phone number *", placeholder: "e.g. 9876543210", keyboardType: "phone-pad", icon: "call-outline" },
 ];
+
+function buildPreviewAddress(form) {
+  const parts = [form.houseNumber, form.locality, form.city, form.state, form.pinCode].map((p) => String(p || "").trim()).filter(Boolean);
+  return parts.join(", ");
+}
+
+function FormSectionCard({ icon, title, subtitle, children }) {
+  return (
+    <View style={styles.formSectionCard}>
+      <View style={styles.formSectionHeader}>
+        <LinearGradient colors={[theme.medium, theme.accent]} style={styles.formSectionIcon}>
+          <Ionicons name={icon} size={16} color="#FFFFFF" />
+        </LinearGradient>
+        <View style={styles.formSectionHeaderText}>
+          <Text style={styles.formSectionTitle}>{title}</Text>
+          {subtitle ? <Text style={styles.formSectionSubtitle}>{subtitle}</Text> : null}
+        </View>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function AddressFormSheet({ visible, editingId, form, setForm, error, saving, onClose, onSave }) {
+  const preview = buildPreviewAddress(form);
+  const filledCount = FIELDS.filter((f) => String(form[f.key] || "").trim()).length;
+  const progress = filledCount / FIELDS.length;
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={styles.sheetOverlay} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <TouchableOpacity style={styles.sheetBackdrop} activeOpacity={1} onPress={onClose} />
+        <View style={styles.sheetPanel}>
+          <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.sheetHero}>
+            <View style={styles.sheetHandleLight} />
+            <View style={styles.sheetHeroRow}>
+              <View style={styles.sheetHeroLeft}>
+                <View style={styles.sheetHeroIcon}>
+                  <Ionicons name={editingId ? "create-outline" : "add-circle-outline"} size={22} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.sheetHeroTitle}>{editingId ? "Edit address" : "Add new address"}</Text>
+                  <Text style={styles.sheetHeroSubtitle}>{filledCount}/{FIELDS.length} fields completed</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={onClose} style={styles.sheetHeroClose} activeOpacity={0.85}>
+                <Ionicons name="close" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.progressTrack}>
+              <LinearGradient colors={["#FFFFFF", "rgba(255,255,255,0.75)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={[styles.progressFill, { width: `${Math.max(8, progress * 100)}%` }]} />
+            </View>
+          </LinearGradient>
+
+          <ScrollView
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.sheetScrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.previewCard}>
+              {preview ? (
+                <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.previewGradient}>
+                  <View style={styles.previewIcon}>
+                    <Ionicons name="navigate" size={20} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.previewTextWrap}>
+                    <Text style={styles.previewLabel}>Delivery preview</Text>
+                    <Text style={styles.previewValue} numberOfLines={3}>{preview}</Text>
+                    {form.phoneNumber ? (
+                      <View style={styles.previewPhoneRow}>
+                        <Ionicons name="call-outline" size={12} color="rgba(255,255,255,0.9)" />
+                        <Text style={styles.previewPhone}>{form.phoneNumber}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </LinearGradient>
+              ) : (
+                <View style={styles.previewEmpty}>
+                  <Ionicons name="location-outline" size={28} color={theme.accent} />
+                  <Text style={styles.previewEmptyTitle}>Address preview</Text>
+                  <Text style={styles.previewEmptyText}>Start typing to see how your delivery address will appear.</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.mapPlaceholderCard}>
+              <LinearGradient colors={["#E0F7FA", "#F8FDFF"]} style={styles.mapPlaceholderBg}>
+                <Ionicons name="map-outline" size={28} color={theme.accent} />
+              </LinearGradient>
+              <View style={styles.mapPlaceholderText}>
+                <Text style={styles.mapPlaceholderTitle}>Pin on map</Text>
+                <Text style={styles.mapPlaceholderHint}>Map picker coming soon — enter address manually for now</Text>
+              </View>
+              <View style={styles.mapSoonBadge}>
+                <Text style={styles.mapSoonText}>Soon</Text>
+              </View>
+            </View>
+
+            <FormSectionCard icon="home-outline" title="Property details" subtitle="House or building info">
+              <ModernInput
+                label={FIELDS[0].label}
+                icon={FIELDS[0].icon}
+                value={form.houseNumber}
+                onChangeText={(t) => setForm((prev) => ({ ...prev, houseNumber: t }))}
+                placeholder={FIELDS[0].placeholder}
+              />
+            </FormSectionCard>
+
+            <FormSectionCard icon="map-outline" title="Location" subtitle="Area, city and PIN">
+              <ModernInput
+                label={FIELDS[1].label}
+                icon={FIELDS[1].icon}
+                value={form.locality}
+                onChangeText={(t) => setForm((prev) => ({ ...prev, locality: t }))}
+                placeholder={FIELDS[1].placeholder}
+              />
+              <View style={styles.formRow}>
+                <View style={styles.formCol}>
+                  <ModernInput
+                    label={FIELDS[2].label}
+                    icon={FIELDS[2].icon}
+                    value={form.city}
+                    onChangeText={(t) => setForm((prev) => ({ ...prev, city: t }))}
+                    placeholder={FIELDS[2].placeholder}
+                  />
+                </View>
+                <View style={styles.formCol}>
+                  <ModernInput
+                    label={FIELDS[3].label}
+                    icon={FIELDS[3].icon}
+                    value={form.state}
+                    onChangeText={(t) => setForm((prev) => ({ ...prev, state: t }))}
+                    placeholder={FIELDS[3].placeholder}
+                  />
+                </View>
+              </View>
+              <ModernInput
+                label={FIELDS[4].label}
+                icon={FIELDS[4].icon}
+                value={form.pinCode}
+                onChangeText={(t) => setForm((prev) => ({ ...prev, pinCode: t }))}
+                placeholder={FIELDS[4].placeholder}
+                keyboardType={FIELDS[4].keyboardType}
+              />
+            </FormSectionCard>
+
+            <FormSectionCard icon="call-outline" title="Contact & preferences" subtitle="Receiver phone and default setting">
+              <ModernInput
+                label={FIELDS[5].label}
+                icon={FIELDS[5].icon}
+                value={form.phoneNumber}
+                onChangeText={(t) => setForm((prev) => ({ ...prev, phoneNumber: t }))}
+                placeholder={FIELDS[5].placeholder}
+                keyboardType={FIELDS[5].keyboardType}
+              />
+              <TouchableOpacity
+                style={[styles.defaultToggleCard, form.isDefault && styles.defaultToggleCardActive]}
+                onPress={() => setForm((prev) => ({ ...prev, isDefault: !prev.isDefault }))}
+                activeOpacity={0.88}
+              >
+                <LinearGradient
+                  colors={form.isDefault ? [theme.medium, theme.accent] : ["rgba(51,175,193,0.1)", "rgba(51,175,193,0.06)"]}
+                  style={styles.defaultToggleIcon}
+                >
+                  <Ionicons name={form.isDefault ? "star" : "star-outline"} size={18} color={form.isDefault ? "#FFFFFF" : theme.accent} />
+                </LinearGradient>
+                <View style={styles.defaultToggleText}>
+                  <Text style={styles.defaultToggleLabel}>Set as default address</Text>
+                  <Text style={styles.defaultToggleHint}>Auto-selected at checkout and subscriptions</Text>
+                </View>
+                <Ionicons name={form.isDefault ? "checkmark-circle" : "ellipse-outline"} size={22} color={form.isDefault ? theme.accent : "#CBD5E1"} />
+              </TouchableOpacity>
+            </FormSectionCard>
+
+            <View style={styles.formSecureNote}>
+              <Ionicons name="shield-checkmark-outline" size={18} color={theme.accent} />
+              <Text style={styles.formSecureText}>Your address is stored securely and only used for deliveries.</Text>
+            </View>
+
+            {error ? (
+              <View style={styles.errBanner}>
+                <Ionicons name="alert-circle-outline" size={18} color="#DC2626" />
+                <Text style={styles.errText}>{error}</Text>
+              </View>
+            ) : null}
+          </ScrollView>
+
+          <View style={styles.sheetActionBar}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={onClose} activeOpacity={0.85} disabled={saving}>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.saveBtnWrap, saving && styles.saveBtnDisabled]} onPress={onSave} disabled={saving} activeOpacity={0.9}>
+              <LinearGradient
+                colors={saving ? ["#EEF3F7", "#E8EEF2"] : [theme.medium, theme.accent]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.saveBtn}
+              >
+                {saving ? (
+                  <ActivityIndicator color="#FFFFFF" size="small" />
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.saveBtnText}>{editingId ? "Update address" : "Save address"}</Text>
+                    <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+                  </>
+                )}
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+const TIPS = [
+  { icon: "cart-outline", text: "Auto-filled at checkout for faster orders" },
+  { icon: "repeat-outline", text: "Used for subscription and plan deliveries" },
+  { icon: "star-outline", text: "Mark one address as default for quick selection" },
+];
+
+function getAddressLabel(address, index) {
+  const house = String(address.houseNumber || "").trim();
+  const locality = String(address.locality || "").trim();
+  if (house) return house;
+  if (locality) return locality;
+  return `Address ${index + 1}`;
+}
+
+function ListSectionCard({ icon, title, subtitle, children }) {
+  return (
+    <View style={styles.listSectionCard}>
+      <View style={styles.listSectionHeader}>
+        <LinearGradient colors={[theme.medium, theme.accent]} style={styles.listSectionIcon}>
+          <Ionicons name={icon} size={18} color="#FFFFFF" />
+        </LinearGradient>
+        <View style={styles.listSectionHeaderText}>
+          <Text style={styles.listSectionTitle}>{title}</Text>
+          {subtitle ? <Text style={styles.listSectionSubtitle}>{subtitle}</Text> : null}
+        </View>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+function DefaultAddressHero({ address, onEdit, onDelete }) {
+  return (
+    <View style={styles.defaultHeroWrap}>
+      <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.defaultHero}>
+        <View style={styles.defaultHeroTop}>
+          <View style={styles.defaultHeroBadge}>
+            <Ionicons name="star" size={12} color="#FFFFFF" />
+            <Text style={styles.defaultHeroBadgeText}>Primary address</Text>
+          </View>
+          <TouchableOpacity onPress={() => onEdit(address)} activeOpacity={0.85}>
+            <Ionicons name="create-outline" size={18} color="rgba(255,255,255,0.9)" />
+          </TouchableOpacity>
+        </View>
+        <Text style={styles.defaultHeroLabel}>{getAddressLabel(address, 0)}</Text>
+        <Text style={styles.defaultHeroAddress} numberOfLines={3}>{address.fullAddress || "—"}</Text>
+        <View style={styles.defaultHeroMeta}>
+          {address.city || address.state ? (
+            <Text style={styles.defaultHeroMetaText}>{[address.city, address.state].filter(Boolean).join(", ")}</Text>
+          ) : null}
+          {address.phoneNumber ? (
+            <View style={styles.defaultHeroPhone}>
+              <Ionicons name="call-outline" size={13} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.defaultHeroMetaText}>{address.phoneNumber}</Text>
+            </View>
+          ) : null}
+        </View>
+        <View style={styles.heroActions}>
+          <TouchableOpacity style={styles.heroActionBtn} onPress={() => onEdit(address)} activeOpacity={0.85}>
+            <Ionicons name="create-outline" size={15} color="#FFFFFF" />
+            <Text style={styles.heroActionText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.heroActionBtnDanger} onPress={() => onDelete(address)} activeOpacity={0.85}>
+            <Ionicons name="trash-outline" size={15} color="#FFFFFF" />
+            <Text style={styles.heroActionText}>Delete</Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+}
+
+function AddressCard({ address, index, onEdit, onDelete, onSetDefault, settingDefaultId }) {
+  const label = getAddressLabel(address, index);
+  const isSetting = settingDefaultId === address.id;
+
+  return (
+    <View style={[styles.addressCard, address.isDefault && styles.addressCardDefault]}>
+      <View style={styles.addressCardTop}>
+        <LinearGradient
+          colors={address.isDefault ? [theme.medium, theme.accent] : ["#E0F7FA", "#F8FDFF"]}
+          style={styles.addressIconWrap}
+        >
+          <Ionicons name={address.isDefault ? "location" : "location-outline"} size={20} color={address.isDefault ? "#FFFFFF" : theme.accent} />
+        </LinearGradient>
+        <View style={styles.addressCardBody}>
+          <View style={styles.addressTitleRow}>
+            <View style={styles.addressLabelWrap}>
+              <Text style={styles.addressLabel}>{label}</Text>
+              {address.isDefault ? (
+                <View style={styles.defaultBadge}>
+                  <Text style={styles.defaultBadgeText}>Default</Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+          <Text style={styles.addressTitle} numberOfLines={2}>{address.fullAddress || "—"}</Text>
+          <View style={styles.addressMetaRow}>
+            {address.city ? (
+              <View style={styles.metaChip}>
+                <Ionicons name="business-outline" size={11} color={theme.accent} />
+                <Text style={styles.metaChipText}>{address.city}</Text>
+              </View>
+            ) : null}
+            {address.pinCode ? (
+              <View style={styles.metaChip}>
+                <Ionicons name="mail-outline" size={11} color={theme.accent} />
+                <Text style={styles.metaChipText}>{address.pinCode}</Text>
+              </View>
+            ) : null}
+          </View>
+          {address.phoneNumber ? (
+            <View style={styles.phoneRow}>
+              <Ionicons name="call-outline" size={13} color={theme.accent} />
+              <Text style={styles.phoneText}>{address.phoneNumber}</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={styles.cardActions}>
+        {!address.isDefault ? (
+          <TouchableOpacity
+            style={styles.defaultBtn}
+            onPress={() => onSetDefault(address)}
+            activeOpacity={0.85}
+            disabled={isSetting}
+          >
+            {isSetting ? (
+              <ActivityIndicator size="small" color={theme.accent} />
+            ) : (
+              <>
+                <Ionicons name="star-outline" size={16} color={theme.accent} />
+                <Text style={styles.defaultBtnText}>Set default</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.defaultActivePill}>
+            <Ionicons name="checkmark-circle" size={16} color="#059669" />
+            <Text style={styles.defaultActiveText}>Active default</Text>
+          </View>
+        )}
+        <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(address)} activeOpacity={0.85}>
+          <Ionicons name="create-outline" size={16} color={theme.accent} />
+          <Text style={styles.editBtnText}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.delBtn} onPress={() => onDelete(address)} activeOpacity={0.85}>
+          <Ionicons name="trash-outline" size={16} color="#DC2626" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
 
 export default function SavedAddressesScreen() {
   const router = useRouter();
@@ -37,17 +412,46 @@ export default function SavedAddressesScreen() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState({ houseNumber: "", locality: "", city: "", state: "", pinCode: "", phoneNumber: "", isDefault: false });
+  const [form, setForm] = useState({
+    houseNumber: "",
+    locality: "",
+    city: "",
+    state: "",
+    pinCode: "",
+    phoneNumber: "",
+    isDefault: false,
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [settingDefaultId, setSettingDefaultId] = useState(null);
 
-  const fetchAddresses = useCallback(() => {
-    return api.addresses.list().then(setAddresses).catch(() => setAddresses([]));
+  const fetchAddresses = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
+    return api.addresses
+      .list()
+      .then(setAddresses)
+      .catch(() => setAddresses([]))
+      .finally(() => {
+        if (!silent) setLoading(false);
+        setRefreshing(false);
+      });
   }, []);
 
-  useEffect(() => {
-    fetchAddresses().finally(() => setLoading(false));
+  useFocusEffect(
+    useCallback(() => {
+      fetchAddresses();
+    }, [fetchAddresses])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchAddresses(true);
   }, [fetchAddresses]);
+
+  const defaultAddress = useMemo(() => addresses.find((a) => a.isDefault) || null, [addresses]);
+  const otherAddresses = useMemo(() => addresses.filter((a) => !a.isDefault), [addresses]);
+  const defaultCount = addresses.filter((a) => a.isDefault).length;
 
   const openAdd = () => {
     setEditingId(null);
@@ -74,6 +478,7 @@ export default function SavedAddressesScreen() {
   const closeForm = () => {
     setShowForm(false);
     setEditingId(null);
+    setError("");
   };
 
   const validate = () => {
@@ -95,11 +500,20 @@ export default function SavedAddressesScreen() {
     setSaving(true);
     try {
       if (editingId) {
-        await api.addresses.update(editingId, form);
-        setAddresses((prev) => prev.map((a) => (a.id === editingId ? { ...a, ...form, fullAddress: [form.houseNumber, form.locality, form.city, form.state, form.pinCode].filter(Boolean).join(", ") } : a)));
+        const updated = await api.addresses.update(editingId, form);
+        setAddresses((prev) =>
+          prev.map((a) => {
+            if (a.id === editingId) return updated;
+            if (form.isDefault) return { ...a, isDefault: false };
+            return a;
+          })
+        );
       } else {
         const created = await api.addresses.create(form);
-        setAddresses((prev) => [created, ...prev]);
+        setAddresses((prev) => {
+          const next = form.isDefault ? prev.map((a) => ({ ...a, isDefault: false })) : prev;
+          return [created, ...next];
+        });
       }
       closeForm();
     } catch (err) {
@@ -109,169 +523,714 @@ export default function SavedAddressesScreen() {
     }
   };
 
+  const handleSetDefault = async (address) => {
+    if (address.isDefault || settingDefaultId) return;
+    setSettingDefaultId(address.id);
+    try {
+      const updated = await api.addresses.update(address.id, {
+        houseNumber: address.houseNumber || "",
+        locality: address.locality || "",
+        city: address.city || "",
+        state: address.state || "",
+        pinCode: address.pinCode || "",
+        phoneNumber: address.phoneNumber || "",
+        isDefault: true,
+      });
+      setAddresses((prev) => prev.map((a) => (a.id === updated.id ? updated : { ...a, isDefault: false })));
+    } catch (err) {
+      Alert.alert("Error", err.message || "Could not set default address");
+    } finally {
+      setSettingDefaultId(null);
+    }
+  };
+
   const handleDelete = (a) => {
     Alert.alert("Delete address", `Remove "${a.fullAddress || "this address"}"?`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
-        onPress: () => api.addresses.delete(a.id).then(() => setAddresses((prev) => prev.filter((x) => x.id !== a.id))).catch((e) => Alert.alert("Error", e.message || "Could not delete")),
+        onPress: () =>
+          api.addresses
+            .delete(a.id)
+            .then(() => setAddresses((prev) => prev.filter((x) => x.id !== a.id)))
+            .catch((e) => Alert.alert("Error", e.message || "Could not delete")),
       },
     ]);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.headerSection}>
-        <LinearGradient colors={theme.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.gradientBackground, { paddingTop: 20 + androidTopInset }]}>
-          <View style={styles.headerTopRow}>
-            <BackButton onPress={() => router.back()} />
-            <Image source={require("../../assets/images/h20-logo-light-full.png")} style={styles.headerLogoLight} resizeMode="contain" />
-            <TouchableOpacity style={styles.addBtn} onPress={openAdd} activeOpacity={0.8}>
-              <Ionicons name="add" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.headerInfoRow}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="location-outline" size={24} color="#FFFFFF" />
-            </View>
-            <View style={styles.headerTextWrap}>
-              <Text style={styles.headerTitle}>Saved addresses</Text>
-              <Text style={styles.headerSubtitle}>Manage delivery locations and contact numbers</Text>
-            </View>
-          </View>
-        </LinearGradient>
-      </View>
-      <View style={styles.contentSection}>
-      {loading ? (
-        <View style={styles.centered}><ActivityIndicator size="large" color={theme.primary} /></View>
-      ) : (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {addresses.length === 0 ? (
-            <View style={styles.empty}>
-              <Ionicons name="location-outline" size={48} color="#9CA3AF" />
-              <Text style={styles.emptyText}>No saved addresses</Text>
-              <Text style={styles.emptySub}>Add an address to use it for orders and subscription delivery.</Text>
-              <TouchableOpacity style={styles.emptyBtn} onPress={openAdd} activeOpacity={0.8}>
-                <Text style={styles.emptyBtnText}>Add address</Text>
+      <View style={styles.pageBody}>
+        <View style={styles.headerSection}>
+          <LinearGradient
+            colors={theme.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.gradientBackground, { paddingTop: 12 + androidTopInset }]}
+          >
+            <DropletOverlay />
+            <View style={styles.headerTopRow}>
+              <BackButton />
+              <AppLogo size="header" />
+              <TouchableOpacity style={styles.headerAddBtn} onPress={openAdd} activeOpacity={0.85}>
+                <Ionicons name="add" size={22} color="#FFFFFF" />
               </TouchableOpacity>
+            </View>
+            <Text style={styles.headerTitle}>Saved addresses</Text>
+            <Text style={styles.headerSubtitle}>Manage delivery locations and contact numbers</Text>
+          </LinearGradient>
+        </View>
+
+        <View style={styles.contentSection}>
+          {loading ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="large" color={theme.accent} />
             </View>
           ) : (
-            addresses.map((a) => (
-              <View key={a.id} style={styles.card}>
-                <View style={styles.cardRow}>
-                  <Text style={styles.cardAddress} numberOfLines={2}>{a.fullAddress || "—"}</Text>
-                  {a.isDefault && <View style={styles.defaultBadge}><Text style={styles.defaultBadgeText}>Default</Text></View>}
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.accent} colors={[theme.accent]} />}
+            >
+              {addresses.length > 0 ? (
+                <View style={styles.summaryBanner}>
+                  <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.summaryBannerGradient}>
+                    <View style={styles.summaryBannerIcon}>
+                      <Ionicons name="location-outline" size={22} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.summaryBannerText}>
+                      <Text style={styles.summaryBannerLabel}>Delivery book</Text>
+                      <Text style={styles.summaryBannerValue}>
+                        {addresses.length} address{addresses.length !== 1 ? "es" : ""} · {defaultCount} default
+                      </Text>
+                    </View>
+                    <TouchableOpacity style={styles.summaryAddChip} onPress={openAdd} activeOpacity={0.85}>
+                      <Ionicons name="add" size={18} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </LinearGradient>
                 </View>
-                {(a.locality || a.pinCode) ? <Text style={styles.cardMeta}>{[a.locality, a.pinCode].filter(Boolean).join(" · ")}</Text> : null}
-                <View style={styles.cardActions}>
-                  <TouchableOpacity style={styles.editBtn} onPress={() => openEdit(a)} activeOpacity={0.8}>
-                    <Ionicons name="pencil-outline" size={18} color={theme.primary} />
-                    <Text style={styles.editBtnText}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.delBtn} onPress={() => handleDelete(a)} activeOpacity={0.8}>
-                    <Ionicons name="trash-outline" size={18} color="#B91C1C" />
-                    <Text style={styles.delBtnText}>Delete</Text>
+              ) : null}
+
+              {addresses.length === 0 ? (
+                <View style={styles.emptyWrap}>
+                  <View style={styles.emptyIcon}>
+                    <Ionicons name="location-outline" size={40} color={theme.accent} />
+                  </View>
+                  <Text style={styles.emptyTitle}>No saved addresses</Text>
+                  <Text style={styles.emptyText}>Save your home, office, or any delivery spot to speed up checkout and subscriptions.</Text>
+
+                  <View style={styles.emptySteps}>
+                    {[
+                      { step: "1", title: "Add address", desc: "Enter house, area, city & phone" },
+                      { step: "2", title: "Set default", desc: "Pick your most-used location" },
+                      { step: "3", title: "Order faster", desc: "Auto-filled at checkout" },
+                    ].map((item) => (
+                      <View key={item.step} style={styles.emptyStepCard}>
+                        <LinearGradient colors={[theme.medium, theme.accent]} style={styles.emptyStepBadge}>
+                          <Text style={styles.emptyStepBadgeText}>{item.step}</Text>
+                        </LinearGradient>
+                        <View style={styles.emptyStepText}>
+                          <Text style={styles.emptyStepTitle}>{item.title}</Text>
+                          <Text style={styles.emptyStepDesc}>{item.desc}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+
+                  <TouchableOpacity style={styles.emptyBtnWrap} onPress={openAdd} activeOpacity={0.9}>
+                    <LinearGradient colors={[theme.medium, theme.accent]} style={styles.emptyBtn}>
+                      <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+                      <Text style={styles.emptyBtnText}>Add your first address</Text>
+                    </LinearGradient>
                   </TouchableOpacity>
                 </View>
-              </View>
-            ))
+              ) : (
+                <>
+                  {defaultAddress ? <DefaultAddressHero address={defaultAddress} onEdit={openEdit} onDelete={handleDelete} /> : null}
+
+                  {(defaultAddress ? otherAddresses : addresses).length > 0 ? (
+                    <ListSectionCard
+                      icon="albums-outline"
+                      title={defaultAddress ? "Other addresses" : "All addresses"}
+                      subtitle={`${(defaultAddress ? otherAddresses : addresses).length} location${(defaultAddress ? otherAddresses : addresses).length !== 1 ? "s" : ""}`}
+                    >
+                      {(defaultAddress ? otherAddresses : addresses).map((a, idx) => (
+                        <AddressCard
+                          key={a.id}
+                          address={a}
+                          index={idx}
+                          onEdit={openEdit}
+                          onDelete={handleDelete}
+                          onSetDefault={handleSetDefault}
+                          settingDefaultId={settingDefaultId}
+                        />
+                      ))}
+                    </ListSectionCard>
+                  ) : null}
+
+                  <View style={styles.tipsCard}>
+                    <Text style={styles.tipsTitle}>Good to know</Text>
+                    {TIPS.map((tip) => (
+                      <View key={tip.text} style={styles.tipRow}>
+                        <View style={styles.tipIcon}>
+                          <Ionicons name={tip.icon} size={16} color={theme.accent} />
+                        </View>
+                        <Text style={styles.tipText}>{tip.text}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </>
+              )}
+            </ScrollView>
           )}
-        </ScrollView>
-      )}
+        </View>
       </View>
 
-      <Modal visible={showForm} transparent animationType="slide">
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={closeForm}>
-          <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{editingId ? "Edit address" : "Add address"}</Text>
-              <TouchableOpacity onPress={closeForm}><Ionicons name="close" size={24} color="#1B2B34" /></TouchableOpacity>
-            </View>
-            <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
-              {FIELDS.map((f) => (
-                <View key={f.key} style={styles.field}>
-                  <Text style={styles.fieldLabel}>{f.label}</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={form[f.key]}
-                    onChangeText={(t) => setForm((prev) => ({ ...prev, [f.key]: t }))}
-                    placeholder={f.placeholder}
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType={f.keyboardType || "default"}
-                  />
-                </View>
-              ))}
-              <TouchableOpacity
-                style={styles.defaultRow}
-                onPress={() => setForm((prev) => ({ ...prev, isDefault: !prev.isDefault }))}
-                activeOpacity={0.8}
-              >
-                <Ionicons name={form.isDefault ? "checkbox" : "square-outline"} size={24} color={theme.primary} />
-                <Text style={styles.defaultLabel}>Set as default address</Text>
-              </TouchableOpacity>
-              {error ? <Text style={styles.errText}>{error}</Text> : null}
-              <TouchableOpacity style={[styles.saveBtn, saving && styles.saveBtnDisabled]} onPress={handleSave} disabled={saving} activeOpacity={0.8}>
-                <Text style={styles.saveBtnText}>{saving ? "Saving…" : "Save"}</Text>
-              </TouchableOpacity>
-            </ScrollView>
+      {addresses.length > 0 && !loading ? (
+        <View style={styles.footer}>
+          <View style={styles.footerSummary}>
+            <Text style={styles.footerLabel}>{addresses.length} saved address{addresses.length !== 1 ? "es" : ""}</Text>
+            <Text style={styles.footerHint}>{defaultCount > 0 ? "Default ready" : "No default set"}</Text>
           </View>
-        </TouchableOpacity>
-      </Modal>
+          <TouchableOpacity style={styles.footerBtnWrap} onPress={openAdd} activeOpacity={0.9}>
+            <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.footerBtn}>
+              <Ionicons name="add-circle-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.footerBtnText}>Add new address</Text>
+              <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      <AddressFormSheet
+        visible={showForm}
+        editingId={editingId}
+        form={form}
+        setForm={setForm}
+        error={error}
+        saving={saving}
+        onClose={closeForm}
+        onSave={handleSave}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.screenBackground },
-  headerSection: { minHeight: 220, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingHorizontal: 20, paddingBottom: 20 },
-  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 24 },
-  headerLogoLight: { width: 124, height: 34 },
-  addBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" },
-  headerInfoRow: { flexDirection: "row", alignItems: "center" },
-  headerIconCircle: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.25)", justifyContent: "center", alignItems: "center" },
-  headerTextWrap: { flex: 1, marginLeft: 12 },
-  headerTitle: { fontSize: 17, fontWeight: "700", color: "#FFFFFF" },
-  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.95)", marginTop: 2, maxWidth: "95%" },
+  pageBody: { flex: 1 },
+  headerSection: { flexShrink: 0, overflow: "hidden" },
+  gradientBackground: { paddingHorizontal: 20, paddingBottom: 32 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
+  logoGlass: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.34)",
+  },
+  headerLogoLight: { width: 108, height: 30 },
+  headerAddBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.34)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: { fontSize: 24, fontWeight: "800", color: "#FFFFFF", letterSpacing: -0.4 },
+  headerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.92)", marginTop: 6, lineHeight: 18 },
+
   contentSection: {
-    marginTop: -24,
-    backgroundColor: theme.screenBackground,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
     flex: 1,
+    marginTop: -24,
+    backgroundColor: theme.contentPanelBackground,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.9)",
     overflow: "hidden",
   },
-  scrollContent: { padding: 16, paddingBottom: 40, paddingTop: 18 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 120 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-  empty: { alignItems: "center", paddingVertical: 48 },
-  emptyText: { fontSize: 16, fontWeight: "600", color: "#6B7C85", marginTop: 12 },
-  emptySub: { fontSize: 14, color: "#9CA3AF", marginTop: 4, textAlign: "center" },
-  emptyBtn: { marginTop: 20, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: theme.primary, borderRadius: 12 },
-  emptyBtnText: { fontSize: 15, fontWeight: "600", color: "#FFF" },
-  card: { backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: "rgba(255,255,255,0.85)" },
-  cardRow: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" },
-  cardAddress: { flex: 1, fontSize: 15, color: "#1B2B34", marginBottom: 4 },
-  defaultBadge: { backgroundColor: "#E0F2FE", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
-  defaultBadgeText: { fontSize: 11, fontWeight: "600", color: theme.primary },
-  cardMeta: { fontSize: 13, color: "#6B7C85", marginBottom: 8 },
-  cardActions: { flexDirection: "row", gap: 16 },
-  editBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  editBtnText: { fontSize: 14, fontWeight: "600", color: theme.primary },
-  delBtn: { flexDirection: "row", alignItems: "center", gap: 6 },
-  delBtnText: { fontSize: 14, fontWeight: "600", color: "#B91C1C" },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
-  modalContent: { backgroundColor: "#FFF", borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: "85%" },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1, borderBottomColor: "#E5E7EB" },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: "#1B2B34" },
-  modalScroll: { padding: 16 },
-  field: { marginBottom: 16 },
-  fieldLabel: { fontSize: 13, fontWeight: "600", color: "#6B7C85", marginBottom: 6 },
-  input: { backgroundColor: "#f9fafb", borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, fontSize: 16, color: "#1B2B34", borderWidth: 1, borderColor: "#E5E7EB" },
-  defaultRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 },
-  defaultLabel: { fontSize: 15, color: "#1B2B34" },
-  errText: { fontSize: 14, color: "#B91C1C", marginBottom: 12 },
-  saveBtn: { backgroundColor: theme.primary, paddingVertical: 14, borderRadius: 12, alignItems: "center" },
-  saveBtnDisabled: { opacity: 0.6 },
-  saveBtnText: { fontSize: 16, fontWeight: "600", color: "#FFF" },
+
+  summaryBanner: { borderRadius: 18, overflow: "hidden", marginBottom: 16 },
+  summaryBannerGradient: { flexDirection: "row", alignItems: "center", gap: 12, padding: 16 },
+  summaryBannerText: { flex: 1 },
+  summaryAddChip: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  summaryBannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  summaryBannerLabel: { fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.85)", textTransform: "uppercase", letterSpacing: 0.4 },
+  summaryBannerValue: { fontSize: 16, fontWeight: "800", color: "#FFFFFF", marginTop: 2 },
+
+  sectionEyebrow: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: theme.textMuted,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+
+  listSectionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.05, shadowRadius: 6 },
+      android: { elevation: 0 },
+    }),
+  },
+  listSectionHeader: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 },
+  listSectionIcon: { width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  listSectionHeaderText: { flex: 1 },
+  listSectionTitle: { fontSize: 16, fontWeight: "700", color: theme.textPrimary },
+  listSectionSubtitle: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+
+  defaultHeroWrap: { borderRadius: 20, overflow: "hidden", marginBottom: 14 },
+  defaultHero: { padding: 18 },
+  defaultHeroTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  defaultHeroBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+  },
+  defaultHeroBadgeText: { fontSize: 11, fontWeight: "700", color: "#FFFFFF", textTransform: "uppercase", letterSpacing: 0.3 },
+  defaultHeroLabel: { fontSize: 18, fontWeight: "800", color: "#FFFFFF", marginBottom: 6 },
+  defaultHeroAddress: { fontSize: 14, color: "rgba(255,255,255,0.95)", lineHeight: 20 },
+  defaultHeroMeta: { marginTop: 12, gap: 6 },
+  defaultHeroMetaText: { fontSize: 12, color: "rgba(255,255,255,0.88)" },
+  defaultHeroPhone: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  heroActions: { flexDirection: "row", gap: 10, marginTop: 16 },
+  heroActionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
+  },
+  heroActionBtnDanger: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(220,38,38,0.25)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  heroActionText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
+
+  tipsCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  tipsTitle: { fontSize: 14, fontWeight: "700", color: theme.textPrimary, marginBottom: 12 },
+  tipRow: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 10 },
+  tipIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tipText: { flex: 1, fontSize: 13, color: theme.textMuted, lineHeight: 18, paddingTop: 4 },
+
+  addressCard: {
+    backgroundColor: "#F8FCFD",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  addressCardDefault: { borderColor: theme.accent, backgroundColor: "rgba(51,175,193,0.06)" },
+  addressCardTop: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
+  addressIconWrap: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  addressCardBody: { flex: 1, minWidth: 0 },
+  addressTitleRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, marginBottom: 4 },
+  addressLabelWrap: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
+  addressLabel: { fontSize: 13, fontWeight: "700", color: theme.accent, textTransform: "uppercase", letterSpacing: 0.3 },
+  addressTitle: { fontSize: 15, fontWeight: "700", color: theme.textPrimary, lineHeight: 20 },
+  defaultBadge: {
+    backgroundColor: "rgba(51,175,193,0.12)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  defaultBadgeText: { fontSize: 10, fontWeight: "700", color: theme.accent, textTransform: "uppercase", letterSpacing: 0.3 },
+  addressMetaRow: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 8 },
+  metaChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(51,175,193,0.08)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  metaChipText: { fontSize: 11, fontWeight: "600", color: theme.textSecondary },
+  phoneRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
+  phoneText: { fontSize: 13, fontWeight: "600", color: theme.textSecondary },
+  cardActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(214,234,242,0.95)",
+  },
+  defaultBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(51,175,193,0.08)",
+    minHeight: 40,
+  },
+  defaultBtnText: { fontSize: 13, fontWeight: "600", color: theme.accent },
+  defaultActivePill: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(5,150,105,0.08)",
+  },
+  defaultActiveText: { fontSize: 13, fontWeight: "600", color: "#059669" },
+  editBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: "rgba(51,175,193,0.08)",
+  },
+  editBtnText: { fontSize: 13, fontWeight: "600", color: theme.accent },
+  delBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 12,
+    backgroundColor: "rgba(220,38,38,0.06)",
+  },
+
+  emptyWrap: { alignItems: "center", paddingVertical: 48, paddingHorizontal: 12 },
+  emptyIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  emptyTitle: { fontSize: 18, fontWeight: "700", color: theme.textPrimary },
+  emptyText: { fontSize: 14, color: theme.textMuted, marginTop: 8, textAlign: "center", lineHeight: 20 },
+  emptySteps: { width: "100%", marginTop: 24, gap: 10 },
+  emptyStepCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  emptyStepBadge: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  emptyStepBadgeText: { fontSize: 14, fontWeight: "800", color: "#FFFFFF" },
+  emptyStepText: { flex: 1 },
+  emptyStepTitle: { fontSize: 14, fontWeight: "700", color: theme.textPrimary },
+  emptyStepDesc: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  emptyBtnWrap: { marginTop: 24, borderRadius: 14, overflow: "hidden", alignSelf: "stretch" },
+  emptyBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 14 },
+  emptyBtnText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
+
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 28 : 20,
+    backgroundColor: theme.contentPanelBackground,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(214,234,242,0.95)",
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.08, shadowRadius: 10 },
+      android: { elevation: 0 },
+    }),
+  },
+  footerSummary: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  footerLabel: { fontSize: 13, fontWeight: "600", color: theme.textMuted },
+  footerHint: { fontSize: 13, fontWeight: "700", color: theme.accent },
+  footerBtnWrap: { borderRadius: 16, overflow: "hidden" },
+  footerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    minHeight: 54,
+  },
+  footerBtnText: { flex: 1, fontSize: 16, fontWeight: "700", color: "#FFFFFF", textAlign: "center" },
+
+  sheetOverlay: { flex: 1, justifyContent: "flex-end" },
+  sheetBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.5)" },
+  sheetPanel: {
+    backgroundColor: theme.contentPanelBackground,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: "92%",
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.9)",
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.15, shadowRadius: 16 },
+      android: { elevation: 0 },
+    }),
+  },
+  sheetHero: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 18 },
+  sheetHandleLight: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.45)",
+    alignSelf: "center",
+    marginBottom: 14,
+  },
+  sheetHeroRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  sheetHeroLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  sheetHeroIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  sheetHeroTitle: { fontSize: 20, fontWeight: "800", color: "#FFFFFF", letterSpacing: -0.3 },
+  sheetHeroSubtitle: { fontSize: 12, color: "rgba(255,255,255,0.88)", marginTop: 3 },
+  progressTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    marginTop: 14,
+    overflow: "hidden",
+  },
+  progressFill: { height: "100%", borderRadius: 3 },
+  sheetHeroClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.3)",
+  },
+  sheetScroll: { maxHeight: "100%" },
+  sheetScrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 },
+
+  previewCard: { borderRadius: 18, overflow: "hidden", marginBottom: 14 },
+  previewGradient: { flexDirection: "row", alignItems: "flex-start", gap: 12, padding: 16 },
+  previewIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  previewTextWrap: { flex: 1 },
+  previewLabel: { fontSize: 10, fontWeight: "700", color: "rgba(255,255,255,0.8)", textTransform: "uppercase", letterSpacing: 0.5 },
+  previewValue: { fontSize: 14, fontWeight: "700", color: "#FFFFFF", marginTop: 4, lineHeight: 20 },
+  previewPhoneRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
+  previewPhone: { fontSize: 12, color: "rgba(255,255,255,0.9)" },
+  previewEmpty: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 20,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  previewEmptyTitle: { fontSize: 15, fontWeight: "700", color: theme.textPrimary, marginTop: 10 },
+  previewEmptyText: { fontSize: 13, color: theme.textMuted, marginTop: 4, textAlign: "center", lineHeight: 18 },
+
+  mapPlaceholderCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  mapPlaceholderBg: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  mapPlaceholderText: { flex: 1 },
+  mapPlaceholderTitle: { fontSize: 14, fontWeight: "700", color: theme.textPrimary },
+  mapPlaceholderHint: { fontSize: 12, color: theme.textMuted, marginTop: 3, lineHeight: 16 },
+  mapSoonBadge: {
+    backgroundColor: "rgba(51,175,193,0.1)",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  mapSoonText: { fontSize: 10, fontWeight: "700", color: theme.accent, textTransform: "uppercase" },
+
+  formSectionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      android: { elevation: 0 },
+    }),
+  },
+  formSectionHeader: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 },
+  formSectionIcon: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  formSectionHeaderText: { flex: 1 },
+  formSectionTitle: { fontSize: 15, fontWeight: "700", color: theme.textPrimary },
+  formSectionSubtitle: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  formRow: { flexDirection: "row", gap: 10 },
+  formCol: { flex: 1, minWidth: 0 },
+
+  defaultToggleCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#F8FCFD",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  defaultToggleCardActive: { borderColor: theme.accent, backgroundColor: "rgba(51,175,193,0.06)" },
+  defaultToggleIcon: { width: 38, height: 38, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  defaultToggleText: { flex: 1 },
+  defaultToggleLabel: { fontSize: 14, fontWeight: "700", color: theme.textPrimary },
+  defaultToggleHint: { fontSize: 11, color: theme.textMuted, marginTop: 2 },
+
+  formSecureNote: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    backgroundColor: "rgba(51,175,193,0.08)",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(51,175,193,0.12)",
+  },
+  formSecureText: { flex: 1, fontSize: 12, color: theme.textMuted, lineHeight: 17 },
+
+  errBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "rgba(220,38,38,0.08)",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "rgba(220,38,38,0.15)",
+  },
+  errText: { flex: 1, fontSize: 13, color: "#DC2626", fontWeight: "600" },
+
+  sheetActionBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === "ios" ? 28 : 18,
+    backgroundColor: theme.contentPanelBackground,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(214,234,242,0.95)",
+  },
+  cancelBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  cancelBtnText: { fontSize: 15, fontWeight: "700", color: theme.textMuted },
+  saveBtnWrap: { flex: 1, borderRadius: 14, overflow: "hidden" },
+  saveBtnDisabled: { opacity: 0.95 },
+  saveBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    minHeight: 50,
+  },
+  saveBtnText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
 });

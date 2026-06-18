@@ -1,6 +1,8 @@
-import React from "react";
-import { TouchableOpacity, StyleSheet } from "react-native";
+import React, { useCallback } from "react";
+import { TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { usePathname } from "expo-router";
+import { goBackOr, getFallbackForPath } from "@/src/utils/navigation";
 
 /** Standard position for back button across the app: top 14, left 20. Use for gradient/overlay headers. */
 export const backButtonContainerStyle = {
@@ -8,7 +10,7 @@ export const backButtonContainerStyle = {
   top: 14,
   left: 20,
   zIndex: 10,
-  elevation: 10,
+  ...(Platform.OS === "android" ? { elevation: 0 } : { elevation: 10 }),
 };
 
 /** Standard header row padding so back button sits at same position (top 14, left 20). Use for flat headers. */
@@ -27,10 +29,15 @@ export const headerRowWithBackStyle = {
  * @param {string} [iconColor="#FFFFFF"] - Icon color; use "#1B2B34" on light backgrounds
  * @param {object} [style] - Optional style override for the button container
  */
-export default function BackButton({ onPress, iconColor = "#FFFFFF", style }) {
+export default function BackButton({ onPress, fallback, iconColor = "#FFFFFF", style }) {
+  const pathname = usePathname();
+  const smartBack = useCallback(() => {
+    goBackOr(fallback ?? getFallbackForPath(pathname));
+  }, [fallback, pathname]);
+
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={onPress ?? smartBack}
       style={[styles.backButton, style]}
       activeOpacity={0.7}
     >
@@ -48,5 +55,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
+    ...(Platform.OS === "android" ? { elevation: 0, overflow: "hidden" } : {}),
   },
 });

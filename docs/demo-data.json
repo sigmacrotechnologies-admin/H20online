@@ -1,0 +1,51 @@
+{
+  "apiBase": "http://127.0.0.1:5000",
+  "accounts": {
+    "customer": {
+      "email": "customer@h2o.demo",
+      "password": "Demo@123",
+      "name": "Rohit Sharma",
+      "phone": "9988776655"
+    },
+    "supplier": {
+      "email": "aquapure@example.com",
+      "password": "seedpass123"
+    },
+    "delivery": {
+      "email": "rahul.dp@h2o.test",
+      "password": "delivery123"
+    }
+  },
+  "orders": {
+    "trackOrderId": "ORD_DEMO0002",
+    "confirmedOrderId": "ORD_DEMO0003",
+    "pendingOrderId": "ORD_DEMO0001"
+  },
+  "products": [
+    {
+      "id": "6a2c29e00c08814ddeb32c3d",
+      "name": "AquaPure Premium 20L Jar",
+      "price": 180
+    },
+    {
+      "id": "6a2c29e00c08814ddeb32c3e",
+      "name": "BlueSprings Local 20L Jar",
+      "price": 120
+    },
+    {
+      "id": "6a2c29e00c08814ddeb32c3f",
+      "name": "Himalayan Mineral Pack (12x Bottles)",
+      "price": 340
+    },
+    {
+      "id": "6a2c29e00c08814ddeb32c40",
+      "name": "Crystal Clear 20L Jar",
+      "price": 140
+    },
+    {
+      "id": "6a2c29e00c08814ddeb32c41",
+      "name": "PureDrop 20L Jar",
+      "price": 165
+    }
+  ]
+}
