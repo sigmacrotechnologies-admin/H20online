@@ -219,9 +219,103 @@ If unsure, suggest using Support or the relevant app screen. Not medical advice.
   return { text };
 }
 
+function buildFallbackSurveyAnalysis(context) {
+  const total = context?.totals?.responses || 0;
+  const stats = context?.questionStats || [];
+  const topChoice = stats.find((q) => q.distribution?.length)?.distribution?.sort((a, b) => b.count - a.count)[0];
+  return {
+    headline: total ? `${total} survey responses collected` : "No responses yet",
+    executiveSummary: total
+      ? `The survey "${context?.survey?.title || "Survey"}" has received ${total} responses. Review choice distributions and text feedback below for actionable themes.`
+      : "No responses have been submitted yet. Share the survey link on your website to start collecting feedback.",
+    sentiment: { score: 50, label: "Neutral", explanation: "Insufficient data for sentiment scoring." },
+    keyFindings: topChoice
+      ? [`Most selected option for one question: "${topChoice.label}" (${topChoice.count} responses)`]
+      : ["Collect more responses to unlock detailed insights."],
+    themes: [],
+    recommendations: total
+      ? ["Promote the survey on high-traffic pages.", "Review open-text answers for recurring complaints or praise."]
+      : ["Activate the survey and publish the public link.", "Add clear call-to-action on your website."],
+    sectionAnalysis: stats.slice(0, 4).map((q) => ({
+      question: q.text,
+      insight: q.type === "rating"
+        ? `Average rating: ${q.average ?? "—"} from ${q.totalAnswers} answers.`
+        : `${q.totalAnswers} answers recorded.`,
+    })),
+    cached: false,
+    fallback: true,
+  };
+}
+
+async function generateSurveyAnalysis(surveyId, context) {
+  const key = `survey-analysis:${surveyId}:${context?.totals?.responses || 0}`;
+  return withDedup(key, async () => {
+    const cached = cache.get(key);
+    if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
+      return { ...cached.value, cached: true };
+    }
+
+    const system = `You are a business analyst for H2O Online reviewing customer/partner survey results.
+Analyze ONLY the aggregated JSON data provided. Do not invent numbers.
+Respond ONLY with valid JSON (no markdown, no code fences):
+{
+  "headline": "short title max 10 words",
+  "executiveSummary": "3-4 sentences overview of survey performance and main takeaway",
+  "sentiment": {"score": 0-100, "label": "Positive|Mixed|Neutral|Negative", "explanation": "1-2 sentences"},
+  "keyFindings": ["4-6 bullet insights with specific numbers from data"],
+  "themes": ["3-5 recurring themes from text samples if any, else from choice patterns"],
+  "recommendations": ["4-6 actionable business recommendations"],
+  "sectionAnalysis": [{"question": "question text", "insight": "2-3 sentences analyzing that question's stats"}]
+}
+Professional tone for stakeholders. Reference actual counts and percentages when available.`;
+
+    const user = `Survey analysis context:\n${JSON.stringify(context, null, 2)}`;
+
+    try {
+      const text = await chatCompletion({ system, user, maxTokens: 1200, temperature: 0.4 });
+      const match = text.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(match ? match[0] : text);
+      const report = {
+        headline: String(parsed.headline || "Survey Analysis").trim(),
+        executiveSummary: String(parsed.executiveSummary || "").trim(),
+        sentiment: {
+          score: Math.min(100, Math.max(0, Number(parsed.sentiment?.score) || 50)),
+          label: String(parsed.sentiment?.label || "Neutral").trim(),
+          explanation: String(parsed.sentiment?.explanation || "").trim(),
+        },
+        keyFindings: Array.isArray(parsed.keyFindings)
+          ? parsed.keyFindings.map((f) => String(f).trim()).filter(Boolean).slice(0, 6)
+          : [],
+        themes: Array.isArray(parsed.themes)
+          ? parsed.themes.map((t) => String(t).trim()).filter(Boolean).slice(0, 5)
+          : [],
+        recommendations: Array.isArray(parsed.recommendations)
+          ? parsed.recommendations.map((r) => String(r).trim()).filter(Boolean).slice(0, 6)
+          : [],
+        sectionAnalysis: Array.isArray(parsed.sectionAnalysis)
+          ? parsed.sectionAnalysis
+              .map((s) => ({
+                question: String(s.question || "").trim(),
+                insight: String(s.insight || "").trim(),
+              }))
+              .filter((s) => s.question && s.insight)
+              .slice(0, 8)
+          : [],
+        cached: false,
+      };
+      cache.set(key, { at: Date.now(), value: report });
+      return report;
+    } catch (err) {
+      console.error("[groq] survey analysis fallback:", err.message);
+      return buildFallbackSurveyAnalysis(context);
+    }
+  });
+}
+
 module.exports = {
   generateWaterInsight,
   generateIntakeSense,
   generateWaterReport,
   answerAppQuestion,
+  generateSurveyAnalysis,
 };

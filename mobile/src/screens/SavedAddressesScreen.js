@@ -23,6 +23,7 @@ import BackButton from "@/src/components/BackButton";
 import AppLogo from "@/src/components/AppLogo";
 import DropletOverlay from "@/src/components/modern/DropletOverlay";
 import { ModernInput } from "@/src/components/modern";
+import AddressMapPicker from "@/src/components/AddressMapPicker";
 import { theme } from "@/src/theme";
 
 const FIELDS = [
@@ -60,6 +61,21 @@ function AddressFormSheet({ visible, editingId, form, setForm, error, saving, on
   const preview = buildPreviewAddress(form);
   const filledCount = FIELDS.filter((f) => String(form[f.key] || "").trim()).length;
   const progress = filledCount / FIELDS.length;
+
+  const handleCoordinatesChange = ({ latitude, longitude }) => {
+    setForm((prev) => ({ ...prev, latitude, longitude }));
+  };
+
+  const handleAddressFromMap = (parts) => {
+    setForm((prev) => ({
+      ...prev,
+      houseNumber: parts.houseNumber || prev.houseNumber,
+      locality: parts.locality || prev.locality,
+      city: parts.city || prev.city,
+      state: parts.state || prev.state,
+      pinCode: parts.pinCode || prev.pinCode,
+    }));
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -119,18 +135,14 @@ function AddressFormSheet({ visible, editingId, form, setForm, error, saving, on
               )}
             </View>
 
-            <View style={styles.mapPlaceholderCard}>
-              <LinearGradient colors={["#E0F7FA", "#F8FDFF"]} style={styles.mapPlaceholderBg}>
-                <Ionicons name="map-outline" size={28} color={theme.accent} />
-              </LinearGradient>
-              <View style={styles.mapPlaceholderText}>
-                <Text style={styles.mapPlaceholderTitle}>Pin on map</Text>
-                <Text style={styles.mapPlaceholderHint}>Map picker coming soon — enter address manually for now</Text>
-              </View>
-              <View style={styles.mapSoonBadge}>
-                <Text style={styles.mapSoonText}>Soon</Text>
-              </View>
-            </View>
+            <FormSectionCard icon="location-outline" title="Pin on map" subtitle="Tap map, drag pin, or use current location">
+              <AddressMapPicker
+                latitude={form.latitude}
+                longitude={form.longitude}
+                onCoordinatesChange={handleCoordinatesChange}
+                onAddressResolved={handleAddressFromMap}
+              />
+            </FormSectionCard>
 
             <FormSectionCard icon="home-outline" title="Property details" subtitle="House or building info">
               <ModernInput
@@ -419,6 +431,8 @@ export default function SavedAddressesScreen() {
     state: "",
     pinCode: "",
     phoneNumber: "",
+    latitude: null,
+    longitude: null,
     isDefault: false,
   });
   const [saving, setSaving] = useState(false);
@@ -455,7 +469,17 @@ export default function SavedAddressesScreen() {
 
   const openAdd = () => {
     setEditingId(null);
-    setForm({ houseNumber: "", locality: "", city: "", state: "", pinCode: "", phoneNumber: "", isDefault: false });
+    setForm({
+      houseNumber: "",
+      locality: "",
+      city: "",
+      state: "",
+      pinCode: "",
+      phoneNumber: "",
+      latitude: null,
+      longitude: null,
+      isDefault: false,
+    });
     setError("");
     setShowForm(true);
   };
@@ -469,6 +493,8 @@ export default function SavedAddressesScreen() {
       state: a.state || "",
       pinCode: a.pinCode || "",
       phoneNumber: a.phoneNumber || "",
+      latitude: a.latitude ?? null,
+      longitude: a.longitude ?? null,
       isDefault: a.isDefault || false,
     });
     setError("");
@@ -534,6 +560,8 @@ export default function SavedAddressesScreen() {
         state: address.state || "",
         pinCode: address.pinCode || "",
         phoneNumber: address.phoneNumber || "",
+        latitude: address.latitude ?? null,
+        longitude: address.longitude ?? null,
         isDefault: true,
       });
       setAddresses((prev) => prev.map((a) => (a.id === updated.id ? updated : { ...a, isDefault: false })));

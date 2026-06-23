@@ -53,6 +53,7 @@ export default function Subscriptions() {
   const [deliveryPinCodeFilter, setDeliveryPinCodeFilter] = useState("");
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("active");
+  const [channelFilter, setChannelFilter] = useState("");
   const [frequencyFilter, setFrequencyFilter] = useState("");
   const [search, setSearch] = useState("");
   const [subscriptionIdSearch, setSubscriptionIdSearch] = useState("");
@@ -65,6 +66,7 @@ export default function Subscriptions() {
     try {
       const params = { page: opts.page ?? page, limit };
       if (status) params.status = status;
+      if (channelFilter) params.channel = channelFilter;
       if (frequencyFilter) params.frequency = frequencyFilter;
       if (search.trim()) params.search = search.trim();
       if (subscriptionIdSearch.trim()) params.subscriptionId = subscriptionIdSearch.trim();
@@ -79,7 +81,7 @@ export default function Subscriptions() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, statusFilter, frequencyFilter, search, subscriptionIdSearch, page, deliveryLocalityFilter, deliveryPinCodeFilter]);
+  }, [activeTab, statusFilter, channelFilter, frequencyFilter, search, subscriptionIdSearch, page, deliveryLocalityFilter, deliveryPinCodeFilter]);
 
   const loadFinancials = useCallback(async () => {
     try {
@@ -119,7 +121,7 @@ export default function Subscriptions() {
     } else {
       loadSubscriptions();
     }
-  }, [activeTab, statusFilter, frequencyFilter, search, subscriptionIdSearch, page]);
+  }, [activeTab, statusFilter, channelFilter, frequencyFilter, search, subscriptionIdSearch, page]);
 
   const handleStatusToggle = async (sub) => {
     const next = sub.status === "active" ? "inactive" : "active";
@@ -247,6 +249,12 @@ export default function Subscriptions() {
             <option value="inactive">Inactive</option>
             <option value="cancelled">Cancelled</option>
           </select>
+          <select value={channelFilter} onChange={(e) => setChannelFilter(e.target.value)} className="select">
+            <option value="">All channels</option>
+            <option value="customer">Customer</option>
+            <option value="society">Society</option>
+            <option value="supplier">Supplier</option>
+          </select>
           <select value={frequencyFilter} onChange={(e) => setFrequencyFilter(e.target.value)} className="select">
             <option value="">All frequency</option>
             <option value="daily">Daily</option>
@@ -290,6 +298,7 @@ export default function Subscriptions() {
                       <th>Subscription ID</th>
                       <th>Customer ID</th>
                       <th>Customer</th>
+                      <th>Channel</th>
                       <th>Type</th>
                       <th>Product (label)</th>
                       <th>Product ID</th>
@@ -305,6 +314,7 @@ export default function Subscriptions() {
                         <td>{s.subscriptionId || s.id}</td>
                         <td>{s.customerId || (s.userId ? String(s.userId).slice(-8) : "—")}</td>
                         <td>{s.customerName || s.customerEmail || "—"} {s.customerEmail && <span style={{ color: "#6B7C85", fontSize: 12 }}>{s.customerEmail}</span>}</td>
+                        <td>{s.subscriptionChannel || "customer"}</td>
                         <td>{s.frequency}</td>
                         <td>{s.productLabel} ({s.productKey})</td>
                         <td>{s.productId || "—"}</td>

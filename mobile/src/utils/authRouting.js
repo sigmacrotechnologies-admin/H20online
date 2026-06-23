@@ -17,5 +17,9 @@ export async function resolveHomeRoute(user) {
     return "/corporate-dashboard";
   }
 
+  if (user.role === "society") {
+    return "/society-dashboard";
+  }
+
   return "/dashboard";
 }

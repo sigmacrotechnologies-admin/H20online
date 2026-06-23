@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "build": "node -e \"console.log('No compile step for Node backend. Start with: npm run dev')\"",
     "seed": "node scripts/seed.js",
     "seed-plans": "node scripts/seed-plans.js",
     "seed-delivery-partners": "node scripts/seed-delivery-partners.js",

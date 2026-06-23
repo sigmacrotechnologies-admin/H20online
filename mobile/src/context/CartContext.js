@@ -11,7 +11,7 @@ const DOCS_DEMO_CART = [
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
   const [checkoutDetails, setCheckoutDetailsState] = useState(null);
@@ -89,7 +89,10 @@ export function CartProvider({ children }) {
           receiverName,
           receiverPhone,
           scheduledAt,
+          customerLatitude: details?.customerLatitude ?? null,
+          customerLongitude: details?.customerLongitude ?? null,
         };
+        if (user?.role === "society") payload.orderChannel = "society";
         const order = await api.orders.create(payload);
         setOrders((prev) => [order, ...prev]);
         setCart([]);

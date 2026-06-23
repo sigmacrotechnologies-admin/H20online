@@ -13,11 +13,18 @@ const NAV_GROUPS = [
       { to: "/users", label: "Users", icon: "👤" },
       { to: "/orders", label: "Orders", icon: "📦" },
       { to: "/suppliers", label: "Suppliers", icon: "🚚" },
+      { to: "/products", label: "Supplier products", icon: "🏷️" },
       { to: "/delivery-partners", label: "Delivery partners", icon: "🏍️" },
       { to: "/plans", label: "Plans & rates", icon: "📋" },
       { to: "/subscriptions", label: "Subscriptions", icon: "📅" },
+      { to: "/societies", label: "Society management", icon: "🏘️" },
+      { to: "/stores", label: "Store management", icon: "🏬" },
       { to: "/wallet-management", label: "Wallet management", icon: "💳" },
     ],
+  },
+  {
+    label: "Survey & marketing",
+    items: [{ to: "/surveys", label: "Surveys", icon: "📊" }],
   },
   {
     label: "Support",

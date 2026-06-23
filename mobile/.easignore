@@ -1,0 +1,9 @@
+# Fallback ignores when archive root is the mobile folder
+node_modules/
+.expo/
+android/
+ios/
+dist/
+web-build/
+.env
+.env*.local

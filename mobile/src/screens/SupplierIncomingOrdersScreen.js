@@ -15,6 +15,7 @@ import {
 } from "@/src/components/supplier/supplierUi";
 import { theme } from "@/src/theme";
 import { api } from "@/src/api/client";
+import { etaFromTravelInfo } from "@/src/utils/deliveryEta";
 
 const VEHICLE_LABELS = {
   bicycle: "Bicycle",
@@ -35,8 +36,7 @@ export default function SupplierIncomingOrdersScreen() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOrder, setModalOrder] = useState(null);
-  const [etaHours, setEtaHours] = useState(0);
-  const [etaMinutes, setEtaMinutes] = useState(30);
+  const [etaBufferMinutes, setEtaBufferMinutes] = useState(0);
   const [remarks, setRemarks] = useState("");
   const [fleetType, setFleetType] = useState("");
   const [allPartners, setAllPartners] = useState([]);
@@ -54,16 +54,20 @@ export default function SupplierIncomingOrdersScreen() {
 
   const openModal = (order) => {
     setModalOrder(order);
-    setEtaHours(0);
-    setEtaMinutes(30);
+    setEtaBufferMinutes(0);
     setRemarks("");
     setFleetType("");
     setSelectedPartnerId(null);
     setAllPartners([]);
     setPartners([]);
     if (order) {
-      api.deliveryPartners
-        .list()
+      const params = {};
+      if (order.customerLatitude != null && order.customerLongitude != null) {
+        params.nearLat = order.customerLatitude;
+        params.nearLng = order.customerLongitude;
+      }
+      api.supplier.deliveryPartners
+        .list(params)
         .then((list) => {
           setAllPartners(list || []);
           setPartners(list || []);
@@ -90,16 +94,14 @@ export default function SupplierIncomingOrdersScreen() {
     label: VEHICLE_LABELS[key] || key,
   }));
 
-  const adjustEtaHours = (delta) => setEtaHours((prev) => Math.min(24, Math.max(0, prev + delta)));
-  const adjustEtaMinutes = (delta) => setEtaMinutes((prev) => Math.min(55, Math.max(0, prev + delta)));
-  const etaDisplay = `${etaHours}h ${etaMinutes}m`;
+  const adjustEtaBuffer = (delta) =>
+    setEtaBufferMinutes((prev) => Math.min(60, Math.max(0, prev + delta)));
+
+  const baseEta = modalOrder ? etaFromTravelInfo(modalOrder.travelInfo || [], 0) : null;
+  const previewEta = modalOrder ? etaFromTravelInfo(modalOrder.travelInfo || [], etaBufferMinutes) : null;
 
   const handleAccept = async () => {
     if (!modalOrder?.id) return;
-    if (!etaDisplay || !/^\d{1,2}h\s+[0-5]?\dm$/i.test(etaDisplay)) {
-      alert("Please select a valid ETA.");
-      return;
-    }
     if (!remarks.trim()) {
       alert("Remarks are required.");
       return;
@@ -112,10 +114,19 @@ export default function SupplierIncomingOrdersScreen() {
       alert("Please assign a delivery partner.");
       return;
     }
+    const selected = (allPartners || []).find((p) => p.id === selectedPartnerId);
+    if (!selected?.availableForAssignment) {
+      alert(
+        selected?.inFlight
+          ? "This partner is in flight delivering an order. Choose another partner."
+          : "This partner must be online to receive assignments."
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       await api.supplier.acceptOrder(modalOrder.id, {
-        eta: etaDisplay,
+        etaBufferMinutes,
         remarks: remarks.trim(),
         requestedFleetType: fleetType,
         deliveryPartnerId: selectedPartnerId,
@@ -324,34 +335,31 @@ export default function SupplierIncomingOrdersScreen() {
               ))}
             </View>
 
-            <Text style={ui.inputLabel}>ETA (hours and minutes) *</Text>
+            <Text style={ui.inputLabel}>Delivery ETA (distance-based)</Text>
+            <Text style={styles.etaHint}>
+              Base estimate from distance bands. Real map distance is shown to the customer separately.
+            </Text>
+            {baseEta ? (
+              <Text style={styles.etaBase}>Base: {baseEta.text}</Text>
+            ) : (
+              <Text style={styles.etaBase}>Base: 25–30 min (default)</Text>
+            )}
+            <Text style={ui.inputLabel}>Buffer time (minutes)</Text>
             <View style={styles.etaRow}>
               <View style={styles.etaUnit}>
-                <Text style={styles.etaUnitLabel}>Hours</Text>
+                <Text style={styles.etaUnitLabel}>Add buffer</Text>
                 <View style={styles.etaControl}>
-                  <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaHours(-1)}>
+                  <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaBuffer(-5)}>
                     <Text style={styles.etaBtnText}>-</Text>
                   </TouchableOpacity>
-                  <Text style={styles.etaValue}>{etaHours}</Text>
-                  <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaHours(1)}>
-                    <Text style={styles.etaBtnText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={styles.etaUnit}>
-                <Text style={styles.etaUnitLabel}>Minutes</Text>
-                <View style={styles.etaControl}>
-                  <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaMinutes(-5)}>
-                    <Text style={styles.etaBtnText}>-</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.etaValue}>{etaMinutes}</Text>
-                  <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaMinutes(5)}>
+                  <Text style={styles.etaValue}>{etaBufferMinutes}</Text>
+                  <TouchableOpacity style={styles.etaBtn} onPress={() => adjustEtaBuffer(5)}>
                     <Text style={styles.etaBtnText}>+</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
-            <Text style={styles.etaPreview}>{etaDisplay}</Text>
+            <Text style={styles.etaPreview}>Customer ETA: {previewEta?.text || "—"}</Text>
 
             <Text style={ui.inputLabel}>Remarks (shown to customer) *</Text>
             <TextInput
@@ -378,19 +386,48 @@ export default function SupplierIncomingOrdersScreen() {
             {partners.length > 0 ? (
               <>
                 <Text style={ui.inputLabel}>Assign delivery partner *</Text>
-                <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled>
-                  {partners.map((p) => (
-                    <TouchableOpacity
-                      key={p.id}
-                      style={[styles.partnerRow, selectedPartnerId === p.id && styles.partnerRowSelected]}
-                      onPress={() => setSelectedPartnerId(selectedPartnerId === p.id ? null : p.id)}
-                    >
-                      <Text style={styles.partnerName}>
-                        {p.name} · {p.vehicleType}
-                      </Text>
-                      <Text style={styles.partnerPhone}>{p.phone}</Text>
-                    </TouchableOpacity>
-                  ))}
+                <Text style={styles.partnerHint}>Partners in flight cannot be assigned until delivery is complete.</Text>
+                <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                  {partners.map((p) => {
+                    const disabled = !p.availableForAssignment;
+                    const statusLabel = p.inFlight ? "In flight" : p.isOnline ? "Online" : "Offline";
+                    return (
+                      <TouchableOpacity
+                        key={p.id}
+                        style={[
+                          styles.partnerRow,
+                          selectedPartnerId === p.id && styles.partnerRowSelected,
+                          disabled && styles.partnerRowDisabled,
+                        ]}
+                        onPress={() => {
+                          if (disabled) return;
+                          setSelectedPartnerId(selectedPartnerId === p.id ? null : p.id);
+                        }}
+                        activeOpacity={disabled ? 1 : 0.85}
+                      >
+                        <View style={styles.partnerRowTop}>
+                          <Text style={[styles.partnerName, disabled && styles.partnerNameDisabled]}>
+                            {p.name} · {VEHICLE_LABELS[p.vehicleType] || p.vehicleType}
+                            {p.isOwnFleet ? " · Your fleet" : ""}
+                          </Text>
+                          <View
+                            style={[
+                              styles.partnerStatusPill,
+                              p.inFlight && styles.partnerStatusInFlight,
+                              !p.inFlight && p.isOnline && styles.partnerStatusOnline,
+                              !p.inFlight && !p.isOnline && styles.partnerStatusOffline,
+                            ]}
+                          >
+                            <Text style={styles.partnerStatusText}>{statusLabel}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.partnerPhone}>
+                          {p.phone}
+                          {p.distanceText ? ` · ${p.distanceText} away` : ""}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               </>
             ) : null}
@@ -475,16 +512,32 @@ const styles = StyleSheet.create({
   },
   etaBtnText: { fontSize: 20, color: theme.textPrimary, lineHeight: 24 },
   etaValue: { fontSize: 18, fontWeight: "700", color: theme.textPrimary, minWidth: 30, textAlign: "center" },
-  etaPreview: { fontSize: 13, color: theme.textMuted, marginBottom: 16 },
+  etaPreview: { fontSize: 13, marginBottom: 16, fontWeight: "700", color: theme.accent },
+  etaHint: { fontSize: 12, color: theme.textMuted, marginBottom: 6, lineHeight: 17 },
+  etaBase: { fontSize: 14, fontWeight: "700", color: theme.textPrimary, marginBottom: 12 },
   partnerRow: {
     padding: 12,
-    backgroundColor: theme.contentPanelBackground,
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: "rgba(214,234,242,0.95)",
   },
   partnerRowSelected: { backgroundColor: theme.selectedTint, borderWidth: 2, borderColor: theme.accent },
-  partnerName: { fontSize: 15, fontWeight: "600", color: theme.textPrimary },
-  partnerPhone: { fontSize: 13, color: theme.textMuted, marginTop: 2 },
+  partnerRowDisabled: { opacity: 0.55, backgroundColor: "#F8FAFC" },
+  partnerRowTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 8 },
+  partnerName: { fontSize: 15, fontWeight: "600", color: theme.textPrimary, flex: 1 },
+  partnerNameDisabled: { color: theme.textMuted },
+  partnerPhone: { fontSize: 13, color: theme.textMuted, marginTop: 4 },
+  partnerHint: { fontSize: 12, color: theme.textMuted, marginBottom: 8, lineHeight: 17 },
+  partnerStatusPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: "#E5E7EB",
+  },
+  partnerStatusOnline: { backgroundColor: "#DCFCE7" },
+  partnerStatusInFlight: { backgroundColor: "#FEF3C7" },
+  partnerStatusOffline: { backgroundColor: "#F3F4F6" },
+  partnerStatusText: { fontSize: 10, fontWeight: "700", color: "#374151" },
 });

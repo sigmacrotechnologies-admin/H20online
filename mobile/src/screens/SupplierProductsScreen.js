@@ -9,10 +9,12 @@ import {
   EmptyState,
   ModernSheet,
   SupplierPageHeader,
+  FilterChip,
   ui,
 } from "@/src/components/supplier/supplierUi";
 import { theme } from "@/src/theme";
 import { api } from "@/src/api/client";
+import { WATER_QUALITY_OPTIONS, getWaterQualityLabel } from "@/src/constants/waterQuality";
 
 const DEFAULT_PRODUCT_IMAGE = "https://placehold.co/400x300?text=H2O+Product";
 const PRODUCT_ASSET_MAP = {
@@ -30,6 +32,7 @@ const PRODUCT_ASSET_MAP = {
 export default function SupplierProductsScreen() {
   const router = useRouter();
   const [products, setProducts] = useState([]);
+  const [approvedStores, setApprovedStores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [editing, setEditing] = useState(null);
@@ -40,6 +43,9 @@ export default function SupplierProductsScreen() {
     api.supplier.products().then(setProducts).catch(() => setProducts([])).finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    api.stores.approved().then((list) => setApprovedStores(Array.isArray(list) ? list : [])).catch(() => setApprovedStores([]));
+  }, []);
 
   const handleRemove = (p) => {
     Alert.alert("Remove product", "Remove \"" + (p.productName || p.name) + "\"?", [
@@ -58,11 +64,18 @@ export default function SupplierProductsScreen() {
       delivery: p.delivery || "20-30 min",
       capacityL: String(p.capacityL ?? 20),
       stockQty: String(p.stockQty ?? 0),
+      audience: p.audience || "customer",
+      waterQuality: p.waterQuality || "standard",
+      storeId: p.storeId || "",
     });
   };
 
   const saveEdit = async () => {
     if (!editing?.id) return;
+    if (editing.audience === "society" && !editing.waterQuality) {
+      alert("Water quality is required for society products");
+      return;
+    }
     setSavingEdit(true);
     try {
       await api.products.update(editing.id, {
@@ -73,6 +86,9 @@ export default function SupplierProductsScreen() {
         delivery: editing.delivery,
         capacityL: Number(editing.capacityL) || 20,
         stockQty: Math.max(0, Number(editing.stockQty) || 0),
+        audience: editing.audience,
+        waterQuality: editing.audience === "society" ? editing.waterQuality : "",
+        storeId: editing.storeId || "",
       });
       setEditing(null);
       load();
@@ -156,7 +172,16 @@ export default function SupplierProductsScreen() {
                     <Text style={styles.productMeta}>ID: {p.id}</Text>
                     <Text style={styles.productMeta}>
                       {(p.productType || "jar").toUpperCase()} • {p.capacityL || 20}L
+                      {p.audience === "society" ? " • Society" : ""}
                     </Text>
+                    {p.audience === "society" && p.waterQuality ? (
+                      <Text style={styles.productMeta}>Quality: {getWaterQualityLabel(p.waterQuality)}</Text>
+                    ) : null}
+                    {p.storeName ? (
+                      <Text style={styles.productMeta}>Fulfils from: {p.storeName}</Text>
+                    ) : (
+                      <Text style={styles.productMetaMuted}>No linked store — tracking unavailable</Text>
+                    )}
                     <Text style={styles.productPrice}>
                       ₹{Number(p.price || 0).toLocaleString()} • {p.priceUnit || ""}
                     </Text>
@@ -218,6 +243,34 @@ export default function SupplierProductsScreen() {
               value={editing.productName}
               onChangeText={(v) => setEditing((e) => ({ ...e, productName: v }))}
             />
+            <Text style={ui.inputLabel}>Audience</Text>
+            <View style={ui.filterRow}>
+              <FilterChip
+                label="Customer"
+                selected={editing.audience === "customer"}
+                onPress={() => setEditing((e) => ({ ...e, audience: "customer", waterQuality: "" }))}
+              />
+              <FilterChip
+                label="Society"
+                selected={editing.audience === "society"}
+                onPress={() => setEditing((e) => ({ ...e, audience: "society", waterQuality: e.waterQuality || "standard", productType: "tanker" }))}
+              />
+            </View>
+            {editing.audience === "society" ? (
+              <>
+                <Text style={ui.inputLabel}>Water quality</Text>
+                <View style={ui.filterRow}>
+                  {WATER_QUALITY_OPTIONS.map((q) => (
+                    <FilterChip
+                      key={q.key}
+                      label={q.label}
+                      selected={editing.waterQuality === q.key}
+                      onPress={() => setEditing((e) => ({ ...e, waterQuality: q.key }))}
+                    />
+                  ))}
+                </View>
+              </>
+            ) : null}
             <Text style={ui.inputLabel}>Price</Text>
             <TextInput
               style={ui.input}
@@ -251,6 +304,21 @@ export default function SupplierProductsScreen() {
               onChangeText={(v) => setEditing((e) => ({ ...e, stockQty: v }))}
               keyboardType="number-pad"
             />
+            <Text style={ui.inputLabel}>Fulfilment store</Text>
+            <View style={ui.filterRow}>
+              <FilterChip label="No store" selected={!editing.storeId} onPress={() => setEditing((e) => ({ ...e, storeId: "" }))} />
+              {approvedStores.map((s) => (
+                <FilterChip
+                  key={s.id}
+                  label={s.storeType === "warehouse" ? `${s.name} (WH)` : s.name}
+                  selected={editing.storeId === s.id}
+                  onPress={() => setEditing((e) => ({ ...e, storeId: s.id }))}
+                />
+              ))}
+            </View>
+            {approvedStores.length === 0 ? (
+              <Text style={styles.storePickerHint}>Add and get stores approved under My stores first.</Text>
+            ) : null}
           </>
         ) : null}
       </ModernSheet>
@@ -291,6 +359,7 @@ const styles = StyleSheet.create({
   productTextWrap: { flex: 1 },
   productName: { fontSize: 16, fontWeight: "800", color: theme.textPrimary },
   productMeta: { fontSize: 12, color: theme.textMuted, marginTop: 3 },
+  productMetaMuted: { fontSize: 12, color: "#B45309", marginTop: 3 },
   productPrice: { fontSize: 14, fontWeight: "700", color: theme.accent, marginTop: 6 },
   productBadgeRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
   stockBadge: {
@@ -307,4 +376,5 @@ const styles = StyleSheet.create({
   productActions: { flexDirection: "row", gap: 10, marginTop: 14 },
   actionBtn: { flex: 1 },
   modalIdText: { fontSize: 14, color: theme.textMuted, fontWeight: "600", marginBottom: 8 },
+  storePickerHint: { fontSize: 12, color: theme.textMuted, lineHeight: 18, marginTop: 4 },
 });

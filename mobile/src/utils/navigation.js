@@ -1,10 +1,13 @@
 import { useCallback } from "react";
 import { router, usePathname } from "expo-router";
+import { useAuth } from "@/src/context/AuthContext";
 
 /** Sensible fallback when there is no navigation history (e.g. after router.replace). */
 export const ROUTE_FALLBACKS = {
   "/": "/",
   "/dashboard": "/",
+  "/society-dashboard": "/",
+  "/society-profile": "/society-dashboard",
   "/profile": "/dashboard",
   "/order": "/dashboard",
   "/cart": "/order",
@@ -30,6 +33,8 @@ export const ROUTE_FALLBACKS = {
   "/supplier-financials": "/supplier-dashboard",
   "/supplier-wallet": "/supplier-dashboard",
   "/supplier-support": "/supplier-dashboard",
+  "/supplier-plan": "/supplier-dashboard",
+  "/supplier-plan-subscription": "/supplier-plan",
   "/supplier-assign-rider": "/supplier-incoming-orders",
   "/supplier-onboarding": "/",
   "/supplier-onboarding-status": "/",
@@ -58,9 +63,14 @@ export function normalizePath(pathname) {
   return base;
 }
 
-export function getFallbackForPath(pathname) {
+export function getFallbackForPath(pathname, user) {
   const path = normalizePath(pathname);
-  return ROUTE_FALLBACKS[path] || "/dashboard";
+  let fb = ROUTE_FALLBACKS[path] || "/dashboard";
+  if (user?.role === "society") {
+    if (fb === "/dashboard") fb = "/society-dashboard";
+    if (fb === "/profile") fb = "/society-profile";
+  }
+  return fb;
 }
 
 export function goBackOr(fallback = "/dashboard") {
@@ -73,7 +83,8 @@ export function goBackOr(fallback = "/dashboard") {
 
 export function useAppBack(overrideFallback) {
   const pathname = usePathname();
+  const { user } = useAuth();
   return useCallback(() => {
-    goBackOr(overrideFallback ?? getFallbackForPath(pathname));
-  }, [pathname, overrideFallback]);
+    goBackOr(overrideFallback ?? getFallbackForPath(pathname, user));
+  }, [pathname, overrideFallback, user]);
 }

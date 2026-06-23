@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   ActivityIndicator,
   RefreshControl,
@@ -16,6 +15,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/src/api/client";
 import DeliveryPartnerLayout from "@/src/components/DeliveryPartnerLayout";
+import { SectionCard, GradientButton, ui } from "@/src/components/supplier/supplierUi";
 import { theme } from "@/src/theme";
 
 export default function DeliveryFinancialsScreen() {
@@ -74,13 +74,11 @@ export default function DeliveryFinancialsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <DeliveryPartnerLayout title="Financials" icon="wallet-outline">
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={theme.primary} />
-          </View>
-        </DeliveryPartnerLayout>
-      </SafeAreaView>
+      <DeliveryPartnerLayout title="Financials" subtitle="Wallet & earnings" icon="wallet-outline">
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      </DeliveryPartnerLayout>
     );
   }
 
@@ -91,37 +89,35 @@ export default function DeliveryFinancialsScreen() {
   const prefix = currency === "INR" ? "₹" : "";
 
   return (
-    <SafeAreaView style={styles.container}>
-      <DeliveryPartnerLayout title="Financials" icon="wallet-outline">
+    <>
+      <DeliveryPartnerLayout title="Financials" subtitle="Wallet & delivery earnings" icon="wallet-outline">
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.contentWrap}
+          contentContainerStyle={ui.scrollContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />}
         >
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Your delivery share (estimated)</Text>
-          <Text style={styles.cardValue}>{prefix}{deliveryShare}</Text>
-        </View>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Total order value delivered</Text>
-          <Text style={styles.cardValue}>{prefix}{totalEarnings}</Text>
-        </View>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>Completed deliveries</Text>
-          <Text style={styles.cardValue}>{totalDeliveries}</Text>
-        </View>
+          <SectionCard icon="cash-outline" title="Earnings" subtitle="From completed deliveries">
+            <View style={styles.metricRow}>
+              <View style={styles.metricCard}>
+                <Text style={styles.metricLabel}>Delivery share</Text>
+                <Text style={styles.metricValue}>{prefix}{deliveryShare}</Text>
+              </View>
+              <View style={styles.metricCard}>
+                <Text style={styles.metricLabel}>Order value delivered</Text>
+                <Text style={styles.metricValue}>{prefix}{totalEarnings}</Text>
+              </View>
+            </View>
+            <View style={styles.metricCardFull}>
+              <Text style={styles.metricLabel}>Completed deliveries</Text>
+              <Text style={styles.metricValue}>{totalDeliveries}</Text>
+            </View>
+          </SectionCard>
 
-        <View style={styles.walletCard}>
-          <View style={styles.walletRow}>
-            <Ionicons name="wallet-outline" size={28} color="#10B981" />
-            <Text style={styles.walletLabel}>Wallet balance</Text>
-          </View>
-          <Text style={styles.walletValue}>{prefix}{walletBalance ?? 0}</Text>
-          <Text style={styles.walletHint}>Earnings from completed deliveries are added here.</Text>
-          <TouchableOpacity style={styles.redeemBtn} onPress={() => setShowRedeem(true)} activeOpacity={0.8}>
-            <Text style={styles.redeemBtnText}>Redeem from wallet</Text>
-          </TouchableOpacity>
-        </View>
+          <SectionCard icon="wallet-outline" title="Wallet" subtitle="Redeem your delivery earnings">
+            <Text style={styles.walletValue}>{prefix}{walletBalance ?? 0}</Text>
+            <Text style={styles.walletHint}>Earnings from completed deliveries are added here.</Text>
+            <GradientButton label="Redeem from wallet" onPress={() => setShowRedeem(true)} icon="arrow-down-circle-outline" />
+          </SectionCard>
         </ScrollView>
       </DeliveryPartnerLayout>
 
@@ -148,25 +144,33 @@ export default function DeliveryFinancialsScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   scroll: { flex: 1 },
-  contentWrap: { paddingBottom: 40 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-  card: { backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 16, padding: 20, marginBottom: 12 },
-  cardLabel: { fontSize: 14, color: "#6B7C85", marginBottom: 4 },
-  cardValue: { fontSize: 24, fontWeight: "700", color: "#1B2B34" },
-  walletCard: { backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 16, padding: 20, marginTop: 8, marginBottom: 24 },
-  walletRow: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 8 },
-  walletLabel: { fontSize: 16, fontWeight: "600", color: "#1B2B34" },
-  walletValue: { fontSize: 26, fontWeight: "800", color: "#10B981", marginBottom: 4 },
-  walletHint: { fontSize: 13, color: "#6B7C85", marginBottom: 16 },
-  redeemBtn: { backgroundColor: "#10B981", paddingVertical: 14, borderRadius: 14, alignItems: "center" },
-  redeemBtnText: { fontSize: 16, fontWeight: "600", color: "#FFFFFF" },
+  metricRow: { flexDirection: "row", gap: 10, marginBottom: 10 },
+  metricCard: {
+    flex: 1,
+    backgroundColor: theme.contentPanelBackground,
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  metricCardFull: {
+    backgroundColor: theme.contentPanelBackground,
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  metricLabel: { fontSize: 12, fontWeight: "600", color: theme.textMuted },
+  metricValue: { fontSize: 20, fontWeight: "800", color: theme.textPrimary, marginTop: 6 },
+  walletValue: { fontSize: 28, fontWeight: "800", color: "#10B981", marginBottom: 6 },
+  walletHint: { fontSize: 13, color: theme.textMuted, marginBottom: 14, lineHeight: 18 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)", justifyContent: "flex-end" },
   modalBox: { backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },

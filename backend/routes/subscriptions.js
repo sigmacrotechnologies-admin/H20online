@@ -7,6 +7,12 @@ const router = express.Router();
 const { auth } = require("../middleware/auth");
 router.use(auth);
 
+function subscriptionChannelForRole(role) {
+  if (role === "society") return "society";
+  if (role === "supplier") return "supplier";
+  return "customer";
+}
+
 router.get("/", async (req, res) => {
   try {
     const list = await Subscription.find({ userId: req.user._id, status: { $in: ["active", "inactive"] } })
@@ -28,6 +34,8 @@ router.get("/", async (req, res) => {
       preferredTimeRangeStart: s.preferredTimeRangeStart,
       preferredTimeRangeEnd: s.preferredTimeRangeEnd,
       status: s.status,
+      subscriptionChannel: s.subscriptionChannel || "customer",
+      planCategory: s.planCategory || "individual",
       createdAt: s.createdAt,
     })));
   } catch (err) {
@@ -37,7 +45,7 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { planId, planName, productKey, productLabel, productId, frequency, unitPrice, quantity, selectedDates, preferredDeliveryTime, preferredTimeRangeStart, preferredTimeRangeEnd, addressId, deliveryAddress, locality, pinCode } = req.body;
+    const { planId, planName, productKey, productLabel, productId, frequency, unitPrice, quantity, selectedDates, preferredDeliveryTime, preferredTimeRangeStart, preferredTimeRangeEnd, addressId, deliveryAddress, locality, pinCode, planCategory } = req.body;
     if (!planId || !planName || !productKey || !productLabel || !frequency || !unitPrice || !Array.isArray(selectedDates)) {
       return res.status(400).json({ error: "planId, planName, productKey, productLabel, frequency, unitPrice, selectedDates required" });
     }
@@ -57,6 +65,12 @@ router.post("/", async (req, res) => {
         subPinCode = addr.pinCode || "";
       }
     }
+    const channel = subscriptionChannelForRole(req.user.role);
+    const category = planCategory && ["individual", "bulk", "society"].includes(planCategory)
+      ? planCategory
+      : channel === "society"
+        ? "society"
+        : "individual";
     const sub = new Subscription({
       userId: req.user._id,
       planId,
@@ -76,6 +90,8 @@ router.post("/", async (req, res) => {
       deliveryAddress: subDeliveryAddress || undefined,
       locality: subLocality || undefined,
       pinCode: subPinCode || undefined,
+      subscriptionChannel: channel,
+      planCategory: category,
     });
     sub.subscriptionId = await Subscription.generateUniqueSubscriptionId();
     await sub.save();

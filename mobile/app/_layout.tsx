@@ -36,6 +36,7 @@ export default function RootLayout() {
             <Stack.Screen name="customer-support" options={{ headerShown: false }} />
             <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="partner-login" options={{ headerShown: false }} />
             <Stack.Screen name="login-otp" options={{ headerShown: false }} />
             <Stack.Screen name="corporate-profile" options={{ headerShown: false }} />
             <Stack.Screen name="corporate-validation" options={{ headerShown: false }} />
@@ -52,6 +53,11 @@ export default function RootLayout() {
             <Stack.Screen name="supplier-products" options={{ headerShown: false }} />
             <Stack.Screen name="supplier-financials" options={{ headerShown: false }} />
             <Stack.Screen name="supplier-wallet" options={{ headerShown: false }} />
+            <Stack.Screen name="supplier-plan" options={{ headerShown: false }} />
+            <Stack.Screen name="supplier-plan-subscription" options={{ headerShown: false }} />
+            <Stack.Screen name="supplier-stores" options={{ headerShown: false }} />
+            <Stack.Screen name="supplier-delivery-partners" options={{ headerShown: false }} />
+            <Stack.Screen name="supplier-store-location" options={{ headerShown: false }} />
             <Stack.Screen name="supplier-support" options={{ headerShown: false }} />
             <Stack.Screen name="delivery-onboarding" options={{ headerShown: false }} />
             <Stack.Screen name="delivery-verification-pending" options={{ headerShown: false }} />
@@ -61,6 +67,9 @@ export default function RootLayout() {
             <Stack.Screen name="delivery-financials" options={{ headerShown: false }} />
             <Stack.Screen name="delivery-help" options={{ headerShown: false }} />
             <Stack.Screen name="delivery-profile" options={{ headerShown: false }} />
+            <Stack.Screen name="society-onboarding" options={{ headerShown: false }} />
+            <Stack.Screen name="society-dashboard" options={{ headerShown: false }} />
+            <Stack.Screen name="society-profile" options={{ headerShown: false }} />
             <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
           </Stack>
           <StatusBar style="auto" />

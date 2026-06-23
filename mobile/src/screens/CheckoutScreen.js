@@ -24,6 +24,9 @@ import { useWallet } from "@/src/context/WalletContext";
 import WalletModal from "@/src/components/WalletModal";
 import { api } from "@/src/api/client";
 import { ModernInput } from "@/src/components/modern";
+import RouteMapPreview from "@/src/components/RouteMapPreview";
+import StoreTravelBadge from "@/src/components/StoreTravelBadge";
+import { useStoreTravelInfo } from "@/src/hooks/useStoreTravel";
 
 function SectionCard({ icon, title, subtitle, children }) {
   return (
@@ -62,6 +65,7 @@ const CheckoutScreen = () => {
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [showHourDropdown, setShowHourDropdown] = useState(false);
   const [showMinuteDropdown, setShowMinuteDropdown] = useState(false);
+  const [customerCoords, setCustomerCoords] = useState(null);
   const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
 
   const dateOptions = useMemo(() => {
@@ -90,6 +94,9 @@ const CheckoutScreen = () => {
       const details = getCheckoutDetails?.();
       if (details?.address) setFullAddress(details.address);
       if (details?.receiverPhone) setReceiverPhone(details.receiverPhone);
+      if (details?.customerLatitude != null && details?.customerLongitude != null) {
+        setCustomerCoords({ latitude: details.customerLatitude, longitude: details.customerLongitude });
+      }
       if (!details?.address || !details?.receiverPhone) {
         api.addresses
           .list()
@@ -98,11 +105,34 @@ const CheckoutScreen = () => {
             const defaultEntry = safe.find((a) => a.isDefault) || safe[0] || null;
             if (!details?.address && defaultEntry?.fullAddress) setFullAddress(defaultEntry.fullAddress);
             if (!details?.receiverPhone && defaultEntry?.phoneNumber) setReceiverPhone(defaultEntry.phoneNumber);
+            if (defaultEntry?.latitude != null && defaultEntry?.longitude != null) {
+              setCustomerCoords({ latitude: defaultEntry.latitude, longitude: defaultEntry.longitude });
+            }
           })
           .catch(() => {});
       }
     }, [cart.length, getCheckoutDetails, router])
   );
+
+  const storeDestinations = useMemo(() => {
+    const map = new Map();
+    cart.forEach((i) => {
+      if (i.hasRegisteredStore && i.storeId && i.storeLatitude != null && i.storeLongitude != null) {
+        map.set(i.storeId, {
+          id: i.storeId,
+          lat: i.storeLatitude,
+          lng: i.storeLongitude,
+          name: i.storeName || "",
+        });
+      }
+    });
+    return [...map.values()];
+  }, [cart]);
+  const { travelByStore, loading: travelLoading } = useStoreTravelInfo(customerCoords, storeDestinations);
+  const primaryTravel = useMemo(() => {
+    const first = cart.find((i) => i.hasRegisteredStore && i.storeId);
+    return first ? travelByStore[first.storeId] : null;
+  }, [cart, travelByStore]);
 
   const applyCoupon = () => {};
 
@@ -127,6 +157,8 @@ const CheckoutScreen = () => {
       address: fullAddress,
       receiverName: orderForSomeoneElse ? receiverName : null,
       receiverPhone: orderForSomeoneElse ? receiverPhoneOther : receiverPhone,
+      customerLatitude: customerCoords?.latitude ?? null,
+      customerLongitude: customerCoords?.longitude ?? null,
       scheduledAt:
         !instantDelivery && scheduledDate
           ? new Date(`${scheduledDate}T${scheduledHour}:${scheduledMinute}:00`).toISOString()
@@ -197,17 +229,47 @@ const CheckoutScreen = () => {
               {cart.length > 2 ? <Text style={styles.orderMoreText}>+{cart.length - 2} more item{cart.length - 2 !== 1 ? "s" : ""}</Text> : null}
             </TouchableOpacity>
 
-            <SectionCard icon="location-outline" title="Delivery address" subtitle="Where should we deliver?">
-              <View style={styles.mapCard}>
-                <Ionicons name="map-outline" size={28} color={theme.accent} />
-                <View style={styles.mapTextWrap}>
-                  <Text style={styles.mapTitle}>Pin on map</Text>
-                  <Text style={styles.mapHint}>Map integration coming soon</Text>
+            <SectionCard icon="navigate-outline" title="Store distance & ETA" subtitle="From your location to fulfilment store">
+              {customerCoords && primaryTravel ? (
+                <>
+                  <RouteMapPreview
+                    fromLatitude={customerCoords.latitude}
+                    fromLongitude={customerCoords.longitude}
+                    toLatitude={primaryTravel.storeLatitude}
+                    toLongitude={primaryTravel.storeLongitude}
+                    height={160}
+                  />
+                  <StoreTravelBadge info={primaryTravel} loading={travelLoading} />
+                </>
+              ) : (
+                <Text style={styles.mapHint}>
+                  {cart.some((i) => !i.hasRegisteredStore)
+                    ? "Some items have no registered store — distance & live tracking unavailable for those."
+                    : customerCoords
+                      ? "Add approved stores to products to see distance and ETA."
+                      : "Pin your delivery address on the map in Saved Addresses to see distance and ETA."}
+                </Text>
+              )}
+              {cart.filter((i) => i.hasRegisteredStore && i.storeId).length > 0 ? (
+                <View style={styles.travelList}>
+                  {cart
+                    .filter((i) => i.hasRegisteredStore && i.storeId)
+                    .map((item) => (
+                      <View key={item.id + item.storeId} style={styles.travelListRow}>
+                        <Text style={styles.travelListName} numberOfLines={1}>
+                          {item.storeName || item.supplierName || "Store"}
+                        </Text>
+                        <StoreTravelBadge info={travelByStore[item.storeId]} loading={travelLoading} compact />
+                      </View>
+                    ))}
                 </View>
-                <TouchableOpacity style={styles.mapBtn} onPress={() => router.push("/saved-addresses")} activeOpacity={0.85}>
-                  <Text style={styles.mapBtnText}>Saved</Text>
-                </TouchableOpacity>
-              </View>
+              ) : null}
+            </SectionCard>
+
+            <SectionCard icon="location-outline" title="Delivery address" subtitle="Where should we deliver?">
+              <TouchableOpacity style={styles.mapBtn} onPress={() => router.push("/saved-addresses")} activeOpacity={0.85}>
+                <Text style={styles.mapBtnText}>Manage saved addresses</Text>
+              </TouchableOpacity>
               <ModernInput
                 label="Full address"
                 icon="home-outline"
@@ -603,7 +665,18 @@ const styles = StyleSheet.create({
   },
   mapTextWrap: { flex: 1 },
   mapTitle: { fontSize: 14, fontWeight: "700", color: theme.textPrimary },
-  mapHint: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  mapHint: { fontSize: 12, color: theme.textMuted, marginTop: 2, lineHeight: 18 },
+  travelList: { marginTop: 10, gap: 8 },
+  travelListRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(214,234,242,0.95)",
+  },
+  travelListName: { fontSize: 13, fontWeight: "600", color: theme.textPrimary, flex: 1 },
   mapBtn: {
     paddingHorizontal: 12,
     paddingVertical: 8,

@@ -20,7 +20,14 @@ import DropletOverlay from "@/src/components/modern/DropletOverlay";
 import { useCart } from "@/src/context/CartContext";
 import { getOrderId, getOrderIdShort } from "@/src/utils/orderId";
 import { api } from "@/src/api/client";
+import { useCustomerPortal } from "@/src/utils/customerPortal";
 import { theme } from "@/src/theme";
+import RouteMapPreview from "@/src/components/RouteMapPreview";
+import LiveTrackingMap from "@/src/components/LiveTrackingMap";
+import StoreTravelBadge from "@/src/components/StoreTravelBadge";
+import { useLiveOrderTracking } from "@/src/hooks/useLiveOrderTracking";
+import { resolveOrderEta, bandEtaForTravelLeg } from "@/src/utils/orderEta";
+import { isCustomerLiveTrackingEnabled } from "@/src/utils/customerLiveTracking";
 
 function SectionCard({ icon, title, subtitle, children }) {
   return (
@@ -59,7 +66,7 @@ const statusLabel = (order) => {
   const accepted = (order.supplierResponses || []).find((r) => r.status === "accepted");
   const stage = accepted?.deliveryStage || (accepted ? "accepted" : null);
   if (stage === "delivered") return "Delivered";
-  if (stage === "picked_up") return "Picked up";
+  if (stage === "picked_up") return "On the way";
   if (accepted) {
     if (stage === "accepted" && accepted.deliveryPartnerName) return "Partner assigned";
     return "Accepted";
@@ -68,6 +75,7 @@ const statusLabel = (order) => {
 };
 
 export default function TrackOrderScreen() {
+  const portal = useCustomerPortal();
   const router = useRouter();
   const params = useLocalSearchParams();
   const initialOrderId = params?.orderId ? String(params.orderId) : null;
@@ -137,8 +145,22 @@ export default function TrackOrderScreen() {
   const stage = accepted?.deliveryStage || (accepted ? "accepted" : null);
   const riderName = accepted?.deliveryPartnerName;
   const riderPhone = accepted?.deliveryPartnerPhone;
-  const eta = accepted?.eta;
+  const travelLeg = (displayOrder?.travelInfo || [])[0] || null;
   const isDelivered = displayOrder?.status === "delivered" || stage === "delivered";
+  const liveEnabled = isCustomerLiveTrackingEnabled(displayOrder);
+  const trackOrderId = selectedOrderId || initialOrderId;
+  const { tracking: liveTracking } = useLiveOrderTracking(trackOrderId, liveEnabled);
+
+  const displayEta = resolveOrderEta(displayOrder, liveTracking);
+  const routeEta = bandEtaForTravelLeg(travelLeg) || displayOrder?.estimatedDeliveryText || accepted?.eta;
+  const mapEta = displayEta || routeEta || "Estimating…";
+
+  const customerLat = liveTracking?.customerLatitude ?? displayOrder?.customerLatitude;
+  const customerLng = liveTracking?.customerLongitude ?? displayOrder?.customerLongitude;
+  const partnerLat = liveTracking?.partnerLatitude;
+  const partnerLng = liveTracking?.partnerLongitude;
+  const storeLat = travelLeg?.storeLatitude;
+  const storeLng = travelLeg?.storeLongitude;
 
   const supplier = displayOrder?.supplier || null;
   const supplierPhone = supplier?.phone || null;
@@ -190,7 +212,7 @@ export default function TrackOrderScreen() {
             <View style={styles.headerTopRow}>
               <BackButton />
               <AppLogo size="header" />
-              <TouchableOpacity style={styles.headerMenuBtn} activeOpacity={0.85} onPress={() => router.push("/profile")}>
+              <TouchableOpacity style={styles.headerMenuBtn} activeOpacity={0.85} onPress={() => router.push(portal.profile)}>
                 <Ionicons name="menu" size={22} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
@@ -233,10 +255,10 @@ export default function TrackOrderScreen() {
                       <Text style={styles.summaryBannerValue} numberOfLines={1}>{statusLabel(displayOrder)}</Text>
                       <Text style={styles.summaryBannerMeta} numberOfLines={1}>{productLabel}</Text>
                     </View>
-                    {eta ? (
+                    {mapEta ? (
                       <View style={styles.etaChip}>
                         <Text style={styles.etaChipLabel}>ETA</Text>
-                        <Text style={styles.etaChipValue}>{eta}</Text>
+                        <Text style={styles.etaChipValue}>{mapEta}</Text>
                       </View>
                     ) : (
                       <View style={styles.etaChip}>
@@ -279,6 +301,61 @@ export default function TrackOrderScreen() {
                         );
                       })}
                     </ScrollView>
+                  </SectionCard>
+                ) : null}
+
+                {liveEnabled && partnerLat != null && partnerLng != null && customerLat != null && customerLng != null ? (
+                  <SectionCard icon="radio-outline" title="Live delivery tracking" subtitle="Rider location refreshes every 30 seconds">
+                    <LiveTrackingMap
+                      customerLatitude={customerLat}
+                      customerLongitude={customerLng}
+                      partnerLatitude={partnerLat}
+                      partnerLongitude={partnerLng}
+                      storeLatitude={storeLat}
+                      storeLongitude={storeLng}
+                      height={200}
+                    />
+                    <StoreTravelBadge
+                      info={{
+                        distanceText: liveTracking?.liveDistanceText,
+                        distanceMeters: liveTracking?.liveDistanceMeters,
+                      }}
+                      etaText={displayEta}
+                    />
+                    {liveTracking?.partnerName ? (
+                      <Text style={styles.livePartnerText}>
+                        {liveTracking.partnerName} is heading to you
+                      </Text>
+                    ) : null}
+                  </SectionCard>
+                ) : liveEnabled ? (
+                  <SectionCard icon="radio-outline" title="Live delivery tracking" subtitle="Waiting for rider location…">
+                    <Text style={styles.waitingLocationText}>
+                      Your delivery partner is assigned. The map will appear once their location is available.
+                    </Text>
+                  </SectionCard>
+                ) : null}
+
+                {displayOrder?.customerLatitude != null &&
+                displayOrder?.customerLongitude != null &&
+                travelLeg?.storeLatitude != null &&
+                travelLeg?.storeLongitude != null &&
+                !liveEnabled ? (
+                  <SectionCard icon="map-outline" title="Route to store" subtitle="Your location → supplier store">
+                    <RouteMapPreview
+                      fromLatitude={displayOrder.customerLatitude}
+                      fromLongitude={displayOrder.customerLongitude}
+                      toLatitude={travelLeg.storeLatitude}
+                      toLongitude={travelLeg.storeLongitude}
+                      height={180}
+                    />
+                    <StoreTravelBadge info={travelLeg} etaText={routeEta} />
+                  </SectionCard>
+                ) : null}
+
+                {!travelLeg?.storeLatitude && !liveEnabled && !isDelivered ? (
+                  <SectionCard icon="storefront-outline" title="Store tracking" subtitle="Fulfilment location">
+                    <Text style={styles.noStoreHint}>Store not registered — tracking unavailable</Text>
                   </SectionCard>
                 ) : null}
 
@@ -521,6 +598,8 @@ const styles = StyleSheet.create({
   detailTextWrap: { flex: 1 },
   detailLabel: { fontSize: 11, fontWeight: "600", color: theme.textMuted, textTransform: "uppercase", letterSpacing: 0.3, marginBottom: 2 },
   detailValue: { fontSize: 14, color: theme.textPrimary, lineHeight: 20 },
+  livePartnerText: { fontSize: 13, color: theme.textSecondary, marginTop: 6, fontWeight: "600" },
+  waitingLocationText: { fontSize: 14, color: theme.textMuted, lineHeight: 20 },
 
   itemRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 10, gap: 10 },
   itemRowBorder: { borderBottomWidth: 1, borderBottomColor: "rgba(214,234,242,0.95)" },
@@ -580,4 +659,5 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 14, color: theme.textMuted, marginTop: 6, textAlign: "center" },
   loadingWrap: { alignItems: "center", paddingVertical: 48 },
   loadingText: { marginTop: 12, fontSize: 14, color: theme.textMuted },
+  noStoreHint: { fontSize: 14, color: "#B45309", lineHeight: 20 },
 });

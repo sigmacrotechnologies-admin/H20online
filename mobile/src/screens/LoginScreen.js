@@ -31,7 +31,7 @@ const SECONDARY_ROLES = [
   { id: 4, title: "Corporate", icon: "business-outline", comingSoon: true },
   { id: 5, title: "Restaurant", icon: "restaurant-outline", comingSoon: true },
   { id: 6, title: "Event Org", icon: "calendar-outline", comingSoon: true },
-  { id: 7, title: "Institute", icon: "school-outline", comingSoon: true },
+  { id: 7, title: "Society", icon: "home-outline" },
 ];
 
 const LOGIN_ROLES = [...PRIMARY_ROLES, ...SECONDARY_ROLES];
@@ -43,14 +43,30 @@ const ROLE_TO_DB = {
   Corporate: "corporate",
   Restaurant: "restaurant",
   "Event Org": "eventOrg",
-  Institute: "institute",
+  Society: "society",
+};
+
+const FOCUSED_ROLE_HERO = {
+  Customer: {
+    icon: "person",
+    title: "Customer",
+    desc: "Order water, track deliveries & manage your plan",
+    signInLabel: "Signing in as",
+  },
+  Society: {
+    icon: "home",
+    title: "Society",
+    desc: "Order water tankers for your residential society",
+    signInLabel: "Signing in as",
+  },
 };
 
 const LoginScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const roleFromParams = params?.role && typeof params.role === "string" ? params.role : null;
-  const roleForLookup = roleFromParams === "Partner" ? "Delivery partner" : roleFromParams;
+  const roleForLookup =
+    roleFromParams === "Partner" ? "Supplier" : roleFromParams;
   const { login, logout } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -65,7 +81,10 @@ const LoginScreen = () => {
     (roleForLookup && LOGIN_ROLES.find((r) => r.title === roleForLookup)) || PRIMARY_ROLES[0];
   const [selectedRole, setSelectedRole] = useState(initialRole);
   const isCustomerFlow = roleFromParams === "Customer";
-  const [showRolePicker, setShowRolePicker] = useState(!isCustomerFlow);
+  const isSocietyFlow = roleFromParams === "Society";
+  const isFocusedFlow = isCustomerFlow || isSocietyFlow;
+  const focusedHero = FOCUSED_ROLE_HERO[roleFromParams] || null;
+  const [showRolePicker, setShowRolePicker] = useState(!isFocusedFlow);
 
   const handleLogin = async () => {
     setError("");
@@ -104,12 +123,10 @@ const LoginScreen = () => {
         }
         return;
       }
-      if (loggedInUser?.role === "supplier") {
-        router.replace(await resolveHomeRoute(loggedInUser));
-      } else if (loggedInUser?.role === "deliveryPartner") {
+      if (loggedInUser?.role === "supplier" || loggedInUser?.role === "deliveryPartner") {
         router.replace(await resolveHomeRoute(loggedInUser));
       } else {
-        router.replace("/dashboard");
+        router.replace(await resolveHomeRoute(loggedInUser));
       }
     } catch (err) {
       setError(err.message || "Login failed");
@@ -132,6 +149,14 @@ const LoginScreen = () => {
     else router.replace("/create-profile");
   };
 
+  const handleRoleSelect = (role) => {
+    if (role.title === "Supplier" || role.title === "Delivery partner") {
+      router.replace({ pathname: "/partner-login", params: { role: role.title } });
+      return;
+    }
+    setSelectedRole(role);
+  };
+
   return (
     <ModernScreenShell
       title={isCustomerFlow ? "Customer sign in" : "Welcome back"}
@@ -141,16 +166,16 @@ const LoginScreen = () => {
       scrollRef={contentScrollRef}
       headerHeight={isCustomerFlow ? 200 : 210}
     >
-      {isCustomerFlow && !showRolePicker ? (
+      {isFocusedFlow && !showRolePicker && focusedHero ? (
         <View style={styles.customerHero}>
           <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.customerHeroGradient}>
             <View style={styles.customerHeroIcon}>
-              <Ionicons name="person" size={28} color="#FFFFFF" />
+              <Ionicons name={focusedHero.icon} size={28} color="#FFFFFF" />
             </View>
             <View style={styles.customerHeroText}>
-              <Text style={styles.customerHeroLabel}>Signing in as</Text>
-              <Text style={styles.customerHeroTitle}>Customer</Text>
-              <Text style={styles.customerHeroDesc}>Order water, track deliveries & manage your plan</Text>
+              <Text style={styles.customerHeroLabel}>{focusedHero.signInLabel}</Text>
+              <Text style={styles.customerHeroTitle}>{focusedHero.title}</Text>
+              <Text style={styles.customerHeroDesc}>{focusedHero.desc}</Text>
             </View>
             <Ionicons name="shield-checkmark" size={22} color="rgba(255,255,255,0.9)" />
           </LinearGradient>
@@ -171,7 +196,7 @@ const LoginScreen = () => {
             <TouchableOpacity
               key={role.id}
               style={styles.primaryRoleWrap}
-              onPress={() => setSelectedRole(role)}
+              onPress={() => handleRoleSelect(role)}
               activeOpacity={0.88}
             >
               {isSelected ? (
@@ -198,7 +223,7 @@ const LoginScreen = () => {
             <TouchableOpacity
               key={role.id}
               style={[styles.secondaryChip, isSelected && styles.secondaryChipSelected]}
-              onPress={() => setSelectedRole(role)}
+              onPress={() => handleRoleSelect(role)}
               activeOpacity={0.85}
             >
               <Ionicons name={role.icon} size={16} color={isSelected ? "#FFFFFF" : theme.accent} />
@@ -209,16 +234,18 @@ const LoginScreen = () => {
         })}
       </ScrollView>
 
-      {isCustomerFlow && showRolePicker ? (
+      {isFocusedFlow && showRolePicker ? (
         <TouchableOpacity style={styles.changeProfileLink} onPress={() => setShowRolePicker(false)} activeOpacity={0.8}>
           <Ionicons name="chevron-up-outline" size={16} color={theme.link} />
-          <Text style={styles.changeProfileText}>Back to customer sign in</Text>
+          <Text style={styles.changeProfileText}>
+            Back to {focusedHero?.title?.toLowerCase() || "profile"} sign in
+          </Text>
         </TouchableOpacity>
       ) : null}
         </>
       )}
 
-      {!showRolePicker && isCustomerFlow ? null : (
+      {!showRolePicker && isFocusedFlow ? null : (
       <View style={styles.selectedBanner}>
         <LinearGradient colors={["rgba(51,175,193,0.14)", "rgba(30,143,177,0.08)"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.selectedBannerInner}>
           <View style={styles.selectedBannerIcon}>
@@ -233,7 +260,7 @@ const LoginScreen = () => {
       </View>
       )}
 
-      {isComingSoonRole && (showRolePicker || !isCustomerFlow) ? (
+      {isComingSoonRole && (showRolePicker || !isFocusedFlow) ? (
         <View style={styles.comingSoonCard}>
           <View style={styles.comingSoonIconWrap}>
             <Ionicons name="time-outline" size={32} color={theme.accent} />

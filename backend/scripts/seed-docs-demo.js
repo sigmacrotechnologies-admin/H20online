@@ -25,7 +25,7 @@ const DeliveryPartnerSupportThread = require("../models/DeliveryPartnerSupportTh
 
 const uri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/h20online";
 const DEMO = {
-  customer: { email: "customer@h2o.demo", password: "Demo@123", name: "Rohit Sharma", phone: "9988776655" },
+  customer: { email: "rohit@gmail.com", password: "Admin@1", name: "Rohit", phone: "8126569919" },
   supplier: { email: "aquapure@example.com", password: "seedpass123" },
   delivery: { email: "rahul.dp@h2o.test", password: "delivery123" },
 };

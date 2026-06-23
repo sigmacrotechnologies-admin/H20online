@@ -2,13 +2,44 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Order = require("../models/Order");
 const Supplier = require("../models/Supplier");
+const Store = require("../models/Store");
 const Product = require("../models/Product");
 const SavedAddress = require("../models/SavedAddress");
+const DeliveryPartner = require("../models/DeliveryPartner");
 const { auth } = require("../middleware/auth");
 const { getOrCreateWallet, getOrCreatePlatformWallet } = require("./wallet");
+const { travelInfoBatch } = require("../services/googleMaps");
+const { etaFromTravelInfo } = require("../utils/deliveryEta");
 
 const router = express.Router();
 router.use(auth);
+
+async function findUserOrder(userId, idParam) {
+  if (!idParam) return null;
+  const oid = toObjectId(idParam);
+  if (oid) {
+    const byId = await Order.findOne({ _id: oid, userId }).lean();
+    if (byId) return byId;
+  }
+  const key = String(idParam);
+  if (key.startsWith("ORD_")) {
+    return await Order.findOne({ orderId: key, userId }).lean();
+  }
+  return null;
+}
+
+function orderEtaFields(o) {
+  const accepted = (o.supplierResponses || []).find((r) => r && r.status === "accepted");
+  const text =
+    accepted?.eta ||
+    o.estimatedDeliveryText ||
+    "";
+  return {
+    estimatedDeliveryText: text,
+    estimatedDeliveryMinMinutes: o.estimatedDeliveryMinMinutes ?? 0,
+    estimatedDeliveryMaxMinutes: o.estimatedDeliveryMaxMinutes ?? 0,
+  };
+}
 
 function toObjectId(v) {
   if (v == null || v === "") return null;
@@ -62,8 +93,14 @@ router.get("/", async (req, res) => {
         scheduledAt: o.scheduledAt || null,
         date: o.createdAt,
         address: o.address,
+        orderChannel: o.orderChannel || "customer",
         supplierResponses: o.supplierResponses || [],
         supplier,
+        customerLatitude: o.customerLatitude ?? null,
+        customerLongitude: o.customerLongitude ?? null,
+        travelInfo: o.travelInfo || [],
+        paymentMethod: o.paymentMethod || "",
+        ...orderEtaFields(o),
       };
     });
     res.json(list);
@@ -72,9 +109,67 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/:id/tracking", async (req, res) => {
+  try {
+    const o = await findUserOrder(req.user._id, req.params.id);
+    if (!o) return res.status(404).json({ error: "Order not found" });
+
+    const accepted = (o.supplierResponses || []).find((r) => r && r.status === "accepted");
+    const stage = accepted?.deliveryStage || (accepted ? "accepted" : "placed");
+    const hasPartner = !!(accepted?.deliveryPartnerId || accepted?.deliveryPartnerName);
+    const isDelivered = o.status === "delivered" || stage === "delivered";
+    const liveTrackingActive =
+      o.status === "in_progress" && !isDelivered && hasPartner;
+
+    let partnerLat = accepted?.partnerLatitude ?? null;
+    let partnerLng = accepted?.partnerLongitude ?? null;
+    let partnerLocationUpdatedAt = accepted?.partnerLocationUpdatedAt ?? null;
+
+    if (
+      liveTrackingActive &&
+      accepted?.deliveryPartnerId &&
+      (partnerLat == null || partnerLng == null)
+    ) {
+      const dp = await DeliveryPartner.findById(accepted.deliveryPartnerId)
+        .select("lastLatitude lastLongitude locationUpdatedAt")
+        .lean();
+      if (dp?.lastLatitude != null && dp?.lastLongitude != null) {
+        partnerLat = dp.lastLatitude;
+        partnerLng = dp.lastLongitude;
+        partnerLocationUpdatedAt = dp.locationUpdatedAt ?? partnerLocationUpdatedAt;
+      }
+    }
+
+    res.json({
+      id: o._id.toString(),
+      orderId: o.orderId,
+      status: o.status,
+      deliveryStage: stage,
+      supplierAccepted: !!accepted,
+      partnerAssigned: hasPartner,
+      liveTrackingActive,
+      address: o.address || "",
+      customerLatitude: o.customerLatitude ?? null,
+      customerLongitude: o.customerLongitude ?? null,
+      partnerLatitude: partnerLat,
+      partnerLongitude: partnerLng,
+      partnerLocationUpdatedAt: partnerLocationUpdatedAt,
+      partnerName: accepted?.deliveryPartnerName || "",
+      partnerPhone: accepted?.deliveryPartnerPhone || "",
+      liveEtaText: accepted?.liveEtaText || "",
+      liveEtaSeconds: accepted?.liveEtaSeconds ?? 0,
+      liveDistanceText: accepted?.liveDistanceText || "",
+      travelInfo: o.travelInfo || [],
+      ...orderEtaFields(o),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
-    let o = await Order.findOne({ _id: req.params.id, userId: req.user._id }).lean();
+    let o = await findUserOrder(req.user._id, req.params.id);
     if (!o) return res.status(404).json({ error: "Order not found" });
     if (!o.orderId) {
       const orderId = await Order.generateUniqueOrderId();
@@ -113,6 +208,11 @@ router.get("/:id", async (req, res) => {
       receiverPhone: o.receiverPhone,
       supplierResponses: o.supplierResponses || [],
       supplier: primarySupplier,
+      customerLatitude: o.customerLatitude ?? null,
+      customerLongitude: o.customerLongitude ?? null,
+      travelInfo: o.travelInfo || [],
+      paymentMethod: o.paymentMethod || "",
+      ...orderEtaFields(o),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -129,6 +229,8 @@ router.post("/", async (req, res) => {
       productName: i.productName || "",
       supplierName: i.supplierName || "",
       supplierId: toObjectId(i.supplierId),
+      storeId: toObjectId(i.storeId),
+      storeName: i.storeName || "",
       price: Number(i.price) || 0,
       qty: Number(i.qty) || 1,
     }));
@@ -180,6 +282,55 @@ router.post("/", async (req, res) => {
     const supplierResponses = uniqueSupplierIds.map((sid) => ({ supplierId: sid, status: "pending" }));
     const scheduledAt = body.scheduledAt ? new Date(body.scheduledAt) : null;
     const orderType = scheduledAt ? "scheduled" : "instant";
+    const orderChannel = body.orderChannel === "society" ? "society" : "customer";
+    const customerLatitude =
+      body.customerLatitude != null && Number.isFinite(Number(body.customerLatitude))
+        ? Number(body.customerLatitude)
+        : undefined;
+    const customerLongitude =
+      body.customerLongitude != null && Number.isFinite(Number(body.customerLongitude))
+        ? Number(body.customerLongitude)
+        : undefined;
+
+    let travelInfo = [];
+    if (customerLatitude != null && customerLongitude != null) {
+      try {
+        const storeIds = [...new Set(orderItems.map((i) => i.storeId).filter(Boolean))];
+        if (storeIds.length > 0) {
+          const stores = await Store.find({ _id: { $in: storeIds }, status: "approved" }).lean();
+          const destinations = stores
+            .filter((s) => s.latitude != null && s.longitude != null)
+            .map((s) => ({
+              id: s._id.toString(),
+              lat: s.latitude,
+              lng: s.longitude,
+              name: s.name || "",
+            }));
+          const batch = await travelInfoBatch(customerLatitude, customerLongitude, destinations);
+          travelInfo = Object.entries(batch).map(([storeId, info]) => {
+            const store = stores.find((s) => s._id.toString() === storeId);
+            const item = orderItems.find((it) => String(it.storeId) === storeId);
+            return {
+              storeId,
+              storeName: store?.name || info.supplierName || item?.storeName || "",
+              supplierId: item?.supplierId || store?.supplierId,
+              supplierName: item?.supplierName || "",
+              distanceText: info.distanceText || "",
+              distanceMeters: info.distanceMeters || 0,
+              durationText: info.durationText || "",
+              durationSeconds: info.durationSeconds || 0,
+              storeLatitude: info.storeLatitude,
+              storeLongitude: info.storeLongitude,
+            };
+          });
+        }
+      } catch (travelErr) {
+        console.warn("Travel info skipped:", travelErr.message);
+      }
+    }
+
+    const etaBand = etaFromTravelInfo(travelInfo, 0);
+
     let order;
     try {
       order = await Order.create({
@@ -193,6 +344,13 @@ router.post("/", async (req, res) => {
         receiverPhone: body.receiverPhone || null,
         scheduledAt,
         supplierResponses,
+        orderChannel,
+        customerLatitude,
+        customerLongitude,
+        travelInfo,
+        estimatedDeliveryMinMinutes: etaBand.min,
+        estimatedDeliveryMaxMinutes: etaBand.max,
+        estimatedDeliveryText: etaBand.text,
       });
     } catch (createErr) {
       if (stockDocs.length > 0) {
@@ -256,6 +414,13 @@ router.post("/", async (req, res) => {
       address: out.address,
       orderType: out.orderType || "instant",
       scheduledAt: out.scheduledAt || null,
+      customerLatitude: out.customerLatitude ?? null,
+      customerLongitude: out.customerLongitude ?? null,
+      travelInfo: out.travelInfo || [],
+      paymentMethod: out.paymentMethod || paymentMethod,
+      estimatedDeliveryText: out.estimatedDeliveryText || etaBand.text,
+      estimatedDeliveryMinMinutes: out.estimatedDeliveryMinMinutes ?? etaBand.min,
+      estimatedDeliveryMaxMinutes: out.estimatedDeliveryMaxMinutes ?? etaBand.max,
     });
     console.log("Order created:", out._id.toString());
   } catch (err) {
@@ -266,7 +431,9 @@ router.post("/", async (req, res) => {
 
 router.patch("/:id/cancel", async (req, res) => {
   try {
-    const order = await Order.findOne({ _id: req.params.id, userId: req.user._id });
+    const o = await findUserOrder(req.user._id, req.params.id);
+    if (!o) return res.status(404).json({ error: "Order not found" });
+    const order = await Order.findById(o._id);
     if (!order) return res.status(404).json({ error: "Order not found" });
     if (order.status !== "in_progress") return res.status(400).json({ error: "Cannot cancel" });
     order.status = "cancelled";

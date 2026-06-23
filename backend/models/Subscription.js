@@ -30,13 +30,15 @@ const subscriptionSchema = new mongoose.Schema(
     deliveryAddress: { type: String, trim: true }, // customer delivery address for this subscription
     locality: { type: String, trim: true },        // for admin filter & assign by area
     pinCode: { type: String, trim: true },        // for admin filter & assign by pin
+    subscriptionChannel: { type: String, enum: ["customer", "society", "supplier"], default: "customer" },
+    planCategory: { type: String, enum: ["individual", "bulk", "society"], default: "individual" },
   },
   { timestamps: true }
 );
 
 subscriptionSchema.index({ userId: 1, status: 1 });
 subscriptionSchema.index({ subscriptionId: 1 });
-subscriptionSchema.index({ status: 1, createdAt: -1 });
+subscriptionSchema.index({ subscriptionChannel: 1, status: 1, createdAt: -1 });
 
 subscriptionSchema.statics.generateUniqueSubscriptionId = async function () {
   let id;

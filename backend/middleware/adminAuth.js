@@ -1,11 +1,10 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { getJwtSecret } = require("../config/env");
 
-const JWT_SECRET = process.env.JWT_SECRET || "h20-secret";
-
-/** Master credentials (static) - do not store in DB */
-const MASTER_EMAIL = "H2O admin";
-const MASTER_PASSWORD = "admin@H2O";
+/** Master credentials — override via env in production */
+const MASTER_EMAIL = process.env.MASTER_ADMIN_EMAIL || "H2O admin";
+const MASTER_PASSWORD = process.env.MASTER_ADMIN_PASSWORD || "admin@H2O";
 
 /** Verify admin-portal JWT and set req.user (role: master | admin | sub-admin) */
 async function adminAuth(req, res, next) {
@@ -15,7 +14,7 @@ async function adminAuth(req, res, next) {
       return res.status(401).json({ error: "No token" });
     }
     const token = header.split(" ")[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
     if (decoded.master === true) {
       req.user = { _id: null, role: "master", name: "Master Admin", email: MASTER_EMAIL };
       return next();

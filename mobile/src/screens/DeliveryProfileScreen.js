@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   ActivityIndicator,
   Alert,
@@ -17,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api/client";
 import DeliveryPartnerLayout from "@/src/components/DeliveryPartnerLayout";
+import { ui } from "@/src/components/supplier/supplierUi";
 import { theme } from "@/src/theme";
 
 const VEHICLE_OPTIONS = [
@@ -118,20 +118,17 @@ export default function DeliveryProfileScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <DeliveryPartnerLayout title="Profile update" subtitle={partnerName} icon="person-outline">
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={theme.primary} />
-          </View>
-        </DeliveryPartnerLayout>
-      </SafeAreaView>
+      <DeliveryPartnerLayout title="Profile update" subtitle={partnerName} icon="person-outline">
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      </DeliveryPartnerLayout>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <DeliveryPartnerLayout title="Profile update" subtitle={partnerName} icon="person-outline">
-        <ScrollView style={styles.scroll} contentContainerStyle={styles.contentWrap} showsVerticalScrollIndicator={false}>
+    <DeliveryPartnerLayout title="Profile update" subtitle={partnerName} icon="person-outline">
+      <ScrollView style={styles.scroll} contentContainerStyle={ui.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.avatarSection}>
           <TouchableOpacity style={styles.avatarWrap} onPress={pickImage} activeOpacity={0.8}>
             {profileImageUrl ? (
@@ -200,16 +197,13 @@ export default function DeliveryProfileScreen() {
         >
           {saving ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Text style={styles.saveBtnText}>Save changes</Text>}
         </TouchableOpacity>
-        </ScrollView>
-      </DeliveryPartnerLayout>
-    </SafeAreaView>
+      </ScrollView>
+    </DeliveryPartnerLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   scroll: { flex: 1 },
-  contentWrap: { paddingBottom: 40 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   avatarSection: { alignItems: "center", marginBottom: 24 },
   avatarWrap: { position: "relative" },

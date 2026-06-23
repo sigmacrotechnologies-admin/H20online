@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import DeliveryPartnerLayout from "@/src/components/DeliveryPartnerLayout";
@@ -53,8 +53,7 @@ export default function DeliveryHelpScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <DeliveryPartnerLayout title="Help & support" subtitle="Chat with admin" icon="help-circle-outline">
+    <DeliveryPartnerLayout title="Help & support" subtitle="Chat with admin" icon="help-circle-outline">
         <KeyboardAvoidingView style={styles.chatWrap} behavior={Platform.OS === "ios" ? "padding" : undefined} keyboardVerticalOffset={80}>
         <ScrollView
           ref={scrollRef}
@@ -105,12 +104,10 @@ export default function DeliveryHelpScreen() {
         </View>
         </KeyboardAvoidingView>
       </DeliveryPartnerLayout>
-    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
   chatWrap: { flex: 1, overflow: "hidden" },
   messageList: { flex: 1 },
   messageListContent: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 16 },

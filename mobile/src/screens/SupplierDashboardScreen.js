@@ -23,11 +23,15 @@ import {
   ui,
 } from "@/src/components/supplier/supplierUi";
 import { theme } from "@/src/theme";
+import { WATER_QUALITY_OPTIONS } from "@/src/constants/waterQuality";
 
 const TILES = [
   { key: "incoming", title: "Incoming orders", subtitle: "Accept & set ETA", icon: "cart-outline", route: "supplier-incoming-orders", badge: true, accent: "#DC2626" },
   { key: "history", title: "Order history", subtitle: "Past orders & filters", icon: "time-outline", route: "supplier-order-history", accent: theme.accent },
   { key: "products", title: "My products", subtitle: "Add or remove products", icon: "cube-outline", route: "supplier-products", accent: "#7C3AED" },
+  { key: "stores", title: "My stores", subtitle: "Stores & warehouses", icon: "storefront-outline", route: "supplier-stores", accent: "#0E7490" },
+  { key: "partners", title: "Delivery partners", subtitle: "Your fleet & riders", icon: "bicycle-outline", route: "supplier-delivery-partners", accent: "#6366F1" },
+  { key: "plan", title: "My plan", subtitle: "Individual or bulk supply", icon: "document-text-outline", route: "supplier-plan", accent: "#7C3AED" },
   { key: "addProduct", title: "Add product", subtitle: "New product to catalog", icon: "add-circle-outline", route: "supplier-dashboard", action: "addProduct", accent: "#059669" },
   { key: "financials", title: "Financials", subtitle: "Orders, revenue, earnings", icon: "stats-chart-outline", route: "supplier-financials", accent: "#D97706" },
   { key: "wallet", title: "Wallet", subtitle: "Balance & transactions", icon: "wallet-outline", route: "supplier-wallet", accent: "#0E7490" },
@@ -246,6 +250,8 @@ function SupplierAddProductView({ onClose, onAdded }) {
   }
   const [productName, setProductName] = useState("");
   const [productType, setProductType] = useState("jar");
+  const [audience, setAudience] = useState("customer");
+  const [waterQuality, setWaterQuality] = useState("standard");
   const [imageMode, setImageMode] = useState("library");
   const [selectedAssetImage, setSelectedAssetImage] = useState(PRODUCT_IMAGE_OPTIONS[0].storedValue);
   const [imageUrl, setImageUrl] = useState("");
@@ -257,8 +263,14 @@ function SupplierAddProductView({ onClose, onAdded }) {
   const [categories, setCategories] = useState("");
   const [stockQty, setStockQty] = useState("0");
   const [badge, setBadge] = useState("");
+  const [storeId, setStoreId] = useState("");
+  const [approvedStores, setApprovedStores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    api.stores.approved().then((list) => setApprovedStores(Array.isArray(list) ? list : [])).catch(() => setApprovedStores([]));
+  }, []);
 
   const pickProductImage = async () => {
     if (!ImagePicker) {
@@ -300,6 +312,7 @@ function SupplierAddProductView({ onClose, onAdded }) {
     if (Number.isNaN(capacityNum) || capacityNum <= 0) { setError("Valid capacity is required"); return; }
     if (Number.isNaN(stockNum) || stockNum < 0) { setError("Valid available stock units are required"); return; }
     if (categoriesList.length === 0) { setError("At least one category is required"); return; }
+    if (audience === "society" && !waterQuality) { setError("Water quality is required for society products"); return; }
     setLoading(true);
     const finalImageValue = imageMode === "upload" ? (imageUrl.trim() || DEFAULT_PRODUCT_IMAGE) : (selectedAssetImage || DEFAULT_PRODUCT_IMAGE);
     try {
@@ -317,6 +330,9 @@ function SupplierAddProductView({ onClose, onAdded }) {
         badge: badge || "",
         rating: 4,
         reviewCount: "0",
+        audience,
+        waterQuality: audience === "society" ? waterQuality : "",
+        storeId: storeId || "",
       });
       onAdded();
     } catch (err) {
@@ -345,6 +361,46 @@ function SupplierAddProductView({ onClose, onAdded }) {
       }
     >
       <ScrollView contentContainerStyle={ui.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <SectionCard icon="people-outline" title="Product audience" subtitle="Customer or society tankers">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={ui.filterRow}>
+            <FilterChip
+              label="Customer"
+              selected={audience === "customer"}
+              onPress={() => {
+                setAudience("customer");
+                if (productType === "tanker") setProductType("jar");
+              }}
+            />
+            <FilterChip
+              label="Society"
+              selected={audience === "society"}
+              onPress={() => {
+                setAudience("society");
+                setProductType("tanker");
+                setPriceUnit("Tanker load");
+                setCapacityL("5000");
+                setDelivery("Same day");
+                if (!waterQuality) setWaterQuality("standard");
+              }}
+            />
+          </ScrollView>
+        </SectionCard>
+
+        {audience === "society" ? (
+          <SectionCard icon="water-outline" title="Water quality" subtitle="Required for society products">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={ui.filterRow}>
+              {WATER_QUALITY_OPTIONS.map((q) => (
+                <FilterChip
+                  key={q.key}
+                  label={q.label}
+                  selected={waterQuality === q.key}
+                  onPress={() => setWaterQuality(q.key)}
+                />
+              ))}
+            </ScrollView>
+          </SectionCard>
+        ) : null}
+
         <SectionCard icon="layers-outline" title="Product type" subtitle="Required">
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={ui.filterRow}>
             {PRODUCT_TYPES.map((type) => (
@@ -356,6 +412,29 @@ function SupplierAddProductView({ onClose, onAdded }) {
               />
             ))}
           </ScrollView>
+        </SectionCard>
+
+        <SectionCard icon="storefront-outline" title="Fulfilment store" subtitle="Optional — link an approved store for tracking">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={ui.filterRow}>
+            <FilterChip label="No store" selected={!storeId} onPress={() => setStoreId("")} />
+            {approvedStores.map((s) => (
+              <FilterChip
+                key={s.id}
+                label={s.storeType === "warehouse" ? `${s.name} (WH)` : s.name}
+                selected={storeId === s.id}
+                onPress={() => setStoreId(s.id)}
+              />
+            ))}
+          </ScrollView>
+          {approvedStores.length === 0 ? (
+            <Text style={styles.storePickerHint}>
+              No approved stores yet. Add stores under My stores and wait for admin approval.
+            </Text>
+          ) : !storeId ? (
+            <Text style={styles.storePickerHint}>
+              Without a store, customers will see &quot;Store not registered — tracking unavailable&quot;.
+            </Text>
+          ) : null}
         </SectionCard>
 
         <SectionCard icon="pricetag-outline" title="Basic details" subtitle="Name and availability">
@@ -619,6 +698,7 @@ const styles = StyleSheet.create({
   assetThumb: { width: "100%", height: 56, borderRadius: 8, backgroundColor: "#EAF2F8", marginBottom: 6 },
   assetLabel: { fontSize: 11, color: theme.textPrimary, textAlign: "center" },
   assetLabelSelected: { color: theme.accent, fontWeight: "700" },
+  storePickerHint: { fontSize: 12, color: theme.textMuted, lineHeight: 18, marginTop: 4 },
 });
 
 export default SupplierDashboardScreen;

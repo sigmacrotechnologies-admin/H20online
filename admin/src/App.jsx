@@ -15,6 +15,11 @@ import SupplierSupport from "./pages/SupplierSupport";
 import DeliveryPartnerSupport from "./pages/DeliveryPartnerSupport";
 import CustomerSupport from "./pages/CustomerSupport";
 import WalletManagement from "./pages/WalletManagement";
+import Societies from "./pages/Societies";
+import Stores from "./pages/Stores";
+import Products from "./pages/Products";
+import Surveys from "./pages/Surveys";
+import SurveyResults from "./pages/SurveyResults";
 import LoadingState from "./components/LoadingState";
 
 function PrivateRoute({ children }) {
@@ -54,6 +59,9 @@ function AppRoutes() {
         <Route path="suppliers" element={<Suppliers />} />
         <Route path="plans" element={<Plans />} />
         <Route path="subscriptions" element={<Subscriptions />} />
+        <Route path="societies" element={<Societies />} />
+        <Route path="stores" element={<Stores />} />
+        <Route path="products" element={<Products />} />
         <Route path="wallet-management" element={<WalletManagement />} />
         <Route path="financials" element={<FinancialsRoute />} />
         <Route path="admin-users" element={<AdminUsersRoute />} />
@@ -61,6 +69,8 @@ function AppRoutes() {
         <Route path="supplier-support" element={<SupplierSupport />} />
         <Route path="delivery-support" element={<DeliveryPartnerSupport />} />
         <Route path="customer-support" element={<CustomerSupport />} />
+        <Route path="surveys" element={<Surveys />} />
+        <Route path="surveys/:id/results" element={<SurveyResults />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

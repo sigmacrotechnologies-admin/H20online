@@ -10,20 +10,40 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const envPath = path.join(root, ".env");
-const PORT = 5000;
+const apiUrls = require("../config/apiUrl.json");
+const backendEnvPath = path.join(root, "..", "backend", ".env");
+
+function readBackendPort() {
+  try {
+    const content = fs.readFileSync(backendEnvPath, "utf8");
+    const line = content.split(/\r?\n/).find((l) => /^\s*PORT\s*=/.test(l));
+    if (!line) return null;
+    const m = line.match(/^\s*PORT\s*=\s*(\d+)/);
+    return m ? Number(m[1]) : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+const PORT = readBackendPort() || apiUrls.localPort || 5000;
 
 function getLocalIP() {
   const nets = os.networkInterfaces();
-  let fallback = null;
-  const prefer = /wi-?fi|wireless|wlan|ethernet|eth0|en0/i;
+  const candidates = [];
+  const skipName = /virtual|vethernet|vmware|hyper-v|wsl|loopback|bluetooth/i;
+  const preferName = /wi-?fi|wireless|wlan/i;
+
   for (const name of Object.keys(nets)) {
+    if (skipName.test(name)) continue;
     for (const net of nets[name]) {
       if (net.family !== "IPv4" || net.internal) continue;
-      if (prefer.test(name)) return net.address;
-      if (!fallback) fallback = net.address;
+      if (net.address.startsWith("192.168.56.")) continue; // VirtualBox host-only
+      candidates.push({ name, address: net.address, score: preferName.test(name) ? 2 : name.match(/ethernet/i) ? 1 : 0 });
     }
   }
-  return fallback;
+
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0]?.address || null;
 }
 
 const ip = getLocalIP();
@@ -58,4 +78,4 @@ console.log("mobile/.env updated:");
 console.log("  EXPO_PUBLIC_API_URL=" + newUrl);
 console.log("");
 console.log("Next: npx expo start -c   (then open app on your phone; same Wi-Fi as PC)");
-console.log("Backend: in backend folder run  npm run dev   (and have MongoDB running)");
+console.log("Backend: cd backend && npm run dev  (uses MongoDB Atlas from backend/.env)");

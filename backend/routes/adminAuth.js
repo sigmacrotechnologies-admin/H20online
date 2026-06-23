@@ -4,7 +4,7 @@ const User = require("../models/User");
 const { adminAuth, MASTER_EMAIL, MASTER_PASSWORD } = require("../middleware/adminAuth");
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "h20-secret";
+const { getJwtSecret } = require("../config/env");
 
 /** POST /api/admin/auth/login - Admin portal login (master static or admin/sub-admin users) */
 router.post("/auth/login", async (req, res) => {
@@ -16,7 +16,7 @@ router.post("/auth/login", async (req, res) => {
     const emailTrim = String(email).trim();
 
     if (emailTrim === MASTER_EMAIL && password === MASTER_PASSWORD) {
-      const token = jwt.sign({ master: true }, JWT_SECRET, { expiresIn: "7d" });
+      const token = jwt.sign({ master: true }, getJwtSecret(), { expiresIn: "7d" });
       return res.json({
         user: { _id: "master", role: "master", name: "Master Admin", email: MASTER_EMAIL },
         token,
@@ -31,7 +31,7 @@ router.post("/auth/login", async (req, res) => {
     const ok = await user.comparePassword(password);
     if (!ok) return res.status(401).json({ error: "Invalid email or password" });
 
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ userId: user._id }, getJwtSecret(), { expiresIn: "7d" });
     const u = await User.findById(user._id).select("-password").lean();
     const out = { ...u, id: u._id.toString(), role: u.role };
     res.json({ user: out, token });

@@ -11,6 +11,9 @@ const SupplierSupportThread = require("../models/SupplierSupportThread");
 const DeliveryPartnerSupportThread = require("../models/DeliveryPartnerSupportThread");
 const CustomerSupportTicket = require("../models/CustomerSupportTicket");
 const PickupHub = require("../models/PickupHub");
+const Society = require("../models/Society");
+const Store = require("../models/Store");
+const Product = require("../models/Product");
 const Wallet = require("../models/Wallet");
 const { getOrCreateWallet } = require("./wallet");
 const {
@@ -526,11 +529,12 @@ router.put("/plans/:id", async (req, res) => {
     if (!id) return res.status(400).json({ error: "Invalid plan id" });
     const plan = await Plan.findById(id);
     if (!plan) return res.status(404).json({ error: "Plan not found" });
-    const { name, slug, maxQuantityPerProduct, comingSoon } = req.body;
+    const { name, slug, maxQuantityPerProduct, comingSoon, planCategory } = req.body;
     if (name != null && typeof name === "string") plan.name = name.trim();
     if (slug != null && typeof slug === "string") plan.slug = slug.trim();
     if (maxQuantityPerProduct != null) plan.maxQuantityPerProduct = Number(maxQuantityPerProduct);
     if (comingSoon != null) plan.comingSoon = Boolean(comingSoon);
+    if (planCategory != null && ["individual", "bulk", "society"].includes(planCategory)) plan.planCategory = planCategory;
     await plan.save();
     const p = await Plan.findById(plan._id).lean();
     res.json({ ...p, id: p._id.toString(), _id: p._id.toString() });
@@ -638,8 +642,11 @@ router.post("/pickup-hubs", async (req, res) => {
 // ---------- Subscriptions (admin) ----------
 router.get("/subscriptions", async (req, res) => {
   try {
-    const { status, frequency, search, subscriptionId, locality, pinCode, page = 1, limit = 50 } = req.query;
+    const { status, frequency, search, subscriptionId, locality, pinCode, channel, page = 1, limit = 50 } = req.query;
     const andParts = [];
+    if (channel && ["customer", "society", "supplier"].includes(String(channel))) {
+      andParts.push({ subscriptionChannel: String(channel) });
+    }
     if (status && ["active", "cancelled", "inactive"].includes(status)) andParts.push({ status });
     if (frequency && ["daily", "weekly", "monthly"].includes(frequency)) andParts.push({ frequency });
     if (locality && String(locality).trim()) andParts.push({ locality: new RegExp(String(locality).trim(), "i") });
@@ -714,6 +721,9 @@ router.get("/subscriptions", async (req, res) => {
         pickupHubId: s.pickupHubId ? (typeof s.pickupHubId === "object" ? s.pickupHubId._id.toString() : s.pickupHubId.toString()) : null,
         pickupHubName: hub && typeof hub === "object" ? hub.name || "" : "",
         pickupHubAddress: hub && typeof hub === "object" ? hub.address || "" : "",
+        subscriptionChannel: s.subscriptionChannel || "customer",
+        planCategory: s.planCategory || "individual",
+        customerRole: u?.role || "",
         createdAt: s.createdAt,
         updatedAt: s.updatedAt,
       };
@@ -1300,6 +1310,316 @@ router.patch("/customer-support/:ticketId/status", async (req, res) => {
     const ticket = await CustomerSupportTicket.findByIdAndUpdate(tid, { status }, { new: true });
     if (!ticket) return res.status(404).json({ error: "Ticket not found" });
     res.json({ id: ticket._id.toString(), status: ticket.status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------- Societies (admin) ----------
+router.get("/societies", async (req, res) => {
+  try {
+    const { search, page = 1, limit = 50 } = req.query;
+    const filter = {};
+    if (search && String(search).trim()) {
+      const s = String(search).trim();
+      filter.$or = [
+        { societyName: new RegExp(s, "i") },
+        { registrationNo: new RegExp(s, "i") },
+        { pocName: new RegExp(s, "i") },
+        { pocEmail: new RegExp(s, "i") },
+        { city: new RegExp(s, "i") },
+      ];
+    }
+    const skip = (Math.max(1, Number(page)) - 1) * Math.min(100, Math.max(1, Number(limit)));
+    const limitNum = Math.min(100, Math.max(1, Number(limit)));
+    const [list, total] = await Promise.all([
+      Society.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+      Society.countDocuments(filter),
+    ]);
+    const societies = await Promise.all(
+      list.map(async (soc) => {
+        const memberCount = await User.countDocuments({ societyId: soc._id, role: "customer" });
+        const activeSubscriptions = await Subscription.countDocuments({ userId: soc.userId, status: "active" });
+        return {
+          id: soc._id.toString(),
+          societyName: soc.societyName,
+          registrationNo: soc.registrationNo,
+          gstNumber: soc.gstNumber || "",
+          pocName: soc.pocName,
+          pocEmail: soc.pocEmail,
+          pocPhone: soc.pocPhone,
+          address: soc.address || "",
+          city: soc.city || "",
+          userId: soc.userId?.toString() || "",
+          onboardingStatus: soc.onboardingStatus || "approved",
+          memberCount,
+          activeSubscriptions,
+          createdAt: soc.createdAt,
+        };
+      })
+    );
+    res.json({ societies, total, page: Number(page) || 1, limit: limitNum });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/societies/:id", async (req, res) => {
+  try {
+    const sid = toObjectId(req.params.id);
+    if (!sid) return res.status(400).json({ error: "Invalid society id" });
+    const society = await Society.findById(sid).lean();
+    if (!society) return res.status(404).json({ error: "Society not found" });
+    const members = await User.find({ societyId: society._id, role: "customer" })
+      .select("name email phone userCode createdAt")
+      .sort({ createdAt: -1 })
+      .lean();
+    const subscriptions = await Subscription.find({ userId: society.userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    const deliveryPartners = await DeliveryPartner.find({ onboardingStatus: "approved" })
+      .select("name phone vehicleType")
+      .lean();
+    res.json({
+      society: {
+        id: society._id.toString(),
+        societyName: society.societyName,
+        registrationNo: society.registrationNo,
+        gstNumber: society.gstNumber || "",
+        pocName: society.pocName,
+        pocEmail: society.pocEmail,
+        pocPhone: society.pocPhone,
+        address: society.address || "",
+        city: society.city || "",
+        userId: society.userId?.toString() || "",
+        onboardingStatus: society.onboardingStatus || "approved",
+        memberCount: members.length,
+        createdAt: society.createdAt,
+      },
+      members: members.map((m) => ({
+        id: m._id.toString(),
+        name: m.name,
+        email: m.email,
+        phone: m.phone || "",
+        userCode: m.userCode || "",
+        createdAt: m.createdAt,
+      })),
+      subscriptions: subscriptions.map((s) => ({
+        id: s._id.toString(),
+        subscriptionId: s.subscriptionId || s._id.toString(),
+        planName: s.planName,
+        productLabel: s.productLabel,
+        productKey: s.productKey,
+        frequency: s.frequency,
+        totalPrice: s.totalPrice,
+        quantity: s.quantity,
+        selectedDates: s.selectedDates,
+        status: s.status,
+        subscriptionChannel: s.subscriptionChannel || "society",
+        planCategory: s.planCategory || "society",
+        deliveryPartnerId: s.deliveryPartnerId ? String(s.deliveryPartnerId) : null,
+        preferredDeliveryTime: s.preferredDeliveryTime || "",
+        deliveryAddress: s.deliveryAddress || "",
+        locality: s.locality || "",
+        pinCode: s.pinCode || "",
+        createdAt: s.createdAt,
+      })),
+      deliveryPartners: deliveryPartners.map((d) => ({
+        id: d._id.toString(),
+        name: d.name,
+        phone: d.phone || "",
+        vehicleType: d.vehicleType || "",
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch("/societies/:societyId/subscriptions/:subscriptionId/delivery", async (req, res) => {
+  try {
+    const societyId = toObjectId(req.params.societyId);
+    const subId = toObjectId(req.params.subscriptionId);
+    if (!societyId || !subId) return res.status(400).json({ error: "Invalid id" });
+    const society = await Society.findById(societyId).lean();
+    if (!society) return res.status(404).json({ error: "Society not found" });
+    const sub = await Subscription.findOne({ _id: subId, userId: society.userId });
+    if (!sub) return res.status(404).json({ error: "Subscription not found" });
+    const { deliveryPartnerId, pickupHubId } = req.body;
+    if (deliveryPartnerId !== undefined) {
+      sub.deliveryPartnerId = deliveryPartnerId ? toObjectId(deliveryPartnerId) : null;
+    }
+    if (pickupHubId !== undefined) {
+      sub.pickupHubId = pickupHubId ? toObjectId(pickupHubId) : null;
+    }
+    await sub.save();
+    res.json({ id: sub._id.toString(), deliveryPartnerId: sub.deliveryPartnerId?.toString() || null, pickupHubId: sub.pickupHubId?.toString() || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/stores", async (req, res) => {
+  try {
+    const { status, search } = req.query;
+    const filter = {};
+    if (status && ["pending", "approved", "rejected"].includes(status)) filter.status = status;
+    let list = await Store.find(filter)
+      .sort({ createdAt: -1 })
+      .populate("supplierId", "name contactPerson email phone")
+      .lean();
+    if (search && String(search).trim()) {
+      const re = new RegExp(String(search).trim(), "i");
+      list = list.filter(
+        (s) =>
+          re.test(s.name || "") ||
+          re.test(s.city || "") ||
+          re.test(s.supplierId?.name || "") ||
+          re.test(s.supplierId?.contactPerson || "")
+      );
+    }
+    res.json({
+      stores: list.map((s) => ({
+        id: s._id.toString(),
+        name: s.name || "",
+        storeType: s.storeType || "store",
+        address: s.address || "",
+        locality: s.locality || "",
+        city: s.city || "",
+        latitude: s.latitude,
+        longitude: s.longitude,
+        status: s.status || "pending",
+        rejectionReason: s.rejectionReason || "",
+        createdAt: s.createdAt,
+        approvedAt: s.approvedAt || null,
+        supplier: s.supplierId
+          ? {
+              id: s.supplierId._id.toString(),
+              name: s.supplierId.name || s.supplierId.contactPerson || "",
+              email: s.supplierId.email || "",
+              phone: s.supplierId.phone || "",
+            }
+          : null,
+      })),
+      total: list.length,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch("/stores/:id/approve", async (req, res) => {
+  try {
+    const id = toObjectId(req.params.id);
+    if (!id) return res.status(400).json({ error: "Invalid store id" });
+    const store = await Store.findById(id);
+    if (!store) return res.status(404).json({ error: "Store not found" });
+    store.status = "approved";
+    store.rejectionReason = "";
+    store.approvedAt = new Date();
+    store.approvedBy = req.adminUser?._id || req.user?._id;
+    await store.save();
+    res.json({ id: store._id.toString(), status: store.status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch("/stores/:id/reject", async (req, res) => {
+  try {
+    const id = toObjectId(req.params.id);
+    if (!id) return res.status(400).json({ error: "Invalid store id" });
+    const store = await Store.findById(id);
+    if (!store) return res.status(404).json({ error: "Store not found" });
+    store.status = "rejected";
+    store.rejectionReason = String(req.body?.reason || "Not approved").trim();
+    store.approvedAt = undefined;
+    await store.save();
+    res.json({ id: store._id.toString(), status: store.status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+function mapAdminProduct(p) {
+  const sid = p.supplierId;
+  const supplierIdStr = sid != null ? (sid._id ? String(sid._id) : String(sid)) : "";
+  const supplierName =
+    sid && typeof sid === "object" ? String(sid.name || sid.contactPerson || "") : "";
+  return {
+    id: p._id.toString(),
+    productName: p.productName || "",
+    productType: p.productType || "jar",
+    price: typeof p.price === "number" ? p.price : Number(p.price) || 0,
+    priceUnit: p.priceUnit || "",
+    delivery: p.delivery || "",
+    inStock: p.inStock !== false,
+    stockQty: typeof p.stockQty === "number" ? p.stockQty : Number(p.stockQty) || 0,
+    capacityL: typeof p.capacityL === "number" ? p.capacityL : Number(p.capacityL) || 20,
+    audience: p.audience || "customer",
+    waterQuality: p.waterQuality || "",
+    supplierId: supplierIdStr,
+    supplierName,
+    createdAt: p.createdAt,
+  };
+}
+
+/** List all supplier catalog products (any supplier). */
+router.get("/products", async (req, res) => {
+  try {
+    const { search, supplierId, audience, page = 1, limit = 50 } = req.query;
+    const filter = {};
+    if (supplierId && mongoose.Types.ObjectId.isValid(String(supplierId))) {
+      filter.supplierId = supplierId;
+    }
+    if (audience === "society" || audience === "customer") filter.audience = audience;
+
+    const q = String(search || "").trim();
+    if (q) {
+      const re = new RegExp(q, "i");
+      const supplierMatches = await Supplier.find({
+        $or: [{ name: re }, { contactPerson: re }, { email: re }],
+      })
+        .select("_id")
+        .lean();
+      const supplierIds = supplierMatches.map((s) => s._id);
+      const or = [{ productName: re }, { productType: re }];
+      if (supplierIds.length) or.push({ supplierId: { $in: supplierIds } });
+      if (mongoose.Types.ObjectId.isValid(q) && q.length === 24) or.push({ _id: q });
+      filter.$or = or;
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    const total = await Product.countDocuments(filter);
+    const list = await Product.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .populate("supplierId", "name contactPerson email")
+      .lean();
+
+    res.json({
+      products: list.map(mapAdminProduct),
+      total,
+      page: pageNum,
+      limit: limitNum,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** Delete any supplier product (master / admin / sub-admin). */
+router.delete("/products/:id", async (req, res) => {
+  try {
+    const id = toObjectId(req.params.id);
+    if (!id) return res.status(400).json({ error: "Invalid product id" });
+    const p = await Product.findByIdAndDelete(id);
+    if (!p) return res.status(404).json({ error: "Product not found" });
+    res.json({ ok: true, id: p._id.toString() });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

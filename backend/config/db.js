@@ -1,22 +1,24 @@
-const dns = require("dns");
 const mongoose = require("mongoose");
+const { prepareAtlasDns, mongooseOptions } = require("./mongo");
 
 async function connectDB() {
   const uri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/h20online";
-  if (process.platform === "win32" && uri.startsWith("mongodb+srv://")) {
-    dns.setServers(["8.8.8.8", "1.1.1.1"]);
-  }
-  const options = {
-    serverSelectionTimeoutMS: 10000,
-    connectTimeoutMS: 10000,
-  };
+  prepareAtlasDns(uri);
   try {
-    await mongoose.connect(uri, options);
+    await mongoose.connect(uri, mongooseOptions);
     const dbName = mongoose.connection.db.databaseName;
     console.log("MongoDB connected to database:", dbName);
   } catch (err) {
     console.error("MongoDB connection error:", err.message);
-    console.error("Make sure MongoDB is running (e.g. mongod or MongoDB Compass / Atlas).");
+    if (String(uri).startsWith("mongodb+srv://")) {
+      console.error("MongoDB Atlas checklist:");
+      console.error("  1. MONGODB_URI in backend/.env (Atlas → Connect → Drivers)");
+      console.error("  2. Network Access: allow your IP (or 0.0.0.0/0 for dev)");
+      console.error("  3. Database user password is correct (no special chars unescaped in URI)");
+      console.error("  4. If SRV/DNS fails, use the standard mongodb:// connection string from Atlas");
+    } else {
+      console.error("Local MongoDB: start mongod or set MONGODB_URI to your Atlas cluster.");
+    }
     process.exit(1);
   }
 }

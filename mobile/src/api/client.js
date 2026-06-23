@@ -27,7 +27,13 @@ export async function request(path, options = {}) {
     const res = await fetch(url, { ...options, headers, signal: controller.signal });
     clearTimeout(timeoutId);
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || data.message || "Request failed");
+    if (!res.ok) {
+      let errMsg = data.error || data.message;
+      if (!errMsg && res.status === 404) {
+        errMsg = `API not found: ${path}. Restart backend (cd backend && npm run dev).`;
+      }
+      throw new Error(errMsg || "Request failed");
+    }
     return data;
   } catch (err) {
     clearTimeout(timeoutId);
@@ -51,9 +57,19 @@ export const api = {
     register: (body) => request("/api/auth/register", { method: "POST", body: JSON.stringify(body) }),
     registerSupplier: (body) => request("/api/auth/register-supplier", { method: "POST", body: JSON.stringify(body) }),
     registerDelivery: (body) => request("/api/auth/register-delivery", { method: "POST", body: JSON.stringify(body) }),
+    registerSociety: (body) => request("/api/auth/register-society", { method: "POST", body: JSON.stringify(body) }),
+  },
+  societies: {
+    list: () => request("/api/societies/list"),
+    me: () => request("/api/societies/me"),
+    products: (params) => {
+      const q = new URLSearchParams(params || {}).toString();
+      return request("/api/societies/products" + (q ? "?" + q : ""));
+    },
   },
   suppliers: {
     me: () => request("/api/suppliers/me"),
+    updateMe: (body) => request("/api/suppliers/me", { method: "PATCH", body: JSON.stringify(body) }),
   },
   supplier: {
     ordersIncoming: () => request("/api/supplier/orders/incoming"),
@@ -65,9 +81,20 @@ export const api = {
     cancelOrder: (orderId) => request("/api/supplier/orders/" + orderId + "/cancel", { method: "PATCH" }),
     financials: () => request("/api/supplier/financials"),
     products: () => request("/api/supplier/products"),
+    deliveryPartners: {
+      list: (params) => {
+        const q = new URLSearchParams(params || {}).toString();
+        return request("/api/supplier/delivery-partners" + (q ? "?" + q : ""));
+      },
+      create: (body) => request("/api/supplier/delivery-partners", { method: "POST", body: JSON.stringify(body) }),
+    },
   },
   deliveryPartners: {
     me: () => request("/api/delivery-partners/me"),
+    setOnline: (body) =>
+      request("/api/delivery-partners/me/online", { method: "PATCH", body: JSON.stringify(body) }),
+    updateAvailabilityLocation: (body) =>
+      request("/api/delivery-partners/me/location", { method: "PATCH", body: JSON.stringify(body) }),
     list: (vehicleType) => request("/api/delivery-partners" + (vehicleType ? "?vehicleType=" + encodeURIComponent(vehicleType) : "")),
     ordersIncoming: () => request("/api/delivery-partners/orders/incoming"),
     ordersHistory: (params) => request("/api/delivery-partners/orders/history" + (params?.status ? "?status=" + encodeURIComponent(params.status) : "")),
@@ -81,7 +108,16 @@ export const api = {
     },
     financials: () => request("/api/delivery-partners/financials"),
     updateProfile: (body) => request("/api/delivery-partners/me", { method: "PATCH", body: JSON.stringify(body) }),
-    markPickedUp: (orderId) => request("/api/delivery-partners/orders/" + orderId + "/picked-up", { method: "PATCH" }),
+    markPickedUp: (orderId, body) =>
+      request("/api/delivery-partners/orders/" + orderId + "/picked-up", {
+        method: "PATCH",
+        body: JSON.stringify(body || {}),
+      }),
+    updateLocation: (orderId, body) =>
+      request("/api/delivery-partners/orders/" + orderId + "/location", {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
     markDelivered: (orderId) => request("/api/delivery-partners/orders/" + orderId + "/delivered", { method: "PATCH" }),
   },
   deliverySupport: {
@@ -112,6 +148,7 @@ export const api = {
   orders: {
     list: () => request("/api/orders"),
     get: (id) => request("/api/orders/" + id),
+    tracking: (id) => request("/api/orders/" + id + "/tracking"),
     create: (body) => request("/api/orders", { method: "POST", body: JSON.stringify(body) }),
     cancel: (id) => request("/api/orders/" + id + "/cancel", { method: "PATCH" }),
   },
@@ -135,6 +172,15 @@ export const api = {
     update: (id, body) => request("/api/addresses/" + id, { method: "PUT", body: JSON.stringify(body) }),
     delete: (id) => request("/api/addresses/" + id, { method: "DELETE" }),
   },
+  maps: {
+    travel: (body) => request("/api/maps/travel", { method: "POST", body: JSON.stringify(body) }),
+  },
+  stores: {
+    list: () => request("/api/stores"),
+    approved: () => request("/api/stores/approved"),
+    create: (body) => request("/api/stores", { method: "POST", body: JSON.stringify(body) }),
+    update: (id, body) => request("/api/stores/" + id, { method: "PATCH", body: JSON.stringify(body) }),
+  },
   waterIntake: {
     get: (date) => request("/api/water-intake" + (date ? "?date=" + encodeURIComponent(date) : "")),
     add: (body) => request("/api/water-intake", { method: "POST", body: JSON.stringify(body) }),
@@ -155,7 +201,10 @@ export const api = {
     },
   },
   plans: {
-    list: () => request("/api/plans"),
+    list: (params) => {
+      const q = new URLSearchParams(params || {}).toString();
+      return request("/api/plans" + (q ? "?" + q : ""));
+    },
     products: (slug) => request("/api/plans/" + encodeURIComponent(slug) + "/products"),
   },
   subscriptions: {

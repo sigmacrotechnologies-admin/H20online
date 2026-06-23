@@ -5,6 +5,8 @@ node_modules/
 
 # Expo
 .expo/
+.expo-web-test/
+.expo-temp-bundle-check/
 dist/
 web-build/
 expo-env.d.ts
@@ -30,7 +32,8 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files (never commit secrets or machine-specific IPs)
+.env
 .env*.local
 
 # typescript

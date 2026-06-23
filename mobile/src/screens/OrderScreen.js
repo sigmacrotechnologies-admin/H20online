@@ -19,11 +19,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path } from "react-native-svg";
 import { useCart } from "@/src/context/CartContext";
+import { useCustomerPortal } from "@/src/utils/customerPortal";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
 import AppLogo from "@/src/components/AppLogo";
 import { theme } from "@/src/theme";
 import ProductRatingsModal from "@/src/components/ProductRatingsModal";
+import StoreTravelBadge from "@/src/components/StoreTravelBadge";
+import { useStoreTravelInfo, getCurrentLocationCoords } from "@/src/hooks/useStoreTravel";
 
 const FILTERS = [
   { id: "all", label: "All", icon: "grid-outline" },
@@ -81,7 +84,7 @@ function getProductImageSource(item) {
   return defaultProductIcon;
 }
 
-function ProductCard({ item, onAddToCart, onBuyNow, onToggleCompare, onViewRatings }) {
+function ProductCard({ item, onAddToCart, onBuyNow, onToggleCompare, onViewRatings, travelInfo, travelLoading }) {
   const badgeLabel =
     item.badge === "subscription" ? "Sub" : item.badge === "premium" ? "Pro" : null;
 
@@ -123,8 +126,15 @@ function ProductCard({ item, onAddToCart, onBuyNow, onToggleCompare, onViewRatin
 
       <View style={styles.gridMetaRow}>
         <Ionicons name="time-outline" size={11} color={theme.textMuted} />
-        <Text style={styles.gridMetaText} numberOfLines={1}>{item.delivery}</Text>
+        <Text style={styles.gridMetaText} numberOfLines={1}>
+          {travelInfo?.durationText || item.delivery}
+        </Text>
       </View>
+      {item.hasRegisteredStore ? (
+        <StoreTravelBadge info={travelInfo} loading={travelLoading} compact />
+      ) : (
+        <Text style={styles.noStoreHint}>Store not registered — tracking unavailable</Text>
+      )}
 
       <Text style={styles.gridPrice}>₹{item.price}</Text>
       <Text style={styles.gridPriceUnit}>per {item.priceUnit || "unit"}</Text>
@@ -153,8 +163,11 @@ function ProductCard({ item, onAddToCart, onBuyNow, onToggleCompare, onViewRatin
 
 const OrderScreen = () => {
   const router = useRouter();
-  const { cartCount, addToCart, setCartForBuyNow, setCheckoutDetails } = useCart();
+  const portal = useCustomerPortal();
+  const { cartCount, addToCart, setCartForBuyNow, setCheckoutDetails, getCheckoutDetails } = useCart();
+  const productListParams = portal.isSociety ? { audience: "society" } : {};
   const [location, setLocation] = useState("Current location (tap to change)");
+  const [customerCoords, setCustomerCoords] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
@@ -166,7 +179,7 @@ const OrderScreen = () => {
   useEffect(() => {
     setProductsError(null);
     api.products
-      .list()
+      .list(productListParams)
       .then((raw) => {
         setProductsError(null);
         const list = Array.isArray(raw) ? raw : [];
@@ -177,7 +190,7 @@ const OrderScreen = () => {
         setProducts([]);
       })
       .finally(() => setProductsLoading(false));
-  }, []);
+  }, [portal.isSociety]);
 
   const loadSavedAddresses = useCallback(async () => {
     try {
@@ -189,10 +202,15 @@ const OrderScreen = () => {
       if (defaultAddress && (!location || location.includes("Current location"))) {
         setLocation(defaultAddress);
       }
+      if (defaultEntry?.latitude != null && defaultEntry?.longitude != null) {
+        setCustomerCoords({ latitude: defaultEntry.latitude, longitude: defaultEntry.longitude });
+      }
       if (defaultEntry?.fullAddress && defaultEntry?.phoneNumber) {
         setCheckoutDetails({
           address: defaultEntry.fullAddress,
           receiverPhone: defaultEntry.phoneNumber,
+          customerLatitude: defaultEntry.latitude ?? null,
+          customerLongitude: defaultEntry.longitude ?? null,
         });
       }
     } catch (_) {
@@ -228,6 +246,22 @@ const OrderScreen = () => {
       return next;
     });
   };
+
+  const storeDestinations = useMemo(() => {
+    const map = new Map();
+    products.forEach((p) => {
+      if (p.hasRegisteredStore && p.storeId && p.storeLatitude != null && p.storeLongitude != null) {
+        map.set(p.storeId, {
+          id: p.storeId,
+          lat: p.storeLatitude,
+          lng: p.storeLongitude,
+          name: p.storeName || "",
+        });
+      }
+    });
+    return [...map.values()];
+  }, [products]);
+  const { travelByStore, loading: travelLoading } = useStoreTravelInfo(customerCoords, storeDestinations);
 
   const comparedSuppliers = useMemo(() => {
     const selected = products.filter((p) => p.compareSelected);
@@ -272,9 +306,19 @@ const OrderScreen = () => {
     if (activeFilter === "price") list = [...list].sort((a, b) => a.price - b.price);
     else if (activeFilter === "delivery") list = [...list].sort((a, b) => (a.delivery < b.delivery ? -1 : 1));
     else if (activeFilter === "rating") list = [...list].sort((a, b) => b.rating - a.rating);
-    else if (activeFilter === "distance") list = [...list].sort((a, b) => (a.delivery || "").localeCompare(b.delivery || ""));
+    else if (activeFilter === "distance") {
+      list = [...list].sort((a, b) => {
+        const da = a.hasRegisteredStore
+          ? travelByStore[a.storeId]?.durationSeconds ?? 999999
+          : 999999;
+        const db = b.hasRegisteredStore
+          ? travelByStore[b.storeId]?.durationSeconds ?? 999999
+          : 999999;
+        return da - db;
+      });
+    }
     return list;
-  }, [products, searchQuery, activeFilter, sizeRangeSelected, extraSelected, useCaseSelected, sizeSliderMin, sizeSliderMax]);
+  }, [products, searchQuery, activeFilter, sizeRangeSelected, extraSelected, useCaseSelected, sizeSliderMin, sizeSliderMax, travelByStore]);
 
   const activeFilterCount =
     sizeRangeSelected.length + extraSelected.length + useCaseSelected.length + (sizeSliderMin > 1 || sizeSliderMax < 500 ? 1 : 0);
@@ -288,6 +332,8 @@ const OrderScreen = () => {
       setCheckoutDetails({
         address: selectedAddress.fullAddress,
         receiverPhone: selectedAddress.phoneNumber,
+        customerLatitude: selectedAddress.latitude ?? null,
+        customerLongitude: selectedAddress.longitude ?? null,
       });
     }
     setCartForBuyNow(item, 1);
@@ -298,7 +344,7 @@ const OrderScreen = () => {
     setProductsLoading(true);
     setProductsError(null);
     api.products
-      .list()
+      .list(productListParams)
       .then((raw) => {
         const list = Array.isArray(raw) ? raw : [];
         setProducts(list.map((p) => ({ ...p, compareSelected: false })));
@@ -374,7 +420,7 @@ const OrderScreen = () => {
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.headerTitle}>Order water</Text>
+            <Text style={styles.headerTitle}>{portal.isSociety ? "Order tankers" : "Order water"}</Text>
             <TouchableOpacity style={styles.locationCard} onPress={() => setShowLocationPicker(true)} activeOpacity={0.88}>
               <LinearGradient colors={["rgba(255,255,255,0.96)", "#FFFFFF"]} style={styles.locationCardInner}>
                 <View style={styles.locationIconWrap}>
@@ -471,6 +517,8 @@ const OrderScreen = () => {
                   setRatingsModalProduct(product);
                   setShowRatingsModal(true);
                 }}
+                travelInfo={item.hasRegisteredStore ? travelByStore[item.storeId] : null}
+                travelLoading={travelLoading}
               />
             )}
           />
@@ -657,9 +705,21 @@ const OrderScreen = () => {
             <ScrollView style={styles.locationList} showsVerticalScrollIndicator={false}>
               <TouchableOpacity
                 style={styles.locationOptionRow}
-                onPress={() => {
-                  setLocation("Current location");
+                onPress={async () => {
                   setShowLocationPicker(false);
+                  try {
+                    const coords = await getCurrentLocationCoords();
+                    setCustomerCoords(coords);
+                    setLocation("Current location");
+                    const prev = getCheckoutDetails?.() || {};
+                    setCheckoutDetails({
+                      ...prev,
+                      customerLatitude: coords.latitude,
+                      customerLongitude: coords.longitude,
+                    });
+                  } catch (err) {
+                    alert(err.message || "Could not get current location");
+                  }
                 }}
                 activeOpacity={0.85}
               >
@@ -680,9 +740,14 @@ const OrderScreen = () => {
                       return;
                     }
                     setLocation(a.fullAddress || "Saved address");
+                    if (a.latitude != null && a.longitude != null) {
+                      setCustomerCoords({ latitude: a.latitude, longitude: a.longitude });
+                    }
                     setCheckoutDetails({
                       address: a.fullAddress || "",
                       receiverPhone: a.phoneNumber || "",
+                      customerLatitude: a.latitude ?? null,
+                      customerLongitude: a.longitude ?? null,
                     });
                     setShowLocationPicker(false);
                   }}
@@ -928,6 +993,7 @@ const styles = StyleSheet.create({
   gridSupplier: { fontSize: 10, fontWeight: "600", color: theme.accent, paddingHorizontal: 10, marginTop: 2 },
   gridMetaRow: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, marginTop: 4 },
   gridMetaText: { flex: 1, fontSize: 10, color: theme.textMuted },
+  noStoreHint: { fontSize: 10, color: "#B45309", marginTop: 2, lineHeight: 14 },
   gridPrice: { fontSize: 18, fontWeight: "800", color: theme.accent, paddingHorizontal: 10, marginTop: 6 },
   gridPriceUnit: { fontSize: 10, color: theme.textMuted, paddingHorizontal: 10, marginTop: 1 },
   gridActions: { flexDirection: "row", gap: 6, padding: 10, paddingTop: 8 },

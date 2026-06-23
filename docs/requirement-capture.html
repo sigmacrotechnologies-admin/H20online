@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>H2O Online — Requirement Capture</title>
+  <style>
+    @page { size: A4; margin: 14mm 12mm 16mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      color: #1e293b;
+      font-size: 9pt;
+      line-height: 1.42;
+      margin: 0;
+    }
+    .cover {
+      page-break-after: always;
+      min-height: 255mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 22mm 20mm;
+      background: linear-gradient(145deg, #f0f9ff 0%, #fff 50%, #ecfdf5 100%);
+    }
+    .cover-badge {
+      display: inline-block;
+      background: #0369a1;
+      color: #fff;
+      font-size: 8pt;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      width: fit-content;
+    }
+    .cover h1 {
+      font-size: 26pt;
+      color: #0c4a6e;
+      margin: 0 0 12px;
+      line-height: 1.2;
+      max-width: 480px;
+    }
+    .cover .subtitle { font-size: 12pt; color: #475569; margin: 0 0 24px; max-width: 460px; }
+    .cover-meta {
+      border-top: 2px solid #0ea5e9;
+      padding-top: 16px;
+      margin-top: 8px;
+      font-size: 9pt;
+      color: #64748b;
+    }
+    .cover-meta div { margin-bottom: 4px; }
+    .cover-stats {
+      display: flex;
+      gap: 16px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+    .stat-box {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      min-width: 100px;
+    }
+    .stat-box strong { display: block; font-size: 16pt; color: #0284c7; }
+    .stat-box span { font-size: 8pt; color: #64748b; }
+    h1 { font-size: 16pt; color: #0c4a6e; margin: 14pt 0 6pt; page-break-after: avoid; }
+    h2 {
+      font-size: 12pt; color: #0f172a; margin: 14pt 0 5pt;
+      border-bottom: 2px solid #7dd3fc; padding-bottom: 3px;
+      page-break-after: avoid;
+    }
+    h3 { font-size: 10.5pt; color: #1d4ed8; margin: 10pt 0 4pt; page-break-after: avoid; }
+    h4 { font-size: 9.5pt; color: #334155; margin: 8pt 0 3pt; page-break-after: avoid; }
+    p { margin: 0 0 7pt; color: #334155; }
+    p.footnote { font-style: italic; font-size: 8.5pt; color: #64748b; }
+    hr { border: none; border-top: 1px solid #cbd5e1; margin: 12pt 0; }
+    ul, ol { margin: 0 0 8pt; padding-left: 16pt; }
+    li { margin-bottom: 2pt; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 10pt;
+      font-size: 7.8pt;
+      page-break-inside: auto;
+    }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    th {
+      background: #0369a1;
+      color: #fff;
+      font-weight: 600;
+      text-align: left;
+      padding: 5px 6px;
+      border: 1px solid #0284c7;
+    }
+    td {
+      padding: 4px 6px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code.inline {
+      background: #f1f5f9;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 8pt;
+    }
+    pre {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 8px 10px;
+      border-radius: 4px;
+      margin: 0 0 10pt;
+      page-break-inside: avoid;
+    }
+    pre code.block { font-size: 7.5pt; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-badge">Business Analysis</div>
+    <h1>H2O Online<br>Requirement Capture</h1>
+    <p class="subtitle">Comprehensive functional requirements, business workflows, user personas, and product scope for stakeholder review and sign-off.</p>
+    <div class="cover-stats">
+      <div class="stat-box"><strong>150+</strong><span>Requirements</span></div>
+      <div class="stat-box"><strong>6</strong><span>User Roles</span></div>
+      <div class="stat-box"><strong>18</strong><span>Sections</span></div>
+    </div>
+    <div class="cover-meta">
+      <div><strong>Document version:</strong> 1.0</div>
+      <div><strong>Document type:</strong> Functional &amp; Business Requirements</div>
+      <div><strong>Generated:</strong> 19 June 2026</div>
+    </div>
+  </div>
+  <div class="content"><h1>H2O Online — Requirements Capture Document</h1>
+<p><strong>Document type:</strong> Business Analysis &amp; Functional Requirements  </p>
+<p><strong>Product:</strong> H2O Online Platform  </p>
+<p><strong>Version:</strong> 1.0  </p>
+<p><strong>Purpose:</strong> Comprehensive feature and requirement reference for stakeholders, business analysts, and product owners</p>
+<hr />
+<h2>1. Executive Summary</h2>
+<p>H2O Online is a <strong>multi-sided water delivery ecosystem</strong> connecting households and businesses with verified water suppliers and delivery partners through a mobile application, supported by a central <strong>admin operations portal</strong>.</p>
+<p>The platform enables customers to discover water products, place one-time or scheduled orders, subscribe to recurring delivery plans, track deliveries in real time, manage payments through an integrated wallet, log daily hydration, and receive AI-powered wellness insights. Suppliers manage catalogues, accept orders, assign riders, and view earnings. Delivery partners fulfil instant orders and subscription routes. Administrators verify partners, manage subscriptions, oversee finances, and handle support across all user types.</p>
+<p><strong>Strategic positioning:</strong> Beyond transactional water delivery — the product combines <strong>convenience</strong>, <strong>subscription retention</strong>, <strong>wallet-based payments</strong>, and <strong>health engagement</strong> (hydration tracking + AI) to build long-term customer relationships.</p>
+<hr />
+<h2>2. Business Objectives</h2>
+<table><thead><tr><th>ID</th><th>Objective</th><th>Success indicator</th></tr></thead><tbody><tr><td>BO-01</td><td>Enable on-demand and scheduled water ordering for end customers</td><td>Customers complete order-to-delivery journey in-app</td></tr><tr><td>BO-02</td><td>Drive recurring revenue through subscription plans</td><td>Active subscriptions with paid monthly bills</td></tr><tr><td>BO-03</td><td>Onboard and verify water suppliers and delivery partners at scale</td><td>Verified partners transacting on platform</td></tr><tr><td>BO-04</td><td>Provide transparent platform economics for suppliers and delivery partners</td><td>Partners view earnings, commission, and wallet history</td></tr><tr><td>BO-05</td><td>Centralise operations through admin portal</td><td>Admin manages users, orders, subscriptions, support, finances</td></tr><tr><td>BO-06</td><td>Increase customer engagement beyond ordering</td><td>Hydration tracking and AI insights used regularly</td></tr><tr><td>BO-07</td><td>Build trust through verification and support</td><td>Document verification before partner go-live; ticket/chat support</td></tr></tbody></table>
+<hr />
+<h2>3. Stakeholders &amp; User Personas</h2>
+<h3>3.1 Primary personas</h3>
+<table><thead><tr><th>Persona</th><th>Channel</th><th>Status</th><th>Primary need</th></tr></thead><tbody><tr><td><strong>Customer</strong></td><td>Mobile app</td><td>Live</td><td>Order water, subscribe, track, pay, manage account</td></tr><tr><td><strong>Supplier (Water vendor)</strong></td><td>Mobile app</td><td>Live</td><td>Sell water, fulfil orders, manage products &amp; earnings</td></tr><tr><td><strong>Delivery partner</strong></td><td>Mobile app</td><td>Live</td><td>Pick up and deliver orders; subscription routes</td></tr><tr><td><strong>Master administrator</strong></td><td>Admin web portal</td><td>Live</td><td>Full platform control</td></tr><tr><td><strong>Administrator</strong></td><td>Admin web portal</td><td>Live</td><td>Operations with same powers as master (except master account changes)</td></tr><tr><td><strong>Sub-administrator</strong></td><td>Admin web portal</td><td>Live</td><td>Day-to-day ops without financials, destructive actions, or admin creation</td></tr></tbody></table>
+<h3>3.2 Future / demo personas</h3>
+<table><thead><tr><th>Persona</th><th>Channel</th><th>Status</th><th>Notes</th></tr></thead><tbody><tr><td><strong>Corporate buyer</strong></td><td>Mobile app</td><td>Demo UI only</td><td>Bulk office supply, analytics, invoicing (sample data)</td></tr><tr><td><strong>Restaurant</strong></td><td>Mobile app</td><td>Coming soon</td><td>Hospitality water solutions</td></tr><tr><td><strong>Event organisation</strong></td><td>Mobile app</td><td>Coming soon</td><td>Large-volume event supply</td></tr><tr><td><strong>Institute / College</strong></td><td>Mobile app</td><td>Coming soon</td><td>Campus water monitoring and supply</td></tr></tbody></table>
+<h3>3.3 Customer segments (platform vision)</h3>
+<p>Corporate, Organisation, Institute, College — reflected in wallet segmentation and future role expansion.</p>
+<hr />
+<h2>4. Scope</h2>
+<h3>4.1 In scope (current release)</h3>
+<ul><li>Customer mobile journey: registration, ordering, subscriptions, billing, tracking, hydration, profile, support</li><li>Supplier mobile journey: onboarding, verification, catalog, order acceptance, rider assignment, financials, wallet, support</li><li>Delivery partner mobile journey: onboarding, verification, order fulfilment, subscription routes, earnings, support</li><li>Admin portal: user management, orders, supplier/partner verification, plans &amp; rates, subscription delivery assignment, wallet management, financials, support channels</li><li>Cross-cutting: H2 Wallet, subscription billing, Water AI Sense, product reviews, privacy policy</li></ul>
+<h3>4.2 Out of scope / partial (documented gaps)</h3>
+<ul><li>Live Corporate, Restaurant, Event, Institute commercial flows (Corporate exists as demo only)</li><li>Full loyalty points earn/redeem programme (display only today)</li><li>Coupon discount engine (UI present; rules not implemented)</li><li>OTP login as production-grade authentication (mock flow)</li><li>Live map tracking on order screen (placeholder)</li><li>Connected wearables integration (presentation UI)</li><li>Payment gateway integration for UPI/card (wallet is primary integrated path; other methods are customer-facing options)</li></ul>
+<hr />
+<h2>5. Functional Requirements — Entry &amp; Authentication</h2>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-AUTH-01</td><td>User shall select role on welcome screen: Customer, Partner, Corporate, Restaurant, Event Org, Institute</td><td>Must</td></tr><tr><td>FR-AUTH-02</td><td>Customer shall register with name, email, phone, password, age, gender, activity level, family size</td><td>Must</td></tr><tr><td>FR-AUTH-03</td><td>Customer shall upload profile photo and select starter plan during registration</td><td>Should</td></tr><tr><td>FR-AUTH-04</td><td>Customer shall set daily hydration goal during registration</td><td>Should</td></tr><tr><td>FR-AUTH-05</td><td>User shall accept terms and conditions before account activation or login</td><td>Must</td></tr><tr><td>FR-AUTH-06</td><td>User shall log in with email and password with role validation</td><td>Must</td></tr><tr><td>FR-AUTH-07</td><td>User shall recover password via registered email</td><td>Must</td></tr><tr><td>FR-AUTH-08</td><td>User shall optionally log in via OTP (one-time code)</td><td>Could</td></tr><tr><td>FR-AUTH-09</td><td>User shall log out securely from profile</td><td>Must</td></tr><tr><td>FR-AUTH-10</td><td>Supplier shall complete business registration: business name, contact, address, GST, bank details</td><td>Must</td></tr><tr><td>FR-AUTH-11</td><td>Supplier shall upload ID proof, business license, address proof</td><td>Must</td></tr><tr><td>FR-AUTH-12</td><td>Delivery partner shall register with vehicle type and identity documentation</td><td>Must</td></tr><tr><td>FR-AUTH-13</td><td>New supplier/partner shall receive verification pending status until admin approval</td><td>Must</td></tr><tr><td>FR-AUTH-14</td><td>Supplier shall receive 6-digit onboarding verification code after registration</td><td>Should</td></tr></tbody></table>
+<hr />
+<h2>6. Functional Requirements — Customer App</h2>
+<h3>6.1 Home dashboard</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-CUS-01</td><td>Customer shall see personalised greeting with name and profile photo</td><td>Must</td></tr><tr><td>FR-CUS-02</td><td>Customer shall view H2 Wallet balance and reward points at a glance</td><td>Must</td></tr><tr><td>FR-CUS-03</td><td>Customer shall access quick actions: Order Jar, My Plan, Track, Wallet, Water Intake, Billing</td><td>Must</td></tr><tr><td>FR-CUS-04</td><td>Customer shall see banner for ongoing order with status and link to tracking</td><td>Must</td></tr><tr><td>FR-CUS-05</td><td>Customer shall view weekly hydration graph and today's goal progress</td><td>Must</td></tr><tr><td>FR-CUS-06</td><td>Customer shall view and manage active subscriptions from dashboard</td><td>Must</td></tr><tr><td>FR-CUS-07</td><td>Customer shall receive Water AI Sense hydration insights (expandable)</td><td>Should</td></tr><tr><td>FR-CUS-08</td><td>Customer shall open AI health report and Ask AI from dashboard</td><td>Should</td></tr><tr><td>FR-CUS-09</td><td>Customer shall view connected devices section (watch, smart bottle, TV hub)</td><td>Could</td></tr></tbody></table>
+<h3>6.2 Browse, cart &amp; checkout</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-CUS-10</td><td>Customer shall browse water product catalogue (jars, bottles, dispensers, tankers, bulk)</td><td>Must</td></tr><tr><td>FR-CUS-11</td><td>Customer shall filter products by price, fastest delivery, top rated, nearest supplier</td><td>Must</td></tr><tr><td>FR-CUS-12</td><td>Customer shall filter by size range (1–5 L through 20+ L), bulk, tanker</td><td>Must</td></tr><tr><td>FR-CUS-13</td><td>Customer shall filter by use case: party/function, office</td><td>Should</td></tr><tr><td>FR-CUS-14</td><td>Customer shall view product ratings and customer reviews</td><td>Must</td></tr><tr><td>FR-CUS-15</td><td>Customer shall compare products side by side</td><td>Should</td></tr><tr><td>FR-CUS-16</td><td>Customer shall add products to cart or buy instantly</td><td>Must</td></tr><tr><td>FR-CUS-17</td><td>Customer shall manage cart quantities, remove items, view subtotal</td><td>Must</td></tr><tr><td>FR-CUS-18</td><td>Customer shall enter or select delivery address at checkout</td><td>Must</td></tr><tr><td>FR-CUS-19</td><td>Customer shall choose instant delivery or schedule date/time (within 7 days)</td><td>Must</td></tr><tr><td>FR-CUS-20</td><td>Customer shall order for someone else with receiver name and phone</td><td>Should</td></tr><tr><td>FR-CUS-21</td><td>Customer shall apply coupon code at checkout</td><td>Could</td></tr><tr><td>FR-CUS-22</td><td>Customer shall access wallet top-up from checkout</td><td>Should</td></tr></tbody></table>
+<h3>6.3 Payment &amp; order fulfilment visibility</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-CUS-23</td><td>Customer shall pay via H2 Wallet, UPI, card, or cash on delivery</td><td>Must</td></tr><tr><td>FR-CUS-24</td><td>Customer shall receive order confirmation with order ID</td><td>Must</td></tr><tr><td>FR-CUS-25</td><td>Customer shall track order through status timeline: accepted → picked up → out for delivery → delivered</td><td>Must</td></tr><tr><td>FR-CUS-26</td><td>Customer shall view ETA, supplier info, delivery partner info, and call driver</td><td>Must</td></tr><tr><td>FR-CUS-27</td><td>Customer shall view order history with status filters</td><td>Must</td></tr><tr><td>FR-CUS-28</td><td>Customer shall rate and review delivered products</td><td>Must</td></tr><tr><td>FR-CUS-29</td><td>Customer shall reorder or shop again from order history</td><td>Should</td></tr></tbody></table>
+<h3>6.4 Addresses &amp; account</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-CUS-30</td><td>Customer shall save multiple delivery addresses (home, office, etc.)</td><td>Must</td></tr><tr><td>FR-CUS-31</td><td>Customer shall add, edit, delete addresses with full address and PIN</td><td>Must</td></tr><tr><td>FR-CUS-32</td><td>Customer shall set default delivery address</td><td>Must</td></tr><tr><td>FR-CUS-33</td><td>Customer shall edit personal information (name, email, phone)</td><td>Must</td></tr><tr><td>FR-CUS-34</td><td>Customer shall manage payment methods (cards, UPI, wallet)</td><td>Should</td></tr><tr><td>FR-CUS-35</td><td>Customer shall change password</td><td>Must</td></tr><tr><td>FR-CUS-36</td><td>Customer shall view order count, loyalty points, wallet in profile</td><td>Must</td></tr></tbody></table>
+<h3>6.5 Subscriptions &amp; billing</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-CUS-37</td><td>Customer shall choose subscription plan: Basic, Family, Active, Premium</td><td>Must</td></tr><tr><td>FR-CUS-38</td><td>Customer shall set frequency: daily, weekly, monthly with date selection</td><td>Must</td></tr><tr><td>FR-CUS-39</td><td>Customer shall set preferred delivery time window</td><td>Must</td></tr><tr><td>FR-CUS-40</td><td>Customer shall select product and quantity within plan</td><td>Must</td></tr><tr><td>FR-CUS-41</td><td>Customer shall assign delivery address to subscription</td><td>Must</td></tr><tr><td>FR-CUS-42</td><td>Customer shall create and cancel subscriptions</td><td>Must</td></tr><tr><td>FR-CUS-43</td><td>Customer shall view monthly subscription bills (pending, paid, overdue)</td><td>Must</td></tr><tr><td>FR-CUS-44</td><td>Customer shall pay subscription bills from H2 Wallet</td><td>Must</td></tr></tbody></table>
+<h3>6.6 Hydration &amp; wellness</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-CUS-45</td><td>Customer shall log water intake by glass, jar, bottle, or custom volume</td><td>Must</td></tr><tr><td>FR-CUS-46</td><td>Customer shall track progress toward daily hydration goal</td><td>Must</td></tr><tr><td>FR-CUS-47</td><td>Customer shall view 7-day consumption graph</td><td>Must</td></tr><tr><td>FR-CUS-48</td><td>Customer shall receive suggested intake based on profile and activity</td><td>Should</td></tr><tr><td>FR-CUS-49</td><td>AI insights shall include non-medical disclaimer</td><td>Must</td></tr></tbody></table>
+<h3>6.7 Support &amp; compliance</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-CUS-50</td><td>Customer shall create support ticket with category, subject, description</td><td>Must</td></tr><tr><td>FR-CUS-51</td><td>Customer shall view ticket status: Open, In Progress, Resolved, Closed</td><td>Must</td></tr><tr><td>FR-CUS-52</td><td>Customer shall reply on ticket thread</td><td>Must</td></tr><tr><td>FR-CUS-53</td><td>Customer shall read in-app privacy policy</td><td>Must</td></tr></tbody></table>
+<hr />
+<h2>7. Functional Requirements — Supplier App</h2>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-SUP-01</td><td>Supplier shall view dashboard with today's earnings and delivery count</td><td>Must</td></tr><tr><td>FR-SUP-02</td><td>Supplier shall receive alert for pending incoming orders</td><td>Must</td></tr><tr><td>FR-SUP-03</td><td>Supplier shall view incoming orders filtered by instant/scheduled</td><td>Must</td></tr><tr><td>FR-SUP-04</td><td>Supplier shall accept order with ETA, remarks, fleet type</td><td>Must</td></tr><tr><td>FR-SUP-05</td><td>Supplier shall reject or cancel orders</td><td>Must</td></tr><tr><td>FR-SUP-06</td><td>Supplier shall assign or change delivery partner on accepted orders</td><td>Must</td></tr><tr><td>FR-SUP-07</td><td>Supplier shall view order history (delivered, in progress, cancelled)</td><td>Must</td></tr><tr><td>FR-SUP-08</td><td>Supplier shall manage product catalogue: add, edit price/stock/delivery time, remove</td><td>Must</td></tr><tr><td>FR-SUP-09</td><td>Supplier shall view financials: gross revenue, platform fee, net earnings</td><td>Must</td></tr><tr><td>FR-SUP-10</td><td>Supplier shall view wallet balance and transaction history</td><td>Must</td></tr><tr><td>FR-SUP-11</td><td>Supplier shall chat with admin support team</td><td>Must</td></tr><tr><td>FR-SUP-12</td><td>Supplier shall not access dashboard until admin verifies documents</td><td>Must</td></tr></tbody></table>
+<hr />
+<h2>8. Functional Requirements — Delivery Partner App</h2>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-DEL-01</td><td>Delivery partner shall view dashboard with incoming and subscription badges</td><td>Must</td></tr><tr><td>FR-DEL-02</td><td>Partner shall view assigned instant and scheduled orders</td><td>Must</td></tr><tr><td>FR-DEL-03</td><td>Partner shall mark order as picked up</td><td>Must</td></tr><tr><td>FR-DEL-04</td><td>Partner shall mark order as delivered</td><td>Must</td></tr><tr><td>FR-DEL-05</td><td>Partner shall view subscription delivery routes assigned by admin</td><td>Must</td></tr><tr><td>FR-DEL-06</td><td>Partner shall filter subscription orders by today, this week, time range</td><td>Should</td></tr><tr><td>FR-DEL-07</td><td>Partner shall view completed delivery history with earnings</td><td>Must</td></tr><tr><td>FR-DEL-08</td><td>Partner shall view summary stats: total, delivered, in progress, cancelled</td><td>Must</td></tr><tr><td>FR-DEL-09</td><td>Partner shall view earnings breakdown and wallet balance</td><td>Must</td></tr><tr><td>FR-DEL-10</td><td>Partner shall redeem earnings from wallet</td><td>Must</td></tr><tr><td>FR-DEL-11</td><td>Partner shall update profile: name, phone, vehicle, photo</td><td>Must</td></tr><tr><td>FR-DEL-12</td><td>Partner shall chat with admin for route/delivery issues</td><td>Must</td></tr><tr><td>FR-DEL-13</td><td>Partner shall not operate until admin verifies documents</td><td>Must</td></tr></tbody></table>
+<hr />
+<h2>9. Functional Requirements — Admin Portal</h2>
+<h3>9.1 User &amp; order management</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-ADM-01</td><td>Admin shall search, filter, sort, and paginate users</td><td>Must</td></tr><tr><td>FR-ADM-02</td><td>Admin shall view and edit user profile fields</td><td>Must</td></tr><tr><td>FR-ADM-03</td><td>Admin/Master shall delete users; Sub-admin shall not</td><td>Must</td></tr><tr><td>FR-ADM-04</td><td>Admin shall view all orders with status filters</td><td>Must</td></tr><tr><td>FR-ADM-05</td><td>Admin shall view order detail: customer, items, total, timeline</td><td>Must</td></tr></tbody></table>
+<h3>9.2 Partner verification</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-ADM-06</td><td>Admin shall review supplier verification queue (ID, address, license)</td><td>Must</td></tr><tr><td>FR-ADM-07</td><td>Admin shall approve or reject supplier verification</td><td>Must</td></tr><tr><td>FR-ADM-08</td><td>Admin shall add supplier manually with business and bank details</td><td>Must</td></tr><tr><td>FR-ADM-09</td><td>Admin shall set per-supplier commission percentage</td><td>Must</td></tr><tr><td>FR-ADM-10</td><td>Admin/Master shall remove supplier; Sub-admin shall not</td><td>Must</td></tr><tr><td>FR-ADM-11</td><td>Admin shall review and approve/reject delivery partner documents</td><td>Must</td></tr></tbody></table>
+<h3>9.3 Plans, subscriptions &amp; delivery routing</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-ADM-12</td><td>Admin shall manage plan tiers and plan product rates (daily/weekly/monthly)</td><td>Must</td></tr><tr><td>FR-ADM-13</td><td>Admin shall add, edit, remove plan products</td><td>Must</td></tr><tr><td>FR-ADM-14</td><td>Admin shall view subscription book with search and status filters</td><td>Must</td></tr><tr><td>FR-ADM-15</td><td>Admin shall pause (deactivate) or manage subscription status</td><td>Must</td></tr><tr><td>FR-ADM-16</td><td>Admin shall assign delivery partner and pickup hub per subscription</td><td>Must</td></tr><tr><td>FR-ADM-17</td><td>Admin shall bulk-assign subscriptions by locality/PIN to one partner</td><td>Should</td></tr><tr><td>FR-ADM-18</td><td>Admin shall edit subscription locality, PIN, preferred delivery time</td><td>Must</td></tr><tr><td>FR-ADM-19</td><td>Admin shall view subscription financial summary</td><td>Must</td></tr></tbody></table>
+<h3>9.4 Wallet &amp; financials</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-ADM-20</td><td>Admin shall view wallets by segment: Customer, Supplier, Delivery, Corporate, etc.</td><td>Must</td></tr><tr><td>FR-ADM-21</td><td>Admin shall adjust wallet balance (add, deduct, set) with notes</td><td>Must</td></tr><tr><td>FR-ADM-22</td><td>Admin/Master shall view platform financials: revenue, commission, payouts, profit</td><td>Must</td></tr><tr><td>FR-ADM-23</td><td>Sub-admin shall not access financials</td><td>Must</td></tr></tbody></table>
+<h3>9.5 Admin users &amp; support</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-ADM-24</td><td>Admin/Master shall create Admin or Sub-admin accounts</td><td>Must</td></tr><tr><td>FR-ADM-25</td><td>Admin shall manage customer support tickets: reply, update status</td><td>Must</td></tr><tr><td>FR-ADM-26</td><td>Admin shall respond to supplier support chat threads</td><td>Must</td></tr><tr><td>FR-ADM-27</td><td>Admin shall respond to delivery partner support chat threads</td><td>Must</td></tr></tbody></table>
+<h3>9.6 Admin role matrix</h3>
+<table><thead><tr><th>Capability</th><th>Master</th><th>Admin</th><th>Sub-admin</th></tr></thead><tbody><tr><td>View/edit users</td><td>Yes</td><td>Yes</td><td>Yes (no delete)</td></tr><tr><td>Delete users</td><td>Yes</td><td>Yes</td><td>No</td></tr><tr><td>Manage orders</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>Add suppliers</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>Remove suppliers</td><td>Yes</td><td>Yes</td><td>No</td></tr><tr><td>Verify partners</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>Plans &amp; rates</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>Subscription routing</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>Wallet management</td><td>Yes</td><td>Yes</td><td>Yes</td></tr><tr><td>Financials</td><td>Yes</td><td>Yes</td><td>No</td></tr><tr><td>Create admin users</td><td>Yes</td><td>Yes</td><td>No</td></tr><tr><td>All support channels</td><td>Yes</td><td>Yes</td><td>Yes</td></tr></tbody></table>
+<hr />
+<h2>10. Functional Requirements — Corporate Demo</h2>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>FR-COR-01</td><td>User shall complete multi-step corporate company registration (demo)</td><td>Could</td></tr><tr><td>FR-COR-02</td><td>User shall enter access code CORP2024 to enter Corporate Hub</td><td>Could</td></tr><tr><td>FR-COR-03</td><td>Corporate Hub shall show company metrics, consumption graphs, bulk schedules</td><td>Could</td></tr><tr><td>FR-COR-04</td><td>Corporate Hub shall show invoice list and order history (sample data)</td><td>Could</td></tr></tbody></table>
+<p class="footnote">Note: Corporate is not a live commercial offering; requirements marked Could for future productisation.</p>
+<hr />
+<h2>11. Cross-Cutting Business Capabilities</h2>
+<h3>11.1 H2 Wallet</h3>
+<ul><li>Customers top up wallet and pay for orders and subscription bills</li><li>Suppliers receive order payouts minus platform commission</li><li>Delivery partners receive earnings and redeem to external payout</li><li>Admin oversees all wallet segments and performs manual adjustments</li><li>Platform wallet tracks aggregate transaction flow for financial reporting</li></ul>
+<h3>11.2 Platform economics</h3>
+<ul><li>Configurable supplier commission (default ~20% platform fee)</li><li>Supplier financials show gross revenue, platform deduction, net earnings</li><li>Admin financials show total revenue, platform cut, partner obligations, net profit</li></ul>
+<h3>11.3 Water AI Sense</h3>
+<ul><li>Daily personalised hydration insight on dashboard and intake tracker</li><li>AI-generated health/hydration report with recommendations</li><li>Natural-language Ask AI for hydration, ordering, and subscription guidance</li><li>Context uses profile, intake logs, and app activity; includes medical disclaimer</li></ul>
+<h3>11.4 Support model</h3>
+<table><thead><tr><th>User type</th><th>Format</th><th>Categories / topics</th></tr></thead><tbody><tr><td>Customer</td><td>Tickets with status lifecycle</td><td>Order, Delivery, Payment, Account, Product quality, Other</td></tr><tr><td>Supplier</td><td>Persistent chat with admin</td><td>Business, orders, verification, payouts</td></tr><tr><td>Delivery partner</td><td>Persistent chat with admin</td><td>Routes, assignments, earnings</td></tr></tbody></table>
+<h3>11.5 Reviews &amp; trust</h3>
+<ul><li>Customers rate and review products after delivery</li><li>Product catalogue displays aggregate ratings and review counts</li><li>Suppliers and delivery partners verified before platform access</li></ul>
+<hr />
+<h2>12. Business Workflows</h2>
+<h3>Workflow A — Customer one-time order</h3>
+<ol><li>Customer browses catalogue → adds to cart</li><li>Checkout: address, instant or scheduled delivery, optional receiver details</li><li>Payment via wallet, UPI, card, or COD</li><li>Order confirmed; customer tracks live status</li><li>Supplier accepts, sets ETA, assigns delivery partner</li><li>Partner picks up → delivers</li><li>Customer rates product in order history</li></ol>
+<h3>Workflow B — Subscription lifecycle</h3>
+<ol><li>Customer selects plan, product, frequency, dates, time window, address</li><li>Platform creates subscription and generates monthly bills</li><li>Admin assigns delivery partner and pickup hub (optional bulk by locality)</li><li>Delivery partner fulfils via subscription orders screen</li><li>Customer pays bills from wallet via Subscription Billing</li><li>Customer or admin may cancel/pause subscription</li></ol>
+<h3>Workflow C — Supplier onboarding</h3>
+<ol><li>Partner registers with business details and documents</li><li>Receives verification code; status = pending</li><li>Admin reviews and approves/rejects in verification queue</li><li>Approved supplier accesses dashboard, manages catalog, accepts orders</li></ol>
+<h3>Workflow D — Delivery partner fulfilment</h3>
+<ol><li>Partner registers with vehicle and documents → pending verification</li><li>Admin approves → partner receives assignments from supplier or admin</li><li>Partner updates picked up → delivered</li><li>Earnings credited to wallet; partner redeems via financials</li></ol>
+<h3>Workflow E — Customer support</h3>
+<ol><li>Customer creates ticket with category and description</li><li>Admin responds and updates status (Open → In Progress → Resolved → Closed)</li><li>Customer views thread and adds replies</li></ol>
+<h3>Workflow F — Admin daily operations</h3>
+<ol><li>Process supplier and delivery verification queues</li><li>Monitor orders and subscription delivery capacity</li><li>Adjust plans/rates and wallets as needed</li><li>Handle customer tickets and partner support chats</li><li>Review financials (restricted roles)</li></ol>
+<hr />
+<h2>13. Business Rules</h2>
+<table><thead><tr><th>Rule ID</th><th>Rule</th></tr></thead><tbody><tr><td>BR-01</td><td>Supplier and delivery partner cannot transact until admin document verification is complete</td></tr><tr><td>BR-02</td><td>Customer must accept terms before registration or login</td></tr><tr><td>BR-03</td><td>Login must match selected role (Customer, Supplier, Delivery partner)</td></tr><tr><td>BR-04</td><td>Subscription bills transition: Pending → Paid (via wallet) or Overdue</td></tr><tr><td>BR-05</td><td>Platform commission deducted from supplier earnings before wallet credit</td></tr><tr><td>BR-06</td><td>Admin role determines access to financials, user deletion, supplier removal, admin creation</td></tr><tr><td>BR-07</td><td>Order cancellation limited to in-progress orders</td></tr><tr><td>BR-08</td><td>AI outputs must display non-medical advice disclaimer</td></tr><tr><td>BR-09</td><td>Privacy policy must be accessible from customer profile</td></tr><tr><td>BR-10</td><td>Scheduled delivery date must be within 7 days of checkout</td></tr></tbody></table>
+<hr />
+<h2>14. Non-Functional Business Requirements</h2>
+<table><thead><tr><th>Req ID</th><th>Category</th><th>Requirement</th></tr></thead><tbody><tr><td>NFR-01</td><td>Trust</td><td>Verification SLA communicated to partners (e.g. 24–48 hours)</td></tr><tr><td>NFR-02</td><td>Security</td><td>Role-based access enforced on mobile and admin</td></tr><tr><td>NFR-03</td><td>Privacy</td><td>Privacy policy defines data collection, sharing with suppliers for fulfilment, and user rights</td></tr><tr><td>NFR-04</td><td>Payments</td><td>Card details not stored on platform (stated in privacy policy)</td></tr><tr><td>NFR-05</td><td>Operations</td><td>Real-time order status updates visible to customer tracking</td></tr><tr><td>NFR-06</td><td>Scalability</td><td>Admin bulk subscription assignment supports geographic routing</td></tr><tr><td>NFR-07</td><td>Engagement</td><td>Hydration and AI features support retention beyond pure delivery</td></tr><tr><td>NFR-08</td><td>Support</td><td>Ticket and chat channels refresh for timely admin response</td></tr><tr><td>NFR-09</td><td>Transparency</td><td>Suppliers see platform fee vs net earnings clearly</td></tr><tr><td>NFR-10</td><td>Compliance</td><td>Children's privacy addressed in privacy policy</td></tr></tbody></table>
+<hr />
+<h2>15. Assumptions &amp; Constraints</h2>
+<p class="footnote">*Assumptions*</p>
+<ul><li>Customers have smartphone with internet for mobile app usage</li><li>Suppliers and delivery partners provide valid identity and business documents</li><li>Admin team available to process verification and support queues</li><li>MongoDB-backed data store available for all transactional data</li><li>Groq API available for AI features (optional for core ordering)</li></ul>
+<p class="footnote">*Constraints*</p>
+<ul><li>Corporate, Restaurant, Event, Institute roles not commercially live</li><li>HTTP cleartext allowed on mobile for current deployment model</li><li>Master admin uses fixed credentials (not database-managed)</li><li>Wallet is primary integrated payment path; UPI/card/COD are customer-facing options</li></ul>
+<hr />
+<h2>16. Future Scope &amp; Product Backlog</h2>
+<table><thead><tr><th>Item</th><th>Description</th><th>Priority</th></tr></thead><tbody><tr><td>BL-01</td><td>Live Corporate B2B ordering and invoicing</td><td>High</td></tr><tr><td>BL-02</td><td>Restaurant, Event, Institute role launch</td><td>Medium</td></tr><tr><td>BL-03</td><td>Loyalty points earn and redeem programme</td><td>Medium</td></tr><tr><td>BL-04</td><td>Coupon and promotion engine</td><td>Medium</td></tr><tr><td>BL-05</td><td>Production OTP/SMS authentication</td><td>High</td></tr><tr><td>BL-06</td><td>Live map tracking on order screen</td><td>Medium</td></tr><tr><td>BL-07</td><td>Wearable and smart bottle integrations</td><td>Low</td></tr><tr><td>BL-08</td><td>Payment gateway for UPI and cards</td><td>High</td></tr><tr><td>BL-09</td><td>Push notifications for order and delivery updates</td><td>High</td></tr><tr><td>BL-10</td><td>Multi-language support</td><td>Low</td></tr></tbody></table>
+<hr />
+<h2>17. Glossary</h2>
+<table><thead><tr><th>Term</th><th>Definition</th></tr></thead><tbody><tr><td><strong>H2 Wallet</strong></td><td>In-app digital wallet for customers, suppliers, and delivery partners</td></tr><tr><td><strong>Water AI Sense</strong></td><td>AI-powered hydration insights, reports, and Q&amp;A</td></tr><tr><td><strong>Subscription plan</strong></td><td>Recurring water delivery package (Basic, Family, Active, Premium)</td></tr><tr><td><strong>Platform commission</strong></td><td>Percentage retained by H2O Online from supplier order revenue</td></tr><tr><td><strong>Pickup hub</strong></td><td>Admin-defined location for delivery partner order collection</td></tr><tr><td><strong>Instant order</strong></td><td>One-time order for immediate or near-term delivery</td></tr><tr><td><strong>Scheduled order</strong></td><td>One-time order for a future date and time</td></tr><tr><td><strong>Verification queue</strong></td><td>Admin list of pending supplier/partner document approvals</td></tr><tr><td><strong>Master admin</strong></td><td>Fixed super-user with full portal access</td></tr></tbody></table>
+<hr />
+<h2>18. Document Sign-Off</h2>
+<table><thead><tr><th>Role</th><th>Name</th><th>Date</th><th>Signature</th></tr></thead><tbody><tr><td>Product Owner</td><td></td><td></td><td></td></tr><tr><td>Business Analyst</td><td></td><td></td><td></td></tr><tr><td>Project Sponsor</td><td></td><td></td><td></td></tr><tr><td>Technical Lead</td><td></td><td></td><td></td></tr></tbody></table>
+<hr />
+<p class="footnote">This document captures functional and business requirements derived from the H2O Online product as implemented across the customer mobile app, supplier app, delivery partner app, and admin portal.</p></div>
+</body>
+</html>

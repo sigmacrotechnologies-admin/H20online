@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>H2O Online Platform — Configuration & Deployment Guide</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm 18mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      color: #0f172a;
+      font-size: 9.5pt;
+      line-height: 1.45;
+      margin: 0;
+      padding: 0;
+    }
+    .cover {
+      page-break-after: always;
+      min-height: 240mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(160deg, #e0f2fe 0%, #fff 55%);
+      padding: 24mm 18mm;
+    }
+    .cover .logo {
+      width: 72px; height: 72px; border-radius: 18px;
+      background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+      color: #fff; font-size: 24pt; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+    }
+    .cover h1 { font-size: 24pt; color: #0369a1; margin: 0 0 10px; max-width: 420px; }
+    .cover p { color: #475569; font-size: 11pt; max-width: 440px; margin: 0 0 8px; }
+    .cover .date { margin-top: 28px; color: #64748b; font-size: 9pt; }
+    .content { padding: 0; }
+    h1 { font-size: 18pt; color: #0369a1; margin: 18pt 0 8pt; page-break-after: avoid; }
+    h2 {
+      font-size: 13pt; color: #0f172a; margin: 16pt 0 6pt;
+      padding-bottom: 4px; border-bottom: 1.5px solid #bae6fd;
+      page-break-after: avoid;
+    }
+    h3 { font-size: 11pt; color: #1e40af; margin: 12pt 0 5pt; page-break-after: avoid; }
+    h4 { font-size: 10pt; color: #334155; margin: 10pt 0 4pt; page-break-after: avoid; }
+    p { margin: 0 0 8pt; color: #334155; }
+    a { color: #0284c7; text-decoration: none; }
+    hr { border: none; border-top: 1px solid #e2e8f0; margin: 14pt 0; }
+    ul, ol { margin: 0 0 10pt; padding-left: 18pt; color: #334155; }
+    li { margin-bottom: 3pt; }
+    ul.checklist { list-style: none; padding-left: 4pt; }
+    ul.checklist li::before { content: "☐ "; color: #64748b; }
+    ul.checklist li.checked::before { content: "☑ "; color: #059669; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 12pt;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+    th {
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 600;
+      text-align: left;
+      padding: 6px 8px;
+      border: 1px solid #bae6fd;
+    }
+    td {
+      padding: 5px 8px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code.inline {
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 8.5pt;
+    }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 10px 12px;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 0 0 12pt;
+      page-break-inside: avoid;
+    }
+    pre code.block {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 8pt;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="logo">H₂O</div>
+    <h1>H2O Online Platform</h1>
+    <p>Complete configuration, deployment, API reference, and settings guide</p>
+    <p>Backend · Mobile · Admin · Production</p>
+    <p class="date">Generated 19 June 2026</p>
+  </div>
+  <div class="content">
+    <h1>H2O Online Platform</h1>
+<p>End-to-end water delivery platform: <strong>mobile app</strong> (customers, suppliers, delivery partners), <strong>admin portal</strong>, and <strong>REST API</strong> backed by MongoDB.</p>
+<table><thead><tr><th>Component</th><th>Stack</th><th>Default port</th><th>Folder</th></tr></thead><tbody><tr><td>Backend API</td><td>Node.js, Express 5, Mongoose</td><td><strong>5000</strong></td><td><code class="inline">backend/</code></td></tr><tr><td>Mobile app</td><td>Expo 54, React Native, Expo Router</td><td><strong>8081</strong> (Metro)</td><td><code class="inline">mobile/</code></td></tr><tr><td>Admin portal</td><td>Vite 5, React 18</td><td><strong>5174</strong> (dev) / <strong>3000</strong> (prod)</td><td><code class="inline">admin/</code></td></tr><tr><td>Documentation</td><td>Puppeteer (screenshots / PDF)</td><td>—</td><td><code class="inline">docs/</code></td></tr></tbody></table>
+<hr />
+<h2>Table of contents</h2>
+<ol><li><a href="#prerequisites">Prerequisites</a></li><li><a href="#quick-start-local">Quick start (local)</a></li><li><a href="#project-structure">Project structure</a></li><li><a href="#environment-variables">Environment variables</a></li><li><a href="#backend-configuration">Backend configuration</a></li><li><a href="#api-reference">API reference</a></li><li><a href="#admin-portal">Admin portal</a></li><li><a href="#mobile-app">Mobile app</a></li><li><a href="#production-deployment">Production deployment</a></li><li><a href="#domain--https">Domain &amp; HTTPS</a></li><li><a href="#documentation-tooling">Documentation tooling</a></li><li><a href="#troubleshooting">Troubleshooting</a></li><li><a href="#security-checklist">Security checklist</a></li></ol>
+<hr />
+<h2>Prerequisites</h2>
+<table><thead><tr><th>Tool</th><th>Version / notes</th></tr></thead><tbody><tr><td>Node.js</td><td>18+ recommended</td></tr><tr><td>MongoDB</td><td>Local install or <a href="https://www.mongodb.com/atlas">MongoDB Atlas</a></td></tr><tr><td>npm</td><td>Comes with Node</td></tr><tr><td>Expo CLI</td><td>For mobile dev (<code class="inline">npx expo</code>)</td></tr><tr><td>EAS CLI</td><td>For cloud APK builds (<code class="inline">npm install -g eas-cli</code>)</td></tr><tr><td>PM2</td><td>Production process manager (Ubuntu server)</td></tr><tr><td>Nginx</td><td>Optional reverse proxy + HTTPS</td></tr></tbody></table>
+<hr />
+<h2>Quick start (local)</h2>
+<h3>1. Backend</h3>
+<pre><code class="block lang-bash">cd backend
+npm install
+cp .env.example .env          # edit MONGODB_URI, JWT_SECRET if needed
+npm run check-mongo           # verify MongoDB is reachable
+npm run seed                  # sample users, suppliers, products
+npm run seed-plans            # subscription plans
+npm run seed-delivery-partners
+npm run dev                   # http://localhost:5000</code></pre>
+<p>Verify: open <a href="http://localhost:5000/api/health">http://localhost:5000/api/health</a> — expect <code class="inline">{ &quot;ok&quot;: true, &quot;db&quot;: &quot;connected&quot; }</code>.</p>
+<h3>2. Mobile app</h3>
+<pre><code class="block lang-bash">cd mobile
+npm install
+npm run local                 # auto-sets LAN IP in .env, starts Expo</code></pre>
+<p>Scan the QR code with <strong>Expo Go</strong> (phone and PC on the same Wi‑Fi), or press <code class="inline">w</code> for web / <code class="inline">a</code> for Android emulator.</p>
+<h3>3. Admin portal</h3>
+<pre><code class="block lang-bash">cd admin
+npm install
+cp .env.example .env          # VITE_API_URL=http://localhost:5000
+npm run dev                   # http://localhost:5174</code></pre>
+<p><strong>Master login:</strong> username <code class="inline">H2O admin</code> · password <code class="inline">admin@H2O</code></p>
+<hr />
+<h2>Project structure</h2>
+<pre><code class="block">H20online/
+├── backend/
+│   ├── server.js              # Express entry point
+│   ├── config/db.js           # MongoDB connection
+│   ├── middleware/            # auth, adminAuth
+│   ├── routes/                # REST route modules
+│   ├── models/                # Mongoose schemas
+│   ├── services/              # AI (Groq), payouts, reports
+│   └── scripts/               # seed, health checks
+├── mobile/
+│   ├── app/                   # Expo Router screens (51 routes)
+│   ├── src/                   # screens, API client, contexts
+│   ├── config/
+│   │   ├── api.js             # API URL resolution logic
+│   │   └── apiUrl.json        # Production API URL (single source)
+│   ├── eas.json               # EAS build profiles + API URL for APK
+│   └── scripts/               # set-local-url, set-production-url, icons
+├── admin/
+│   ├── src/pages/             # Dashboard, Users, Orders, Plans, etc.
+│   └── src/api/               # Admin API client
+└── docs/
+    ├── capture-*.mjs          # Screenshot automation
+    ├── generate-*-pdf.mjs     # PDF generation
+    └── DOMAIN-SETUP.md        # Nginx + Let's Encrypt guide</code></pre>
+<hr />
+<h2>Environment variables</h2>
+<h3>Backend — <code class="inline">backend/.env</code></h3>
+<p>Copy from <code class="inline">backend/.env.example</code>:</p>
+<table><thead><tr><th>Variable</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td><code class="inline">PORT</code></td><td><code class="inline">5000</code></td><td>HTTP server port</td></tr><tr><td><code class="inline">MONGODB_URI</code></td><td><code class="inline">mongodb://127.0.0.1:27017/h20online</code></td><td>MongoDB connection string (local or Atlas <code class="inline">mongodb+srv://…</code>)</td></tr><tr><td><code class="inline">JWT_SECRET</code></td><td>*(change in production)*</td><td>Secret for signing JWT tokens (mobile + admin)</td></tr><tr><td><code class="inline">GROQ_API_KEY</code></td><td>—</td><td>Groq API key for Water AI features (insights, reports, ask)</td></tr><tr><td><code class="inline">GROQ_MODEL</code></td><td><code class="inline">llama-3.3-70b-versatile</code></td><td>Groq model name</td></tr></tbody></table>
+<p>The server binds to <strong><code class="inline">0.0.0.0</code></strong> so phones on the LAN can reach it. On startup it prints the LAN IP to use in <code class="inline">mobile/.env</code>.</p>
+<h3>Admin — <code class="inline">admin/.env</code></h3>
+<table><thead><tr><th>Variable</th><th>Example</th><th>Description</th></tr></thead><tbody><tr><td><code class="inline">VITE_API_URL</code></td><td><code class="inline">http://localhost:5000</code></td><td>Backend base URL — <strong>baked in at build time</strong> (Vite)</td></tr></tbody></table>
+<p>Production example: <code class="inline">VITE_API_URL=http://13.62.57.255:5000</code> or <code class="inline">https://api.yourdomain.com</code></p>
+<h3>Mobile — <code class="inline">mobile/.env</code></h3>
+<table><thead><tr><th>Variable</th><th>Example</th><th>Description</th></tr></thead><tbody><tr><td><code class="inline">EXPO_PUBLIC_API_URL</code></td><td><code class="inline">http://192.168.1.5:5000</code></td><td>Backend URL for Expo dev / Expo Go</td></tr></tbody></table>
+<p><strong>How the mobile app picks the API URL</strong> (<code class="inline">mobile/config/api.js</code>):</p>
+<ol><li><code class="inline">EXPO_PUBLIC_API_URL</code> from <code class="inline">.env</code> (highest priority)</li><li>Dev fallback: Android emulator → <code class="inline">http://10.0.2.2:5000</code>, else → <code class="inline">http://localhost:5000</code></li><li>Production APK fallback: <code class="inline">mobile/config/apiUrl.json</code> → <code class="inline">production</code></li></ol>
+<p><strong>Production APK URL</strong> is set in <code class="inline">eas.json</code> at build time — not from <code class="inline">.env</code>.</p>
+<hr />
+<h2>Backend configuration</h2>
+<h3>NPM scripts</h3>
+<table><thead><tr><th>Command</th><th>Purpose</th></tr></thead><tbody><tr><td><code class="inline">npm run dev</code></td><td>Start with nodemon (development)</td></tr><tr><td><code class="inline">npm start</code></td><td>Start production server</td></tr><tr><td><code class="inline">npm run seed</code></td><td>Seed users, suppliers, products</td></tr><tr><td><code class="inline">npm run seed-plans</code></td><td>Upsert subscription plans</td></tr><tr><td><code class="inline">npm run seed-delivery-partners</code></td><td>Sample delivery partners</td></tr><tr><td><code class="inline">npm run check-mongo</code></td><td>Test MongoDB connection</td></tr><tr><td><code class="inline">npm run check</code></td><td>Health + register smoke test</td></tr></tbody></table>
+<p><strong>Additional scripts</strong> (run manually):</p>
+<pre><code class="block lang-bash">node scripts/seed-docs-demo.js      # Demo data for screenshot docs
+node scripts/seed-pickup-hubs.js    # Pickup hub locations
+node scripts/test-ai.js             # Test Groq AI endpoints</code></pre>
+<h3>Database</h3>
+<ul><li>Database name: <strong><code class="inline">h20online</code></strong></li><li>Created automatically on first connection or seed</li><li>Windows + Atlas: DNS fallback to <code class="inline">8.8.8.8</code> / <code class="inline">1.1.1.1</code> in <code class="inline">config/db.js</code></li></ul>
+<h3>Authentication</h3>
+<table><thead><tr><th>Audience</th><th>Header</th><th>Middleware</th></tr></thead><tbody><tr><td>Mobile app users</td><td><code class="inline">Authorization: Bearer &lt;token&gt;</code></td><td><code class="inline">middleware/auth.js</code></td></tr><tr><td>Admin portal</td><td><code class="inline">Authorization: Bearer &lt;token&gt;</code></td><td><code class="inline">middleware/adminAuth.js</code></td></tr></tbody></table>
+<ul><li>JWT expiry: <strong>7 days</strong></li><li>Default secret fallback: <code class="inline">h20-secret</code> (override with <code class="inline">JWT_SECRET</code> in production)</li></ul>
+<h3>Seed credentials (development only)</h3>
+<table><thead><tr><th>Role</th><th>Email</th><th>Password</th></tr></thead><tbody><tr><td>Supplier</td><td><code class="inline">aquapure@example.com</code></td><td><code class="inline">seedpass123</code></td></tr><tr><td>Delivery partner</td><td><code class="inline">rahul.dp@h2o.test</code></td><td><code class="inline">delivery123</code></td></tr></tbody></table>
+<hr />
+<h2>API reference</h2>
+<p><strong>Base URL:</strong> <code class="inline">http://HOST:5000</code></p>
+<p><strong>Health checks:</strong></p>
+<table><thead><tr><th>Method</th><th>Path</th><th>Response</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/</code></td><td><code class="inline">&quot;H2Online Backend Running&quot;</code></td></tr><tr><td>GET</td><td><code class="inline">/api/health</code></td><td><code class="inline">{ ok, db, readyState }</code></td></tr></tbody></table>
+<h3>Auth — <code class="inline">/api/auth</code></h3>
+<table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Body / notes</th></tr></thead><tbody><tr><td>POST</td><td><code class="inline">/register</code></td><td>—</td><td>Customer signup: <code class="inline">{ name, email, phone?, password, … }</code></td></tr><tr><td>POST</td><td><code class="inline">/register-supplier</code></td><td>—</td><td>Supplier onboarding</td></tr><tr><td>POST</td><td><code class="inline">/register-delivery</code></td><td>—</td><td>Delivery partner signup</td></tr><tr><td>POST</td><td><code class="inline">/login</code></td><td>—</td><td><code class="inline">{ email, password }</code> → <code class="inline">{ user, token }</code></td></tr></tbody></table>
+<h3>Users — <code class="inline">/api/users</code> *(auth required)*</h3>
+<table><thead><tr><th>Method</th><th>Path</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/me</code></td></tr><tr><td>PUT</td><td><code class="inline">/me</code></td></tr></tbody></table>
+<h3>Products — <code class="inline">/api/products</code></h3>
+<table><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Notes</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/</code></td><td>—</td><td>Query: <code class="inline">search</code>, <code class="inline">minL</code>, <code class="inline">maxL</code>, <code class="inline">category</code>, <code class="inline">sort</code></td></tr><tr><td>GET</td><td><code class="inline">/:id</code></td><td>—</td><td>Single product</td></tr><tr><td>POST</td><td><code class="inline">/</code></td><td>auth</td><td>Create product</td></tr><tr><td>PUT</td><td><code class="inline">/:id</code></td><td>auth</td><td>Update product</td></tr><tr><td>DELETE</td><td><code class="inline">/:id</code></td><td>auth</td><td>Delete product</td></tr></tbody></table>
+<h3>Orders — <code class="inline">/api/orders</code> *(auth required)*</h3>
+<table><thead><tr><th>Method</th><th>Path</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/</code></td></tr><tr><td>GET</td><td><code class="inline">/:id</code></td></tr><tr><td>POST</td><td><code class="inline">/</code></td></tr><tr><td>PATCH</td><td><code class="inline">/:id/cancel</code></td></tr></tbody></table>
+<h3>Reviews — <code class="inline">/api/reviews</code></h3>
+<table><thead><tr><th>Method</th><th>Path</th><th>Auth</th></tr></thead><tbody><tr><td>POST</td><td><code class="inline">/</code></td><td>auth</td></tr><tr><td>GET</td><td><code class="inline">/product/:productId</code></td><td>—</td></tr><tr><td>GET</td><td><code class="inline">/me/order/:orderId</code></td><td>auth</td></tr></tbody></table>
+<h3>Wallet — <code class="inline">/api/wallet</code> *(auth required)*</h3>
+<table><thead><tr><th>Method</th><th>Path</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/</code></td></tr><tr><td>POST</td><td><code class="inline">/credit</code></td></tr><tr><td>POST</td><td><code class="inline">/debit</code></td></tr></tbody></table>
+<h3>Addresses — <code class="inline">/api/addresses</code> *(auth required)*</h3>
+<table><thead><tr><th>Method</th><th>Path</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/</code></td></tr><tr><td>POST</td><td><code class="inline">/</code></td></tr><tr><td>PUT</td><td><code class="inline">/:id</code></td></tr><tr><td>DELETE</td><td><code class="inline">/:id</code></td></tr></tbody></table>
+<h3>Plans — <code class="inline">/api/plans</code></h3>
+<table><thead><tr><th>Method</th><th>Path</th><th>Auth</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/</code></td><td>—</td></tr><tr><td>GET</td><td><code class="inline">/:slug/products</code></td><td>—</td></tr></tbody></table>
+<h3>Subscriptions — <code class="inline">/api/subscriptions</code> *(auth required)*</h3>
+<table><thead><tr><th>Method</th><th>Path</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/</code></td></tr><tr><td>POST</td><td><code class="inline">/</code></td></tr><tr><td>PATCH</td><td><code class="inline">/:id/cancel</code></td></tr></tbody></table>
+<h3>Bills — <code class="inline">/api/bills</code> *(auth required)*</h3>
+<table><thead><tr><th>Method</th><th>Path</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/</code></td></tr><tr><td>POST</td><td><code class="inline">/:id/pay</code></td></tr></tbody></table>
+<h3>Water intake — <code class="inline">/api/water-intake</code> *(auth required)*</h3>
+<table><thead><tr><th>Method</th><th>Path</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/</code></td></tr><tr><td>POST</td><td><code class="inline">/</code></td></tr><tr><td>DELETE</td><td><code class="inline">/:entryId</code></td></tr><tr><td>GET</td><td><code class="inline">/summary</code></td></tr></tbody></table>
+<h3>AI (Groq) — <code class="inline">/api/ai</code> *(auth required, needs <code class="inline">GROQ_API_KEY</code>)*</h3>
+<table><thead><tr><th>Method</th><th>Path</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/water-insight</code></td></tr><tr><td>GET</td><td><code class="inline">/intake-sense</code></td></tr><tr><td>POST</td><td><code class="inline">/water-report</code></td></tr><tr><td>POST</td><td><code class="inline">/ask</code></td></tr></tbody></table>
+<h3>Supplier — <code class="inline">/api/supplier</code> *(auth required)*</h3>
+<table><thead><tr><th>Method</th><th>Path</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/orders/incoming</code></td></tr><tr><td>GET</td><td><code class="inline">/orders/history</code></td></tr><tr><td>GET</td><td><code class="inline">/orders/accepted</code></td></tr><tr><td>PATCH</td><td><code class="inline">/orders/:id/accept</code></td></tr><tr><td>PATCH</td><td><code class="inline">/orders/:id/reject</code></td></tr><tr><td>PATCH</td><td><code class="inline">/orders/:id/assign-rider</code></td></tr><tr><td>PATCH</td><td><code class="inline">/orders/:id/cancel</code></td></tr><tr><td>GET</td><td><code class="inline">/products</code></td></tr><tr><td>GET</td><td><code class="inline">/financials</code></td></tr></tbody></table>
+<h3>Suppliers profile — <code class="inline">/api/suppliers</code> *(auth required)*</h3>
+<table><thead><tr><th>Method</th><th>Path</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/me</code></td></tr></tbody></table>
+<h3>Delivery partners — <code class="inline">/api/delivery-partners</code></h3>
+<table><thead><tr><th>Method</th><th>Path</th><th>Auth</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/me</code></td><td>auth</td></tr><tr><td>PATCH</td><td><code class="inline">/me</code></td><td>auth</td></tr><tr><td>GET</td><td><code class="inline">/</code></td><td>auth</td></tr><tr><td>GET</td><td><code class="inline">/subscriptions</code></td><td>auth</td></tr><tr><td>GET</td><td><code class="inline">/orders/incoming</code></td><td>auth</td></tr><tr><td>GET</td><td><code class="inline">/orders/history</code></td><td>auth</td></tr><tr><td>GET</td><td><code class="inline">/orders/summary</code></td><td>auth</td></tr><tr><td>PATCH</td><td><code class="inline">/orders/:id/picked-up</code></td><td>auth</td></tr><tr><td>PATCH</td><td><code class="inline">/orders/:id/delivered</code></td><td>auth</td></tr><tr><td>GET</td><td><code class="inline">/financials</code></td><td>auth</td></tr></tbody></table>
+<h3>Support</h3>
+<table><thead><tr><th>Prefix</th><th>Endpoints *(all auth)*</th></tr></thead><tbody><tr><td><code class="inline">/api/customer-support</code></td><td>GET/POST <code class="inline">/tickets</code>, GET/POST <code class="inline">/tickets/:id</code>, POST <code class="inline">/tickets/:id/reply</code></td></tr><tr><td><code class="inline">/api/supplier-support</code></td><td>GET <code class="inline">/thread</code>, POST <code class="inline">/message</code></td></tr><tr><td><code class="inline">/api/delivery-support</code></td><td>GET <code class="inline">/thread</code>, POST <code class="inline">/message</code></td></tr></tbody></table>
+<h3>Admin — <code class="inline">/api/admin</code></h3>
+<p><strong>Auth:</strong></p>
+<table><thead><tr><th>Method</th><th>Path</th><th>Auth</th></tr></thead><tbody><tr><td>POST</td><td><code class="inline">/auth/login</code></td><td>—</td></tr><tr><td>GET</td><td><code class="inline">/auth/me</code></td><td>adminAuth</td></tr></tbody></table>
+<p><strong>Management</strong> *(all require <code class="inline">adminAuth</code>)*:</p>
+<table><thead><tr><th>Area</th><th>Endpoints</th></tr></thead><tbody><tr><td>Users</td><td>GET <code class="inline">/users</code>, GET <code class="inline">/users/:id</code>, PUT <code class="inline">/users/:id</code>, DELETE <code class="inline">/users/:id</code></td></tr><tr><td>Admins</td><td>POST <code class="inline">/admins</code></td></tr><tr><td>Orders</td><td>GET <code class="inline">/orders</code>, GET <code class="inline">/orders/:id</code></td></tr><tr><td>Suppliers</td><td>GET/POST/PATCH/DELETE <code class="inline">/suppliers</code>, <code class="inline">/suppliers/:id</code>, <code class="inline">/suppliers/:id/verify</code></td></tr><tr><td>Plans</td><td>GET <code class="inline">/plans</code>, PUT <code class="inline">/plans/:id</code>, CRUD <code class="inline">/plan-products</code></td></tr><tr><td>Pickup hubs</td><td>GET/POST <code class="inline">/pickup-hubs</code></td></tr><tr><td>Subscriptions</td><td>GET/PATCH/DELETE <code class="inline">/subscriptions</code>, assign delivery, financials</td></tr><tr><td>Wallet</td><td>GET <code class="inline">/wallet-management</code>, POST <code class="inline">/wallet-management/:userId/adjust</code></td></tr><tr><td>Financials</td><td>GET <code class="inline">/financials</code></td></tr><tr><td>Delivery partners</td><td>GET <code class="inline">/delivery-partners</code>, PATCH <code class="inline">/delivery-partners/:id/verify</code></td></tr><tr><td>Support</td><td>Supplier, delivery, customer support threads and replies</td></tr></tbody></table>
+<p><strong>Admin role permissions:</strong></p>
+<table><thead><tr><th>Role</th><th>Financials</th><th>Delete users</th><th>Remove suppliers</th><th>Create admin</th></tr></thead><tbody><tr><td>Master</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr><tr><td>Admin</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr><tr><td>Sub-admin</td><td>❌</td><td>❌</td><td>❌</td><td>❌</td></tr></tbody></table>
+<hr />
+<h2>Admin portal</h2>
+<h3>Development</h3>
+<pre><code class="block lang-bash">cd admin
+npm install
+cp .env.example .env
+npm run dev</code></pre>
+<p>Open <strong>http://localhost:5174</strong></p>
+<h3>Production build (Ubuntu / AWS)</h3>
+<pre><code class="block lang-bash">cd admin
+echo 'VITE_API_URL=http://YOUR_SERVER_IP:5000' &gt; .env
+npm install
+npm run build
+sudo npm install -g serve pm2
+pm2 serve dist 3000 --spa --name &quot;h20-admin&quot;
+pm2 save &amp;&amp; pm2 startup</code></pre>
+<p>Open <strong>http://YOUR_SERVER_IP:3000</strong></p>
+<p>See also: <code class="inline">admin/RUN-ON-UBUNTU.md</code></p>
+<h3>Admin UI routes</h3>
+<table><thead><tr><th>Path</th><th>Page</th></tr></thead><tbody><tr><td><code class="inline">/login</code></td><td>Admin login</td></tr><tr><td><code class="inline">/</code></td><td>Dashboard</td></tr><tr><td><code class="inline">/users</code></td><td>User management</td></tr><tr><td><code class="inline">/orders</code></td><td>Orders</td></tr><tr><td><code class="inline">/suppliers</code></td><td>Suppliers</td></tr><tr><td><code class="inline">/plans</code></td><td>Plans &amp; rates</td></tr><tr><td><code class="inline">/subscriptions</code></td><td>Subscriptions</td></tr><tr><td><code class="inline">/wallet-management</code></td><td>Wallet adjustments</td></tr><tr><td><code class="inline">/financials</code></td><td>Financials *(admin/master only)*</td></tr><tr><td><code class="inline">/admin-users</code></td><td>Create admin users *(admin/master only)*</td></tr><tr><td><code class="inline">/delivery-partners</code></td><td>Delivery partners</td></tr><tr><td><code class="inline">/supplier-support</code></td><td>Supplier support chat</td></tr><tr><td><code class="inline">/delivery-support</code></td><td>Delivery support chat</td></tr><tr><td><code class="inline">/customer-support</code></td><td>Customer tickets</td></tr></tbody></table>
+<hr />
+<h2>Mobile app</h2>
+<h3>App identity</h3>
+<table><thead><tr><th>Setting</th><th>Value</th></tr></thead><tbody><tr><td>Display name</td><td>H20nline</td></tr><tr><td>Slug</td><td><code class="inline">h20online</code></td></tr><tr><td>Package / bundle ID</td><td><code class="inline">com.h20online.app</code></td></tr><tr><td>Scheme</td><td><code class="inline">h20online</code></td></tr><tr><td>EAS project ID</td><td><code class="inline">617044f2-1ffb-421f-94e0-3d1cd4530c70</code></td></tr><tr><td>EAS owner</td><td><code class="inline">apps-sigma</code></td></tr><tr><td>Cleartext HTTP</td><td>Enabled (<code class="inline">usesCleartextTraffic: true</code>)</td></tr></tbody></table>
+<h3>NPM scripts</h3>
+<table><thead><tr><th>Command</th><th>Purpose</th></tr></thead><tbody><tr><td><code class="inline">npm run local</code></td><td>Detect LAN IP → write <code class="inline">.env</code> → <code class="inline">expo start -c</code></td></tr><tr><td><code class="inline">npm run prod:local</code></td><td>Point <code class="inline">.env</code> at production API → <code class="inline">expo start -c</code></td></tr><tr><td><code class="inline">npm run start</code></td><td>Standard Expo start</td></tr><tr><td><code class="inline">npm run web</code></td><td>Expo web (port 8081)</td></tr><tr><td><code class="inline">npm run android</code> / <code class="inline">ios</code></td><td>Native dev build</td></tr><tr><td><code class="inline">npm run icons</code></td><td>Regenerate launcher icons from H20 logo</td></tr><tr><td><code class="inline">npm run build:apk</code></td><td>EAS production APK</td></tr><tr><td><code class="inline">npm run build:apk:preview</code></td><td>EAS preview APK</td></tr></tbody></table>
+<h3>API URL modes</h3>
+<table><thead><tr><th>Mode</th><th>URL source</th><th>Command</th></tr></thead><tbody><tr><td>Local dev (phone)</td><td><code class="inline">mobile/.env</code> (auto LAN IP)</td><td><code class="inline">npm run local</code></td></tr><tr><td>Test production API in Expo</td><td><code class="inline">mobile/.env</code> → AWS URL</td><td><code class="inline">npm run prod:local</code></td></tr><tr><td>Production APK</td><td><code class="inline">eas.json</code> env at build time</td><td><code class="inline">npm run build:apk</code></td></tr><tr><td>Android emulator</td><td>Hardcoded <code class="inline">10.0.2.2:5000</code></td><td>—</td></tr></tbody></table>
+<h3>Change production API URL</h3>
+<p>Update <strong>both</strong> files, then rebuild the APK:</p>
+<ol><li><code class="inline">mobile/config/apiUrl.json</code> → <code class="inline">&quot;production&quot;: &quot;http://NEW_IP:5000&quot;</code></li><li><code class="inline">mobile/eas.json</code> → <code class="inline">EXPO_PUBLIC_API_URL</code> in each build profile</li></ol>
+<p>Current production value: <strong><code class="inline">http://13.62.57.255:5000</code></strong></p>
+<h3>EAS build profiles (<code class="inline">eas.json</code>)</h3>
+<table><thead><tr><th>Profile</th><th>Distribution</th><th>Android</th><th>API URL</th></tr></thead><tbody><tr><td><code class="inline">development</code></td><td>internal, dev client</td><td>—</td><td>AWS URL</td></tr><tr><td><code class="inline">preview</code></td><td>internal APK</td><td><code class="inline">buildType: apk</code></td><td>AWS URL</td></tr><tr><td><code class="inline">production</code></td><td>internal APK</td><td><code class="inline">buildType: apk</code></td><td>AWS URL</td></tr></tbody></table>
+<h3>One-time EAS setup</h3>
+<pre><code class="block lang-bash">npm install -g eas-cli
+eas login
+cd mobile
+eas build:configure</code></pre>
+<h3>Build production APK</h3>
+<pre><code class="block lang-bash">cd mobile
+npm install
+npm run icons          # once, or after logo change
+npm run build:apk</code></pre>
+<p>See <code class="inline">mobile/BUILD_APK.md</code> for troubleshooting (EAS upload size, peer deps, cleartext).</p>
+<hr />
+<h2>Production deployment</h2>
+<p>Documented setup: <strong>Ubuntu EC2</strong> with PM2. No Docker configuration is included in this repo.</p>
+<h3>Architecture overview</h3>
+<pre><code class="block">                    ┌─────────────────────────────────────┐
+  Mobile APK  ─────►│  EC2 (e.g. 13.62.57.255)            │
+  Admin browser ───►│  ├── Backend  :5000  (PM2)          │
+                    │  ├── Admin SPA :3000  (PM2 serve)   │
+                    │  └── Nginx :80/443  (optional)      │
+                    └─────────────────────────────────────┘
+                                      │
+                                      ▼
+                              MongoDB Atlas / local</code></pre>
+<h3>Backend on Ubuntu</h3>
+<pre><code class="block lang-bash">cd backend
+npm install
+cp .env.example .env
+# Set MONGODB_URI (Atlas recommended for production)
+# Set JWT_SECRET to a strong random value
+# Set GROQ_API_KEY if using AI features
+npm run seed &amp;&amp; npm run seed-plans &amp;&amp; npm run seed-delivery-partners
+pm2 start server.js --name backend
+pm2 save &amp;&amp; pm2 startup</code></pre>
+<h3>AWS security group (inbound rules)</h3>
+<table><thead><tr><th>Port</th><th>Protocol</th><th>Purpose</th></tr></thead><tbody><tr><td>5000</td><td>TCP</td><td>Backend API</td></tr><tr><td>3000</td><td>TCP</td><td>Admin portal (if accessed directly)</td></tr><tr><td>80</td><td>TCP</td><td>HTTP (if using Nginx)</td></tr><tr><td>443</td><td>TCP</td><td>HTTPS (if using Nginx + Certbot)</td></tr><tr><td>22</td><td>TCP</td><td>SSH</td></tr></tbody></table>
+<h3>Verify deployment</h3>
+<pre><code class="block lang-bash">curl http://YOUR_SERVER_IP:5000/api/health
+# Expected: {&quot;ok&quot;:true,&quot;db&quot;:&quot;connected&quot;,...}</code></pre>
+<hr />
+<h2>Domain &amp; HTTPS</h2>
+<p>Full guide: <strong><code class="inline">docs/DOMAIN-SETUP.md</code></strong></p>
+<p>Summary:</p>
+<ol><li><strong>DNS A records</strong> → point <code class="inline">api.yourdomain.com</code> and <code class="inline">admin.yourdomain.com</code> to your server IP</li><li><strong>Nginx</strong> → proxy <code class="inline">api</code> → <code class="inline">127.0.0.1:5000</code>, serve admin from <code class="inline">admin/dist</code></li><li><strong>Certbot</strong> → <code class="inline">sudo certbot --nginx -d api.yourdomain.com -d admin.yourdomain.com</code></li><li><strong>Rebuild admin</strong> with <code class="inline">VITE_API_URL=https://api.yourdomain.com</code></li><li><strong>Rebuild mobile APK</strong> with <code class="inline">EXPO_PUBLIC_API_URL=https://api.yourdomain.com</code> in <code class="inline">eas.json</code></li></ol>
+<p>Example Nginx API block:</p>
+<pre><code class="block lang-nginx">server {
+    listen 80;
+    server_name api.yourdomain.com;
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}</code></pre>
+<hr />
+<h2>Documentation tooling</h2>
+<p>The <code class="inline">docs/</code> folder generates screenshot catalogs and PDFs for the platform.</p>
+<pre><code class="block lang-bash">cd docs
+npm install
+npm run docs              # Capture all app screens + PDF
+npm run customer-journey  # Customer-only journey PDF</code></pre>
+<table><thead><tr><th>Script</th><th>Output</th></tr></thead><tbody><tr><td><code class="inline">npm run capture</code></td><td>Screenshots → <code class="inline">docs/screenshots/</code></td></tr><tr><td><code class="inline">npm run pdf</code></td><td><code class="inline">docs/H2O-Screens-Documentation.pdf</code></td></tr><tr><td><code class="inline">npm run customer-journey</code></td><td><code class="inline">docs/customer journey.pdf</code></td></tr></tbody></table>
+<p>Requires Expo web running on <strong>http://localhost:8081</strong> and backend on <strong>:5000</strong>.</p>
+<hr />
+<h2>Troubleshooting</h2>
+<h3>Mobile cannot reach backend (timeout)</h3>
+<ol><li>Backend running? Check <code class="inline">http://localhost:5000/api/health</code></li><li>Phone and PC on the <strong>same Wi‑Fi</strong></li><li>Use PC <strong>LAN IP</strong> in <code class="inline">mobile/.env</code>, not <code class="inline">localhost</code></li><li>Run <code class="inline">npm run local</code> in <code class="inline">mobile/</code> to auto-detect IP</li><li><strong>Windows Firewall</strong> — allow inbound TCP 5000:</li></ol>
+<p>   ```powershell</p>
+<p>   New-NetFirewallRule -DisplayName &quot;Node 5000&quot; -Direction Inbound -LocalPort 5000 -Protocol TCP -Action Allow</p>
+<p>   ```</p>
+<ol><li><strong>AWS:</strong> security group must allow inbound TCP 5000</li></ol>
+<p>See <code class="inline">mobile/CONNECTION_HELP.md</code> and <code class="inline">mobile/LOCAL_SETUP.md</code>.</p>
+<h3>MongoDB connection failed</h3>
+<pre><code class="block lang-bash">cd backend
+npm run check-mongo</code></pre>
+<ul><li>Local: ensure MongoDB service is running</li><li>Atlas: verify <code class="inline">MONGODB_URI</code>, IP whitelist, and network access</li></ul>
+<h3>Admin shows blank or API errors after deploy</h3>
+<ul><li><code class="inline">VITE_API_URL</code> must be the <strong>public</strong> URL the browser can reach (not <code class="inline">localhost</code> when opened from another machine)</li><li>Rebuild after changing <code class="inline">.env</code>: <code class="inline">npm run build</code></li><li>Restart PM2: <code class="inline">pm2 restart h20-admin</code></li></ul>
+<h3>EAS build fails (peer dependencies)</h3>
+<p><code class="inline">mobile/.npmrc</code> sets <code class="inline">legacy-peer-deps=true</code>. Run <code class="inline">npm install</code> in <code class="inline">mobile/</code> before building.</p>
+<h3>AI features not working</h3>
+<p>Set <code class="inline">GROQ_API_KEY</code> in <code class="inline">backend/.env</code>. Test with <code class="inline">node scripts/test-ai.js</code>.</p>
+<hr />
+<h2>Security checklist</h2>
+<ul class="checklist"><li class="">Never commit <code class="inline">.env</code> files (<code class="inline">backend/.env</code>, <code class="inline">admin/.env</code>, <code class="inline">mobile/.env</code>)</li><li class="">Set a strong <code class="inline">JWT_SECRET</code> in production</li><li class="">Change master admin password or restrict admin access by IP</li><li class="">Use MongoDB Atlas with IP whitelist in production</li><li class="">Prefer HTTPS (Nginx + Certbot) over plain HTTP for production</li><li class="">Rotate seed/demo passwords before going live</li><li class="">Restrict AWS security group to required ports only</li><li class="">Keep <code class="inline">GROQ_API_KEY</code> server-side only (never in mobile or admin client)</li></ul>
+<hr />
+<h2>Related documentation</h2>
+<table><thead><tr><th>File</th><th>Contents</th></tr></thead><tbody><tr><td><code class="inline">backend/README.md</code></td><td>Backend setup, seeding, firewall</td></tr><tr><td><code class="inline">admin/README.md</code></td><td>Admin roles and login</td></tr><tr><td><code class="inline">admin/RUN-ON-UBUNTU.md</code></td><td>PM2 deploy steps</td></tr><tr><td><code class="inline">mobile/BUILD_APK.md</code></td><td>EAS APK build guide</td></tr><tr><td><code class="inline">mobile/CONNECTION_HELP.md</code></td><td>Network troubleshooting</td></tr><tr><td><code class="inline">mobile/LOCAL_SETUP.md</code></td><td>Full local dev workflow</td></tr><tr><td><code class="inline">docs/DOMAIN-SETUP.md</code></td><td>Domain, Nginx, HTTPS</td></tr></tbody></table>
+<hr />
+<h2>Key values quick reference</h2>
+<table><thead><tr><th>Setting</th><th>Value</th></tr></thead><tbody><tr><td>Backend port</td><td><code class="inline">5000</code></td></tr><tr><td>Backend host</td><td><code class="inline">0.0.0.0</code></td></tr><tr><td>MongoDB database</td><td><code class="inline">h20online</code></td></tr><tr><td>Admin dev port</td><td><code class="inline">5174</code></td></tr><tr><td>Admin prod port</td><td><code class="inline">3000</code></td></tr><tr><td>Expo Metro port</td><td><code class="inline">8081</code></td></tr><tr><td>Production API</td><td><code class="inline">http://13.62.57.255:5000</code></td></tr><tr><td>Android emulator API</td><td><code class="inline">http://10.0.2.2:5000</code></td></tr><tr><td>Master admin login</td><td><code class="inline">H2O admin</code> / <code class="inline">admin@H2O</code></td></tr><tr><td>Mobile request timeout</td><td>25s (60s for AI endpoints)</td></tr></tbody></table>
+  </div>
+</body>
+</html>

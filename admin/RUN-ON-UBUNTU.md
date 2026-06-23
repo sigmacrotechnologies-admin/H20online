@@ -51,3 +51,39 @@ pm2 startup
 ```
 
 Then open in browser: **http://YOUR_SERVER_IP:3000**
+
+**Current AWS deployment:** `http://13.62.57.255:3000` (admin) · API `http://13.62.57.255:5000`
+
+---
+
+## Redeploy after code updates (EC2)
+
+On the server (`/home/ubuntu/H20online` or your clone path):
+
+```bash
+cd /home/ubuntu/H20online
+git pull
+
+# Backend
+cd backend
+npm install --omit=dev
+pm2 restart h20-backend || pm2 restart backend || pm2 start server.js --name h20-backend
+pm2 save
+
+# Admin (rebuild so new UI + API URL are baked in)
+cd ../admin
+echo 'VITE_API_URL=http://13.62.57.255:5000' > .env.production
+npm install
+npm run build
+pm2 restart h20-admin || pm2 serve dist 3000 --spa --name h20-admin
+pm2 save
+```
+
+Verify:
+
+```bash
+curl http://13.62.57.255:5000/api/health
+curl http://13.62.57.255:5000/api/surveys/your-slug   # after surveys deployed
+```
+
+**Note:** If you set `NODE_ENV=production` in `backend/.env`, you must also set `ALLOWED_ORIGINS=http://13.62.57.255:3000` (admin origin). Without `NODE_ENV=production`, CORS stays open (current AWS behavior).

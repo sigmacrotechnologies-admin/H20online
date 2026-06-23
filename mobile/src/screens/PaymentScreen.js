@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -19,7 +19,7 @@ import { useWallet } from "@/src/context/WalletContext";
 import BackButton from "@/src/components/BackButton";
 import AppLogo from "@/src/components/AppLogo";
 import WalletModal from "@/src/components/WalletModal";
-import { getOrderId } from "@/src/utils/orderId";
+import { getOrderMongoId } from "@/src/utils/orderId";
 import { api } from "@/src/api/client";
 import { theme } from "@/src/theme";
 
@@ -78,6 +78,7 @@ const PaymentScreen = () => {
   const [selected, setSelected] = useState("wallet");
   const [paying, setPaying] = useState(false);
   const [showWallet, setShowWallet] = useState(false);
+  const orderPlacedRef = useRef(false);
   const canPayWithWallet = balance >= cartTotal;
   const shortfall = Math.max(0, cartTotal - balance);
   const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
@@ -88,6 +89,7 @@ const PaymentScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      if (orderPlacedRef.current || paying) return;
       if (cart.length === 0) {
         router.replace("/cart");
         return;
@@ -96,7 +98,7 @@ const PaymentScreen = () => {
       if (!details?.address?.trim()) {
         router.replace("/checkout");
       }
-    }, [cart.length, getCheckoutDetails, router])
+    }, [cart.length, paying, getCheckoutDetails, router])
   );
 
   const handlePay = async () => {
@@ -109,8 +111,9 @@ const PaymentScreen = () => {
     try {
       const details = getCheckoutDetails();
       const order = await placeOrder(selected, details);
-      const id = getOrderId(order);
+      const id = getOrderMongoId(order);
       if (order && id) {
+        orderPlacedRef.current = true;
         if (selected === "wallet") {
           api.wallet.get().then((d) => setBalance(d.balance ?? 0)).catch(() => {});
         }

@@ -22,6 +22,7 @@ import DropletOverlay from "@/src/components/modern/DropletOverlay";
 import WalletModal from "@/src/components/WalletModal";
 import { useWallet } from "@/src/context/WalletContext";
 import { api } from "@/src/api/client";
+import { useCustomerPortal } from "@/src/utils/customerPortal";
 import { theme } from "@/src/theme";
 
 const FILTERS = [
@@ -60,6 +61,7 @@ function billStatusMeta(status) {
 
 export default function BillingScreen() {
   const router = useRouter();
+  const portal = useCustomerPortal();
   const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
   const { balance, setBalance } = useWallet();
   const [bills, setBills] = useState([]);
@@ -133,7 +135,7 @@ export default function BillingScreen() {
             <View style={styles.headerTopRow}>
               <BackButton />
               <AppLogo size="header" />
-              <TouchableOpacity style={styles.headerMenuBtn} activeOpacity={0.85} onPress={() => router.push("/profile")}>
+              <TouchableOpacity style={styles.headerMenuBtn} activeOpacity={0.85} onPress={() => router.push(portal.profile)}>
                 <Ionicons name="menu" size={22} color="#FFFFFF" />
               </TouchableOpacity>
             </View>

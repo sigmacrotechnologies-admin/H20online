@@ -9,6 +9,8 @@ const supplierSchema = new mongoose.Schema(
     address: { type: String, required: true, trim: true },
     location: { type: String, trim: true },
     city: { type: String, required: true, trim: true },
+    latitude: { type: Number },
+    longitude: { type: Number },
     businessType: {
       type: String,
       required: true,

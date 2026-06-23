@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/src/context/AuthContext";
+import { resolveHomeRoute } from "@/src/utils/authRouting";
 import {
   ModernScreenShell,
   ModernInput,
@@ -181,32 +182,34 @@ const CreateProfileScreen = () => {
     }
     setLoading(true);
     try {
-      await register({
+      const safeAvatar =
+        avatarUri && /^https?:\/\//i.test(String(avatarUri)) ? avatarUri : undefined;
+      const registeredUser = await register({
         name,
         email: emailTrim,
         phone: phoneTrim,
         password: pwd,
-        age: age ? parseInt(age, 10) : undefined,
+        age: age.trim() ? parseInt(age, 10) : undefined,
         gender: gender || undefined,
         activityLevel: activityLevel || undefined,
         familyMembers: familyMembers ?? undefined,
-        avatarUrl: avatarUri || undefined,
+        avatarUrl: safeAvatar,
       });
-      router.replace("/dashboard");
+      router.replace(await resolveHomeRoute(registeredUser));
     } catch (err) {
-      setError(err.message || "Sign up failed");
+      setError(err.message || "Sign up failed. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const isContinueEnabled =
-    fullName.trim().length > 0 &&
-    email.trim().length > 0 &&
-    phone.trim().length > 0 &&
-    password.trim().length >= 6 &&
-    password.trim() === confirmPassword.trim() &&
-    (!registerWithPlan || selectedPlan !== null);
+  const missingSignupFields = [];
+  if (!fullName.trim()) missingSignupFields.push("full name");
+  if (!email.trim()) missingSignupFields.push("email");
+  if (!phone.trim()) missingSignupFields.push("phone");
+  if (password.trim().length < 6) missingSignupFields.push("password (6+ characters)");
+  if (password.trim() && password.trim() !== confirmPassword.trim()) missingSignupFields.push("matching passwords");
+  if (registerWithPlan && !selectedPlan) missingSignupFields.push("subscription plan");
 
   return (
     <ModernScreenShell
@@ -372,10 +375,19 @@ const CreateProfileScreen = () => {
         </View>
       ) : null}
 
+      {missingSignupFields.length > 0 && !loading ? (
+        <View style={styles.hintBanner}>
+          <Ionicons name="information-circle-outline" size={18} color={theme.accent} />
+          <Text style={styles.hintBannerText}>
+            Complete: {missingSignupFields.join(", ")}
+          </Text>
+        </View>
+      ) : null}
+
       <ModernPrimaryButton
         label="Create account & continue"
         onPress={handleContinue}
-        disabled={!isContinueEnabled}
+        disabled={loading}
         loading={loading}
         icon="arrow-forward"
       />
@@ -596,6 +608,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   errorBannerText: { flex: 1, fontSize: 13, color: "#DC2626", fontWeight: "500", lineHeight: 18 },
+  hintBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    backgroundColor: "rgba(51,175,193,0.08)",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "rgba(51,175,193,0.18)",
+  },
+  hintBannerText: { flex: 1, fontSize: 13, color: theme.textMuted, lineHeight: 18 },
   loginFooter: { alignItems: "center", paddingVertical: 18, marginTop: 4 },
   loginFooterText: { fontSize: 13, color: theme.textMuted },
   loginFooterAction: { fontSize: 15, fontWeight: "700", color: theme.link, marginTop: 4 },

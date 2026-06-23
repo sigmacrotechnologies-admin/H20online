@@ -4,22 +4,27 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
-  ScrollView,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import BackButton from "@/src/components/BackButton";
 import { useAuth } from "@/src/context/AuthContext";
 import { api } from "@/src/api/client";
+import {
+  ModernScreenShell,
+  ModernPrimaryButton,
+  ModernOutlineButton,
+  modern,
+} from "@/src/components/modern";
+import { SectionCard } from "@/src/components/supplier/supplierUi";
 import { theme } from "@/src/theme";
 
 const VERIFICATION_LABELS = {
   documentLicenseVerified: "ID proof",
   documentIdentityVerified: "Address proof",
-  documentVehicleIdentificationVerified: "Other documentation",
+  documentVehicleIdentificationVerified: "Vehicle documentation",
 };
 
 export default function DeliveryVerificationPendingScreen() {
@@ -27,6 +32,7 @@ export default function DeliveryVerificationPendingScreen() {
   const { logout } = useAuth();
   const [dp, setDp] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -51,165 +57,160 @@ export default function DeliveryVerificationPendingScreen() {
   }, [router]);
 
   const tentativeTime = dp?.tentativeVerificationTime || "24-48 hours";
+  const verifiedCount = Object.keys(VERIFICATION_LABELS).filter((key) => dp?.[key]).length;
+  const totalChecks = Object.keys(VERIFICATION_LABELS).length;
+
+  const refreshStatus = () => {
+    setRefreshing(true);
+    api.deliveryPartners
+      .me()
+      .then((data) => {
+        setDp(data);
+        if (data.onboardingStatus === "approved") router.replace("/delivery-dashboard");
+      })
+      .catch(() => {})
+      .finally(() => setRefreshing(false));
+  };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <ModernScreenShell title="Verification" subtitle="Checking your partner account" icon="shield-checkmark-outline" onBack={() => router.replace("/login")}>
         <View style={styles.loadingWrap}>
           <ActivityIndicator size="large" color={theme.primary} />
           <Text style={styles.loadingText}>Loading verification status...</Text>
         </View>
-      </SafeAreaView>
+      </ModernScreenShell>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.contentPanel}>
+      <ModernScreenShell title="Verification" subtitle="Partner account status" icon="alert-circle-outline" onBack={() => router.replace("/login")}>
+        <View style={modern.card}>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.primaryButton} onPress={() => router.replace("/login")}>
-            <Text style={styles.primaryButtonText}>Back to login</Text>
-          </TouchableOpacity>
+          <ModernPrimaryButton label="Back to login" onPress={() => router.replace("/login")} icon="log-in-outline" />
         </View>
-      </SafeAreaView>
+      </ModernScreenShell>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerSection}>
-        <LinearGradient
-          colors={theme.gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.gradientBackground}
-        >
-          <View style={styles.headerTopRow}>
-            <BackButton />
+    <ModernScreenShell
+      title="Partner verification"
+      subtitle="We're reviewing your delivery partner application"
+      icon="document-text-outline"
+      onBack={() => router.replace("/login")}
+      headerHeight={210}
+    >
+      <View style={styles.statusHero}>
+        <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.statusHeroGradient}>
+          <View style={styles.statusHeroIcon}>
+            <Ionicons name="hourglass-outline" size={28} color="#FFFFFF" />
           </View>
-          <View style={styles.headerCenter}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="document-text-outline" size={36} color="#FFFFFF" />
-            </View>
-            <Text style={styles.headerTitle}>Verification status</Text>
+          <View style={styles.statusHeroText}>
+            <Text style={styles.statusHeroLabel}>Account status</Text>
+            <Text style={styles.statusHeroTitle}>Under review</Text>
+            <Text style={styles.statusHeroDesc}>Estimated completion: {tentativeTime}</Text>
+          </View>
+          <View style={styles.progressPill}>
+            <Text style={styles.progressPillText}>{verifiedCount}/{totalChecks}</Text>
           </View>
         </LinearGradient>
       </View>
 
-      <View style={styles.contentPanel}>
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <Text style={styles.title}>Your account is under verification</Text>
-          <Text style={styles.subtitle}>
-            Our team is verifying your documents. You will get access to the delivery dashboard once all checks are complete.
-          </Text>
-
-          <Text style={styles.estimateLabel}>Estimated time</Text>
-          <Text style={styles.estimateValue}>{tentativeTime}</Text>
-
-          <Text style={styles.checksLabel}>Verification checks</Text>
-          <View style={styles.checksList}>
-            {Object.entries(VERIFICATION_LABELS).map(([key, label]) => (
-              <View key={key} style={styles.checkRow}>
-                <Ionicons
-                  name={dp?.[key] ? "checkmark-circle" : "ellipse-outline"}
-                  size={22}
-                  color={dp?.[key] ? "#10B981" : "#9CA3AF"}
-                />
-                <Text style={[styles.checkText, dp?.[key] && styles.checkTextDone]}>{label}</Text>
-                <Text style={styles.checkStatus}>{dp?.[key] ? "Verified" : "Pending"}</Text>
+      <SectionCard icon="checkmark-done-outline" title="Verification checks" subtitle="We'll notify you when each step is complete">
+        <View style={styles.checksList}>
+          {Object.entries(VERIFICATION_LABELS).map(([key, label]) => {
+            const done = dp?.[key];
+            return (
+              <View key={key} style={[styles.checkRow, done && styles.checkRowDone]}>
+                <View style={[styles.checkIcon, done && styles.checkIconDone]}>
+                  <Ionicons name={done ? "checkmark" : "ellipse-outline"} size={18} color={done ? "#FFFFFF" : theme.textMuted} />
+                </View>
+                <View style={styles.checkTextWrap}>
+                  <Text style={[styles.checkText, done && styles.checkTextDone]}>{label}</Text>
+                  <Text style={styles.checkStatus}>{done ? "Verified" : "Pending review"}</Text>
+                </View>
               </View>
-            ))}
-          </View>
+            );
+          })}
+        </View>
+      </SectionCard>
 
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => {
-              setLoading(true);
-              api.deliveryPartners.me().then((data) => {
-                setDp(data);
-                if (data.onboardingStatus === "approved") router.replace("/delivery-dashboard");
-                setLoading(false);
-              }).catch(() => setLoading(false));
-            }}
-          >
-            <Text style={styles.secondaryButtonText}>Refresh status</Text>
-          </TouchableOpacity>
+      <Text style={styles.infoText}>
+        Our team is verifying your documents. You'll get full access to the delivery dashboard once all checks are complete.
+      </Text>
 
-          <TouchableOpacity style={styles.logoutButton} onPress={() => { logout(); router.replace("/login"); }}>
-            <Text style={styles.logoutButtonText}>Sign out</Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-    </SafeAreaView>
+      <ModernOutlineButton label={refreshing ? "Refreshing..." : "Refresh status"} onPress={refreshStatus} disabled={refreshing} icon="refresh-outline" />
+      <TouchableOpacity style={styles.logoutBtn} onPress={() => { logout(); router.replace("/login"); }} activeOpacity={0.85}>
+        <Text style={styles.logoutText}>Sign out</Text>
+      </TouchableOpacity>
+    </ModernScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
-  loadingWrap: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingWrap: { alignItems: "center", paddingVertical: 48 },
   loadingText: { fontSize: 15, color: theme.textMuted, marginTop: 12 },
-  headerSection: { marginTop: -10, marginLeft: -20, marginRight: -20, height: 200, overflow: "hidden" },
-  gradientBackground: { flex: 1, paddingTop: 24, paddingHorizontal: 36, paddingBottom: 36 },
-  headerTopRow: { flexDirection: "row", alignItems: "center", marginBottom: 0 },
-  headerCenter: { alignItems: "center", justifyContent: "center", marginTop: -14, width: "100%" },
-  headerIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "rgba(255,255,255,0.25)",
+  errorText: { fontSize: 15, color: "#DC2626", marginBottom: 16, lineHeight: 22 },
+  statusHero: { marginBottom: 16, borderRadius: 22, overflow: "hidden" },
+  statusHeroGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 18,
+    gap: 14,
+    ...Platform.select({
+      ios: { shadowColor: "#0B3A4A", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.18, shadowRadius: 14 },
+      android: { elevation: 0 },
+    }),
+  },
+  statusHeroIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 6,
   },
-  headerTitle: { fontSize: 20, fontWeight: "700", color: "#FFFFFF", textAlign: "center", paddingBottom: 32 },
-  contentPanel: {
-    flex: 1,
-    marginTop: -16,
-    marginLeft: 2,
-    marginRight: 2,
-    backgroundColor: theme.screenBackground,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingTop: 28,
-    paddingHorizontal: 20,
-    overflow: "hidden",
-  },
-  scrollView: { flex: 1 },
-  scrollContent: { paddingBottom: 32 },
-  title: { fontSize: 22, fontWeight: "700", color: theme.textPrimary, marginBottom: 8 },
-  subtitle: { fontSize: 14, color: theme.textMuted, marginBottom: 24 },
-  estimateLabel: { fontSize: 14, color: theme.textMuted, marginBottom: 4 },
-  estimateValue: { fontSize: 18, fontWeight: "700", color: theme.primary, marginBottom: 24 },
-  checksLabel: { fontSize: 16, fontWeight: "600", color: theme.textPrimary, marginBottom: 12 },
-  checksList: { marginBottom: 24 },
-  checkRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
-  checkText: { flex: 1, fontSize: 15, color: theme.textPrimary, marginLeft: 10 },
-  checkTextDone: { color: "#059669" },
-  checkStatus: { fontSize: 13, color: theme.textMuted },
-  errorText: { fontSize: 15, color: "#DC2626", marginBottom: 16 },
-  primaryButton: {
-    backgroundColor: theme.primary,
-    paddingVertical: 16,
-    borderRadius: 30,
-    alignItems: "center",
-    elevation: 3,
-  },
-  primaryButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
-  secondaryButton: {
-    backgroundColor: "rgba(255,255,255,0.8)",
-    paddingVertical: 14,
-    borderRadius: 30,
-    alignItems: "center",
-    marginBottom: 12,
+  statusHeroText: { flex: 1 },
+  statusHeroLabel: { fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.88)", textTransform: "uppercase", letterSpacing: 0.5 },
+  statusHeroTitle: { fontSize: 20, fontWeight: "800", color: "#FFFFFF", marginTop: 2 },
+  statusHeroDesc: { fontSize: 12, color: "rgba(255,255,255,0.9)", marginTop: 4 },
+  progressPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.2)",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "rgba(255,255,255,0.28)",
   },
-  secondaryButtonText: { color: theme.primary, fontSize: 16, fontWeight: "600" },
-  logoutButton: { alignItems: "center", paddingVertical: 12 },
-  logoutButtonText: { fontSize: 15, color: theme.textMuted, fontWeight: "500" },
+  progressPillText: { fontSize: 14, fontWeight: "800", color: "#FFFFFF" },
+  checksList: { gap: 8 },
+  checkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 14,
+    backgroundColor: theme.contentPanelBackground,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  checkRowDone: { backgroundColor: "rgba(16,185,129,0.08)", borderColor: "rgba(16,185,129,0.2)" },
+  checkIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "rgba(107,124,133,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkIconDone: { backgroundColor: "#10B981" },
+  checkTextWrap: { flex: 1 },
+  checkText: { fontSize: 15, fontWeight: "600", color: theme.textPrimary },
+  checkTextDone: { color: "#059669" },
+  checkStatus: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  infoText: { fontSize: 14, color: theme.textMuted, lineHeight: 20, marginBottom: 16, marginTop: 4 },
+  logoutBtn: { alignItems: "center", paddingVertical: 16 },
+  logoutText: { fontSize: 15, color: theme.textMuted, fontWeight: "600" },
 });
