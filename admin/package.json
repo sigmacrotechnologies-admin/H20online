@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:prod": "npm run check:api && vite build --mode production",
+    "deploy:prod": "node scripts/build-production.mjs",
     "preview": "vite preview --port 3000",
     "check:api": "node scripts/check-api-url.mjs"
   },

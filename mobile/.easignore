@@ -7,3 +7,4 @@ dist/
 web-build/
 .env
 .env*.local
+# .env.production is generated locally by prepare-apk-build.js and uploaded to EAS

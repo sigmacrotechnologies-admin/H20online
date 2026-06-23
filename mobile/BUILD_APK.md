@@ -10,9 +10,27 @@ Single source of truth for the URL: **`mobile/config/apiUrl.json`** — keep `ea
 ```bash
 cd mobile
 npm install
-npm run icons          # once, or after logo change — sets launcher icon from H20 logo
-npm run build:apk      # EAS cloud build → download APK link
+npm run icons          # once, or after logo change
+npm run check:apk      # validate env only (no EAS upload)
+npm run build:apk      # syncs .env → eas.json → EAS cloud APK build
 ```
+
+**Before first build**, ensure `mobile/.env` has:
+
+```
+EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=...
+EXPO_PUBLIC_RAZORPAY_KEY_ID=rzp_test_...
+```
+
+(API URL is taken from `config/aws-production.json` automatically.)
+
+`npm run build:apk` runs **`scripts/prepare-apk-build.js`**, which:
+
+1. Sets `EXPO_PUBLIC_API_URL` from `config/aws-production.json`
+2. Copies Maps + Razorpay keys from `mobile/.env` into `eas.json` and `.env.production`
+3. Starts EAS build with profile **production** (APK, internal distribution)
+
+**AWS backend must be live:** `http://13.62.57.255:5000/api/health`
 
 **Missing Product-icon images on EAS?** Do not exclude `mobile/assets/images/Product-icon/` in `.easignore` — Cart/Order screens require those PNGs at bundle time. Usually a bad nested `react-native@0.86` inside `0.81.5`. Fixed via `overrides` in `package.json` and `.npmrc` (`legacy-peer-deps=true`). After pulling, run `npm install` in `mobile/` then rebuild.
 
