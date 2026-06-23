@@ -5,19 +5,6 @@ import LoadingState from "../components/LoadingState";
 import { api } from "../api/client";
 import { API_BASE } from "../api/config";
 
-const card = { background: "#f0f7fcd7", borderRadius: 16, padding: 24, marginBottom: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
-const table = { width: "100%", borderCollapse: "collapse" };
-const th = { textAlign: "left", padding: "10px 12px", borderBottom: "2px solid #E5E7EB", fontWeight: 600, color: "#1B2B34" };
-const td = { padding: "10px 12px", borderBottom: "1px solid #E5E7EB", color: "#1B2B34" };
-const input = { padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", width: "100%", boxSizing: "border-box" };
-const btn = { padding: "8px 16px", borderRadius: 8, border: "none", fontWeight: 600, cursor: "pointer" };
-const btnPrimary = { ...btn, background: "#1EA7FD", color: "#fff" };
-const btnSuccess = { ...btn, background: "#059669", color: "#fff" };
-const btnGhost = { ...btn, background: "#E0F2FE", color: "#1B2B34" };
-const btnDanger = { ...btn, background: "#FEE2E2", color: "#B91C1C", padding: "6px 12px", fontSize: 13 };
-const sectionTitle = { fontSize: 15, fontWeight: 700, color: "#1B2B34", margin: "0 0 8px" };
-const sectionHint = { fontSize: 13, color: "#6B7C85", marginBottom: 12, lineHeight: 1.45 };
-
 const QUESTION_TYPES = [
   { value: "single_choice", label: "Single choice (radio)" },
   { value: "multiple_choice", label: "Multiple choice" },
@@ -176,8 +163,8 @@ function CustomFieldEditor({ fields, placement, onChange, onAdd, title, hint }) 
 
   return (
     <div style={{ marginBottom: 20 }}>
-      <h4 style={sectionTitle}>{title}</h4>
-      <p style={sectionHint}>{hint}</p>
+      <h4 className="card-title">{title}</h4>
+      <p className="card-subtitle">{hint}</p>
       {list.length === 0 ? (
         <p style={{ fontSize: 13, color: "#6B7C85", marginBottom: 8 }}>No custom fields in this section.</p>
       ) : (
@@ -185,12 +172,13 @@ function CustomFieldEditor({ fields, placement, onChange, onAdd, title, hint }) 
           <div key={f.fieldId} style={{ background: "#fff", borderRadius: 12, padding: 14, marginBottom: 10, border: "1px solid #E5E7EB" }}>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
               <input
-                style={{ ...input, flex: 1, minWidth: 160 }}
+                className="input"
+                style={{ flex: 1, minWidth: 160 }}
                 placeholder="Field label (e.g. Field 1)"
                 value={f.label}
                 onChange={(e) => update(idx, "label", e.target.value)}
               />
-              <select style={{ ...input, width: 140 }} value={f.type} onChange={(e) => update(idx, "type", e.target.value)}>
+              <select className="input select" style={{ width: 140 }} value={f.type} onChange={(e) => update(idx, "type", e.target.value)}>
                 {FIELD_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
@@ -199,24 +187,24 @@ function CustomFieldEditor({ fields, placement, onChange, onAdd, title, hint }) 
                 <input type="checkbox" checked={f.required} onChange={(e) => update(idx, "required", e.target.checked)} />
                 Required
               </label>
-              <button type="button" style={btnDanger} onClick={() => remove(idx)}>Remove</button>
+              <button type="button" className="btn btn-danger btn-sm" onClick={() => remove(idx)}>Remove</button>
             </div>
             {f.type === "checkbox" && (
               <div>
                 <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Checkbox options</div>
                 {(f.options || []).map((opt, oIdx) => (
                   <div key={oIdx} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-                    <input style={input} value={opt} onChange={(e) => updateOption(idx, oIdx, e.target.value)} />
-                    <button type="button" style={btnDanger} onClick={() => removeOption(idx, oIdx)}>×</button>
+                    <input className="input" value={opt} onChange={(e) => updateOption(idx, oIdx, e.target.value)} />
+                    <button type="button" className="btn btn-danger btn-sm" onClick={() => removeOption(idx, oIdx)}>×</button>
                   </div>
                 ))}
-                <button type="button" style={btnGhost} onClick={() => addOption(idx)}>+ Add option</button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => addOption(idx)}>+ Add option</button>
               </div>
             )}
           </div>
         ))
       )}
-      <button type="button" style={btnGhost} onClick={() => onAdd(placement)}>
+      <button type="button" className="btn btn-secondary btn-sm" onClick={() => onAdd(placement)}>
         + Add custom field
       </button>
     </div>
@@ -426,29 +414,29 @@ export default function Surveys() {
         title="Surveys & marketing"
         subtitle="Build surveys with custom fields and multiple questions. Import from JSON, launch when ready, and collect responses via API."
       >
-        <button type="button" style={btnGhost} onClick={downloadTemplate}>Download template</button>
-        <button type="button" style={btnGhost} onClick={() => fileInputRef.current?.click()} disabled={importing}>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={downloadTemplate}>Download template</button>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => fileInputRef.current?.click()} disabled={importing}>
           {importing ? "Importing…" : "Import JSON file"}
         </button>
         <input ref={fileInputRef} type="file" accept=".json,application/json" style={{ display: "none" }} onChange={handleFileImport} />
-        <button type="button" style={btnPrimary} onClick={openCreate}>+ New survey</button>
+        <button type="button" className="btn btn-primary" onClick={openCreate}>+ New survey</button>
       </PageHeader>
 
       {showForm && (
-        <div style={card}>
+        <div className="card">
           <h2 style={{ marginTop: 0 }}>{editing ? "Edit survey" : "New survey"}</h2>
           <div style={{ display: "grid", gap: 12, marginBottom: 20 }}>
             <label>
               Survey title *
-              <input style={input} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              <input className="input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             </label>
             <label>
               Description
-              <input style={input} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              <input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
             </label>
             <label>
               URL slug (optional)
-              <input style={input} value={form.slug} placeholder="customer-feedback" onChange={(e) => setForm({ ...form, slug: e.target.value })} />
+              <input className="input" value={form.slug} placeholder="customer-feedback" onChange={(e) => setForm({ ...form, slug: e.target.value })} />
             </label>
             <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
@@ -466,18 +454,19 @@ export default function Surveys() {
           />
 
           <h3 style={{ marginBottom: 8 }}>Questions ({questionCount})</h3>
-          <p style={sectionHint}>Add multiple questions with single choice, checkboxes, rating, or open text.</p>
+          <p className="card-subtitle">Add multiple questions with single choice, checkboxes, rating, or open text.</p>
           {form.questions.map((q, qIdx) => (
             <div key={q.questionId} style={{ background: "#fff", borderRadius: 12, padding: 16, marginBottom: 12, border: "1px solid #E5E7EB" }}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
                 <span style={{ fontWeight: 700, color: "#6B7C85", padding: "8px 0" }}>Q{qIdx + 1}</span>
                 <input
-                  style={{ ...input, flex: 1, minWidth: 200 }}
+                  className="input"
+                  style={{ flex: 1, minWidth: 200 }}
                   placeholder="Question text"
                   value={q.text}
                   onChange={(e) => updateQuestion(qIdx, "text", e.target.value)}
                 />
-                <select style={{ ...input, width: 180 }} value={q.type} onChange={(e) => updateQuestion(qIdx, "type", e.target.value)}>
+                <select className="input select" style={{ width: 180 }} value={q.type} onChange={(e) => updateQuestion(qIdx, "type", e.target.value)}>
                   {QUESTION_TYPES.map((t) => (
                     <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
@@ -487,7 +476,7 @@ export default function Surveys() {
                   Required
                 </label>
                 {form.questions.length > 1 && (
-                  <button type="button" style={btnDanger} onClick={() => removeQuestion(qIdx)}>Remove</button>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => removeQuestion(qIdx)}>Remove</button>
                 )}
               </div>
               {needsOptions(q.type) && (
@@ -495,16 +484,16 @@ export default function Surveys() {
                   <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Options</div>
                   {(q.options || []).map((opt, oIdx) => (
                     <div key={oIdx} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-                      <input style={input} value={opt} onChange={(e) => updateOption(qIdx, oIdx, e.target.value)} />
-                      <button type="button" style={btnDanger} onClick={() => removeOption(qIdx, oIdx)}>×</button>
+                      <input className="input" value={opt} onChange={(e) => updateOption(qIdx, oIdx, e.target.value)} />
+                      <button type="button" className="btn btn-danger btn-sm" onClick={() => removeOption(qIdx, oIdx)}>×</button>
                     </div>
                   ))}
-                  <button type="button" style={btnGhost} onClick={() => addOption(qIdx)}>+ Add option</button>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => addOption(qIdx)}>+ Add option</button>
                 </div>
               )}
             </div>
           ))}
-          <button type="button" style={{ ...btnGhost, marginBottom: 20 }} onClick={addQuestion}>+ Add question</button>
+          <button type="button" className="btn btn-secondary btn-sm" style={{ marginBottom: 20 }} onClick={addQuestion}>+ Add question</button>
 
           <CustomFieldEditor
             title="Custom fields (after questions)"
@@ -521,66 +510,66 @@ export default function Surveys() {
           </div>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button type="button" style={btnPrimary} disabled={saving} onClick={() => saveSurvey(false)}>
+            <button type="button" className="btn btn-primary" disabled={saving} onClick={() => saveSurvey(false)}>
               {saving ? "Saving…" : "Save survey"}
             </button>
-            <button type="button" style={btnSuccess} disabled={saving} onClick={() => saveSurvey(true)}>
+            <button type="button" className="btn btn-approve btn-sm" disabled={saving} onClick={() => saveSurvey(true)}>
               {saving ? "Saving…" : "Save & launch"}
             </button>
-            <button type="button" style={btnGhost} onClick={() => setShowForm(false)}>Cancel</button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowForm(false)}>Cancel</button>
           </div>
         </div>
       )}
 
-      <div style={card}>
-        <table style={table}>
+      <div className="card">
+        <table className="data-table">
           <thead>
             <tr>
-              <th style={th}>Survey</th>
-              <th style={th}>Slug / API</th>
-              <th style={th}>Fields</th>
-              <th style={th}>Questions</th>
-              <th style={th}>Responses</th>
-              <th style={th}>Status</th>
-              <th style={th}>Actions</th>
+              <th>Survey</th>
+              <th>Slug / API</th>
+              <th>Fields</th>
+              <th>Questions</th>
+              <th>Responses</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {surveys.length === 0 ? (
               <tr>
-                <td style={td} colSpan={7}>No surveys yet. Create one or import a JSON file.</td>
+                <td colSpan={7}>No surveys yet. Create one or import a JSON file.</td>
               </tr>
             ) : (
               surveys.map((s) => (
                 <tr key={s.id}>
-                  <td style={td}>
+                  <td>
                     <strong>{s.title}</strong>
                     {s.description ? <div style={{ fontSize: 12, color: "#6B7C85" }}>{s.description}</div> : null}
                   </td>
-                  <td style={td}>
+                  <td>
                     <code style={{ fontSize: 11 }}>{s.slug}</code>
                     <div style={{ fontSize: 11, color: "#6B7C85", marginTop: 4 }}>GET {publicUrl(s.slug)}</div>
                   </td>
-                  <td style={td}>{s.customFieldCount ?? 0}</td>
-                  <td style={td}>{s.questionCount}</td>
-                  <td style={td}>{s.responseCount}</td>
-                  <td style={td}>
+                  <td>{s.customFieldCount ?? 0}</td>
+                  <td>{s.questionCount}</td>
+                  <td>{s.responseCount}</td>
+                  <td>
                     <span style={{ color: s.isActive ? "#059669" : "#B45309", fontWeight: 600 }}>
                       {s.isActive ? "Launched" : "Draft"}
                     </span>
                   </td>
-                  <td style={td}>
+                  <td>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      <button type="button" style={btnGhost} onClick={() => openEdit(s)}>Edit</button>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEdit(s)}>Edit</button>
                       {!s.isActive ? (
-                        <button type="button" style={btnSuccess} onClick={() => launchSurvey(s)}>Launch</button>
+                        <button type="button" className="btn btn-approve btn-sm" onClick={() => launchSurvey(s)}>Launch</button>
                       ) : (
-                        <button type="button" style={btnGhost} onClick={() => toggleActive(s)}>Deactivate</button>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => toggleActive(s)}>Deactivate</button>
                       )}
-                      <Link to={`/surveys/${s.id}/results`} style={{ ...btnGhost, textDecoration: "none", display: "inline-block" }}>
+                      <Link to={`/surveys/${s.id}/results`} className="btn btn-secondary btn-sm" style={{ textDecoration: "none" }}>
                         Results
                       </Link>
-                      <button type="button" style={btnDanger} onClick={() => deleteSurvey(s)}>Delete</button>
+                      <button type="button" className="btn btn-danger btn-sm" onClick={() => deleteSurvey(s)}>Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -590,7 +579,7 @@ export default function Surveys() {
         </table>
       </div>
 
-      <div style={{ ...card, fontSize: 13, color: "#475569" }}>
+      <div className="card" style={{ fontSize: 13, color: "#475569" }}>
         <strong>Integration</strong>
         <ul style={{ margin: "8px 0 0", paddingLeft: 18 }}>
           <li>Fetch launched survey: <code>GET /api/surveys/:slug</code></li>

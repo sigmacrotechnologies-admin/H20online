@@ -27,6 +27,7 @@ import { theme } from "@/src/theme";
 import ProductRatingsModal from "@/src/components/ProductRatingsModal";
 import StoreTravelBadge from "@/src/components/StoreTravelBadge";
 import { useStoreTravelInfo, getCurrentLocationCoords } from "@/src/hooks/useStoreTravel";
+import { addressToCheckoutFields } from "@/src/utils/checkoutAddress";
 
 const FILTERS = [
   { id: "all", label: "All", icon: "grid-outline" },
@@ -164,7 +165,7 @@ function ProductCard({ item, onAddToCart, onBuyNow, onToggleCompare, onViewRatin
 const OrderScreen = () => {
   const router = useRouter();
   const portal = useCustomerPortal();
-  const { cartCount, addToCart, setCartForBuyNow, setCheckoutDetails, getCheckoutDetails } = useCart();
+  const { cartCount, addToCart, setCartForBuyNow, setCheckoutDetails, getCheckoutDetails, checkoutDetails } = useCart();
   const productListParams = portal.isSociety ? { audience: "society" } : {};
   const [location, setLocation] = useState("Current location (tap to change)");
   const [customerCoords, setCustomerCoords] = useState(null);
@@ -199,24 +200,45 @@ const OrderScreen = () => {
       setSavedAddresses(safe);
       const defaultEntry = safe.find((a) => a.isDefault) || safe[0] || null;
       const defaultAddress = defaultEntry?.fullAddress || "";
-      if (defaultAddress && (!location || location.includes("Current location"))) {
-        setLocation(defaultAddress);
+      if (defaultAddress) {
+        setLocation((prev) => {
+          if (!prev || prev.includes("Current location")) return defaultAddress;
+          return prev;
+        });
       }
       if (defaultEntry?.latitude != null && defaultEntry?.longitude != null) {
-        setCustomerCoords({ latitude: defaultEntry.latitude, longitude: defaultEntry.longitude });
+        setCustomerCoords((prev) => {
+          const lat = defaultEntry.latitude;
+          const lng = defaultEntry.longitude;
+          if (prev?.latitude === lat && prev?.longitude === lng) return prev;
+          return { latitude: lat, longitude: lng };
+        });
       }
       if (defaultEntry?.fullAddress && defaultEntry?.phoneNumber) {
-        setCheckoutDetails({
+        const nextDetails = {
           address: defaultEntry.fullAddress,
+          pinCode: defaultEntry.pinCode || "",
+          city: defaultEntry.city || "",
+          state: defaultEntry.state || "",
           receiverPhone: defaultEntry.phoneNumber,
           customerLatitude: defaultEntry.latitude ?? null,
           customerLongitude: defaultEntry.longitude ?? null,
-        });
+        };
+        const prev = checkoutDetails;
+        const same =
+          prev?.address === nextDetails.address &&
+          prev?.pinCode === nextDetails.pinCode &&
+          prev?.city === nextDetails.city &&
+          prev?.state === nextDetails.state &&
+          prev?.receiverPhone === nextDetails.receiverPhone &&
+          prev?.customerLatitude === nextDetails.customerLatitude &&
+          prev?.customerLongitude === nextDetails.customerLongitude;
+        if (!same) setCheckoutDetails(nextDetails);
       }
     } catch (_) {
       setSavedAddresses([]);
     }
-  }, [location, setCheckoutDetails]);
+  }, [checkoutDetails, setCheckoutDetails]);
 
   useFocusEffect(
     useCallback(() => {
@@ -743,12 +765,9 @@ const OrderScreen = () => {
                     if (a.latitude != null && a.longitude != null) {
                       setCustomerCoords({ latitude: a.latitude, longitude: a.longitude });
                     }
-                    setCheckoutDetails({
-                      address: a.fullAddress || "",
-                      receiverPhone: a.phoneNumber || "",
-                      customerLatitude: a.latitude ?? null,
-                      customerLongitude: a.longitude ?? null,
-                    });
+                    const prev = getCheckoutDetails?.() || {};
+                    const fields = addressToCheckoutFields(a);
+                    setCheckoutDetails({ ...prev, ...fields });
                     setShowLocationPicker(false);
                   }}
                   activeOpacity={0.85}

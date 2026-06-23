@@ -11,6 +11,7 @@ const {
   getInFlightPartnerIds,
   partnerAssignmentError,
 } = require("../utils/partnerAvailability");
+const { getSupplierFinancials } = require("../services/financials");
 
 const router = express.Router();
 router.use(auth);
@@ -426,27 +427,8 @@ router.get("/financials", async (req, res) => {
   try {
     const supplier = await Supplier.findOne({ userId: req.user._id }).lean();
     if (!supplier) return res.status(403).json({ error: "Supplier profile required" });
-    const supplierId = supplier._id;
-    const orders = await Order.find({ "items.supplierId": supplierId, status: { $ne: "cancelled" } }).lean();
-    let totalRevenue = 0;
-    const orderCount = orders.length;
-    for (const o of orders) {
-      const myItems = (o.items || []).filter((i) => String(i.supplierId) === String(supplierId));
-      totalRevenue += myItems.reduce((s, i) => s + (i.price || 0) * (i.qty || 1), 0);
-    }
-    const platformDeductionPercent = 30;
-    const platformDeduction = totalRevenue * (platformDeductionPercent / 100);
-    const bonusAmount = Number(supplier.bonusAmount || 0);
-    const netEarnings = totalRevenue - platformDeduction + bonusAmount;
-    res.json({
-      totalRevenue,
-      platformDeductionPercent,
-      platformDeduction,
-      netEarnings,
-      orderCount,
-      bonusAmount,
-      bonusLabel: supplier.bonusLabel || "H2O Online extra benefit",
-    });
+    const result = await getSupplierFinancials(supplier);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

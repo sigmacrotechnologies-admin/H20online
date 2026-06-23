@@ -20,6 +20,8 @@ const NAV_GROUPS = [
       { to: "/societies", label: "Society management", icon: "🏘️" },
       { to: "/stores", label: "Store management", icon: "🏬" },
       { to: "/wallet-management", label: "Wallet management", icon: "💳" },
+      { to: "/tax-settings", label: "Tax & payments", icon: "🧾" },
+      { to: "/serviceable-areas", label: "Serviceable areas", icon: "📍" },
     ],
   },
   {
@@ -65,11 +67,22 @@ export default function Layout() {
 
   return (
     <div className="admin-shell">
+      <div className="admin-bg-decor" aria-hidden="true">
+        <div className="admin-bg-blob admin-bg-blob-1" />
+        <div className="admin-bg-blob admin-bg-blob-2" />
+        <div className="admin-bg-blob admin-bg-blob-3" />
+      </div>
+
       <div className={`admin-sidebar-overlay ${sidebarOpen ? "open" : ""}`} onClick={closeSidebar} />
       <aside className={`admin-sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="admin-sidebar-brand">
-          <h1>H2O Admin</h1>
-          <p>Operations portal</p>
+          <div className="admin-brand-mark">
+            <img src="/h20-logo.png" alt="" />
+          </div>
+          <div>
+            <h1>H2O Admin</h1>
+            <p>Operations portal</p>
+          </div>
         </div>
         <nav className="admin-nav">
           {groups.map((group) => (
@@ -100,8 +113,8 @@ export default function Layout() {
           </div>
           <button
             type="button"
-            className="btn btn-ghost"
-            style={{ width: "100%", color: "rgba(255,255,255,0.9)", borderColor: "rgba(255,255,255,0.2)" }}
+            className="btn btn-ghost btn-sm"
+            style={{ width: "100%" }}
             onClick={() => {
               logout();
               navigate("/login");
@@ -111,12 +124,27 @@ export default function Layout() {
           </button>
         </div>
       </aside>
+
       <div className="admin-main">
-        <header className="admin-topbar">
-          <button type="button" className="admin-menu-toggle" onClick={() => setSidebarOpen(true)} aria-label="Open menu">
-            ☰
-          </button>
-          <span style={{ fontWeight: 600, color: "var(--teal-dark)" }}>H2O Admin</span>
+        <header className="admin-header">
+          <div className="admin-header-left">
+            <button
+              type="button"
+              className="admin-menu-toggle"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
+            >
+              ☰
+            </button>
+          </div>
+          <div className="admin-header-right">
+            <button type="button" className="admin-header-icon" aria-label="Notifications">
+              🔔
+            </button>
+            <div className="admin-header-avatar" title={user?.name || user?.email}>
+              {getInitials(user)}
+            </div>
+          </div>
         </header>
         <main className="admin-content">
           <Outlet />

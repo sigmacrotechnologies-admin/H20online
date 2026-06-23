@@ -19,17 +19,19 @@ export default function ModernInput({
   onSubmitEditing,
   returnKeyType,
   blurOnSubmit,
+  editable,
   style,
   containerStyle,
 }) {
   return (
     <View style={[modern.inputSection, style]}>
       {label ? <Text style={modern.label}>{label}</Text> : null}
-      <View style={[modern.inputContainer, containerStyle]}>
+      <View style={[modern.inputContainer, containerStyle, editable === false && modern.inputDisabled]}>
         {icon ? <Ionicons name={icon} size={20} color="#6B7C85" style={modern.inputIcon} /> : null}
         <TextInput
           style={modern.input}
           underlineColorAndroid="transparent"
+          editable={editable}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}

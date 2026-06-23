@@ -121,13 +121,17 @@ function CartItemCard({ item, onDecrease, onIncrease, onRemove, travelInfo, trav
 const CartScreen = () => {
   const router = useRouter();
   const handleBack = useAppBack("/order");
-  const { cart, cartTotal, updateCartQty, removeFromCart, getCheckoutDetails } = useCart();
+  const { cart, cartTotal, updateCartQty, removeFromCart, checkoutDetails } = useCart();
   const [customerCoords, setCustomerCoords] = useState(null);
 
   useEffect(() => {
-    const details = getCheckoutDetails?.();
-    if (details?.customerLatitude != null && details?.customerLongitude != null) {
-      setCustomerCoords({ latitude: details.customerLatitude, longitude: details.customerLongitude });
+    if (checkoutDetails?.customerLatitude != null && checkoutDetails?.customerLongitude != null) {
+      setCustomerCoords((prev) => {
+        const lat = checkoutDetails.customerLatitude;
+        const lng = checkoutDetails.customerLongitude;
+        if (prev?.latitude === lat && prev?.longitude === lng) return prev;
+        return { latitude: lat, longitude: lng };
+      });
       return;
     }
     api.addresses
@@ -136,11 +140,14 @@ const CartScreen = () => {
         const safe = Array.isArray(list) ? list : [];
         const entry = safe.find((a) => a.isDefault) || safe[0];
         if (entry?.latitude != null && entry?.longitude != null) {
-          setCustomerCoords({ latitude: entry.latitude, longitude: entry.longitude });
+          setCustomerCoords((prev) => {
+            if (prev?.latitude === entry.latitude && prev?.longitude === entry.longitude) return prev;
+            return { latitude: entry.latitude, longitude: entry.longitude };
+          });
         }
       })
       .catch(() => {});
-  }, [getCheckoutDetails]);
+  }, [checkoutDetails?.customerLatitude, checkoutDetails?.customerLongitude]);
 
   const storeDestinations = useMemo(() => {
     const map = new Map();

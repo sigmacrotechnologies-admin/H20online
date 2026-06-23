@@ -16,6 +16,15 @@ const Store = require("../models/Store");
 const Product = require("../models/Product");
 const Wallet = require("../models/Wallet");
 const { getOrCreateWallet } = require("./wallet");
+const { getTaxSettings, updateTaxSettings } = require("../services/taxSettings");
+const { isRazorpayConfigured, getPublicKeyId } = require("../services/razorpay");
+const { getAdminFinancials } = require("../services/financials");
+const ServiceableArea = require("../models/ServiceableArea");
+const {
+  normalizePin,
+  geocodeAddress,
+  DEFAULT_RADIUS_KM,
+} = require("../services/serviceableArea");
 const {
   adminAuth,
   requireCanCreateAdmin,
@@ -490,6 +499,186 @@ router.patch("/suppliers/:id/verify", async (req, res) => {
     await supplier.save();
     const s = supplier.toObject();
     res.json({ ...s, id: s._id.toString(), _id: s._id.toString() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+function parseCoordinate(v) {
+  if (v == null || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+// ---------- Serviceable areas ----------
+router.get("/serviceable-areas", async (req, res) => {
+  try {
+    const areas = await ServiceableArea.find().sort({ createdAt: -1 }).lean();
+    const supplierIds = areas.map((a) => a.supplierId).filter(Boolean);
+    const suppliers = await Supplier.find({ _id: { $in: supplierIds } })
+      .select("name")
+      .lean();
+    const nameMap = Object.fromEntries(suppliers.map((s) => [String(s._id), s.name || ""]));
+    res.json(
+      areas.map((a) => ({
+        id: a._id.toString(),
+        pinCode: a.pinCode,
+        label: a.label || "",
+        city: a.city || "",
+        latitude: a.latitude ?? null,
+        longitude: a.longitude ?? null,
+        supplierId: String(a.supplierId),
+        supplierName: nameMap[String(a.supplierId)] || "",
+        radiusKm: a.radiusKm ?? DEFAULT_RADIUS_KM,
+        isActive: !!a.isActive,
+        createdAt: a.createdAt,
+      }))
+    );
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/serviceable-areas", async (req, res) => {
+  try {
+    const { pinCode, label, city, state, supplierId, radiusKm, isActive, latitude, longitude } = req.body || {};
+    const pin = normalizePin(pinCode);
+    if (!pin || pin.length < 6) return res.status(400).json({ error: "Valid 6-digit PIN code is required" });
+    const sid = toObjectId(supplierId);
+    if (!sid) return res.status(400).json({ error: "Supplier is required" });
+    const supplier = await Supplier.findById(sid);
+    if (!supplier) return res.status(404).json({ error: "Supplier not found" });
+
+    let lat = parseCoordinate(latitude);
+    let lng = parseCoordinate(longitude);
+    if (lat == null || lng == null) {
+      const geo = await geocodeAddress(pin, city, state);
+      if (geo) {
+        lat = geo.latitude;
+        lng = geo.longitude;
+      }
+    }
+
+    const radius = Number(radiusKm);
+    const doc = await ServiceableArea.create({
+      pinCode: pin,
+      label: label && String(label).trim() ? String(label).trim() : "",
+      city: city && String(city).trim() ? String(city).trim() : "",
+      latitude: lat,
+      longitude: lng,
+      supplierId: sid,
+      radiusKm: Number.isFinite(radius) && radius >= 1 ? Math.min(radius, 50) : DEFAULT_RADIUS_KM,
+      isActive: isActive !== false,
+    });
+    const a = doc.toObject();
+    res.status(201).json({
+      id: a._id.toString(),
+      pinCode: a.pinCode,
+      label: a.label || "",
+      city: a.city || "",
+      latitude: a.latitude ?? null,
+      longitude: a.longitude ?? null,
+      supplierId: String(a.supplierId),
+      supplierName: supplier.name || "",
+      radiusKm: a.radiusKm ?? DEFAULT_RADIUS_KM,
+      isActive: !!a.isActive,
+      createdAt: a.createdAt,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put("/serviceable-areas/:id", async (req, res) => {
+  try {
+    const id = toObjectId(req.params.id);
+    if (!id) return res.status(400).json({ error: "Invalid id" });
+    const area = await ServiceableArea.findById(id);
+    if (!area) return res.status(404).json({ error: "Serviceable area not found" });
+
+    const { pinCode, label, city, state, supplierId, radiusKm, isActive, latitude, longitude } = req.body || {};
+    if (pinCode !== undefined) {
+      const pin = normalizePin(pinCode);
+      if (!pin || pin.length < 6) return res.status(400).json({ error: "Valid 6-digit PIN code is required" });
+      area.pinCode = pin;
+    }
+    if (label !== undefined) area.label = label && String(label).trim() ? String(label).trim() : "";
+    if (city !== undefined) area.city = city && String(city).trim() ? String(city).trim() : "";
+    if (supplierId !== undefined) {
+      const sid = toObjectId(supplierId);
+      if (!sid) return res.status(400).json({ error: "Invalid supplier" });
+      const supplier = await Supplier.findById(sid);
+      if (!supplier) return res.status(404).json({ error: "Supplier not found" });
+      area.supplierId = sid;
+    }
+    if (radiusKm !== undefined) {
+      const radius = Number(radiusKm);
+      if (Number.isFinite(radius) && radius >= 1) area.radiusKm = Math.min(radius, 50);
+    }
+    if (isActive !== undefined) area.isActive = !!isActive;
+    if (latitude !== undefined) area.latitude = parseCoordinate(latitude);
+    if (longitude !== undefined) area.longitude = parseCoordinate(longitude);
+
+    if (area.latitude == null || area.longitude == null) {
+      const geo = await geocodeAddress(area.pinCode, area.city, state);
+      if (geo) {
+        area.latitude = geo.latitude;
+        area.longitude = geo.longitude;
+      }
+    }
+
+    await area.save();
+    const supplier = await Supplier.findById(area.supplierId).select("name").lean();
+    const a = area.toObject();
+    res.json({
+      id: a._id.toString(),
+      pinCode: a.pinCode,
+      label: a.label || "",
+      city: a.city || "",
+      latitude: a.latitude ?? null,
+      longitude: a.longitude ?? null,
+      supplierId: String(a.supplierId),
+      supplierName: supplier?.name || "",
+      radiusKm: a.radiusKm ?? DEFAULT_RADIUS_KM,
+      isActive: !!a.isActive,
+      createdAt: a.createdAt,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete("/serviceable-areas/:id", async (req, res) => {
+  try {
+    const id = toObjectId(req.params.id);
+    if (!id) return res.status(400).json({ error: "Invalid id" });
+    const deleted = await ServiceableArea.findByIdAndDelete(id);
+    if (!deleted) return res.status(404).json({ error: "Serviceable area not found" });
+    res.json({ deleted: true, id: req.params.id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------- Tax & payment settings ----------
+router.get("/tax-settings", async (req, res) => {
+  try {
+    const settings = await getTaxSettings();
+    res.json({
+      ...settings,
+      razorpayConfigured: isRazorpayConfigured(),
+      razorpayKeyId: getPublicKeyId() ? `${getPublicKeyId().slice(0, 12)}...` : "",
+      razorpayTestMode: String(getPublicKeyId()).startsWith("rzp_test_"),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put("/tax-settings", async (req, res) => {
+  try {
+    const settings = await updateTaxSettings(req.body || {});
+    res.json(settings);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -999,57 +1188,8 @@ router.post("/wallet-management/:userId/adjust", async (req, res) => {
 // ---------- Financials (master or admin only) ----------
 router.get("/financials", requireCanSeeFinancials, async (req, res) => {
   try {
-    const orders = await Order.find({ status: { $ne: "cancelled" } }).lean();
-    let totalRevenue = 0;
-    let platformCutTotal = 0;
-    const byDay = {};
-    for (const o of orders) {
-      const dateStr = o.createdAt ? new Date(o.createdAt).toISOString().slice(0, 10) : "";
-      if (!byDay[dateStr]) byDay[dateStr] = { revenue: 0, platformCut: 0, orderCount: 0 };
-      byDay[dateStr].revenue += o.total;
-      byDay[dateStr].orderCount += 1;
-      totalRevenue += o.total;
-      const supplierIds = [...new Set(o.items.map((i) => i.supplierId && i.supplierId.toString()).filter(Boolean))];
-      const isMultiSupplier = supplierIds.length > 1;
-      const cutRate = isMultiSupplier ? 0.3 : 0.2;
-      const cut = o.total * cutRate;
-      platformCutTotal += cut;
-      byDay[dateStr].platformCut += cut;
-    }
-    const sortedDays = Object.entries(byDay).sort((a, b) => b[0].localeCompare(a[0])).slice(0, 30);
-
-    // Wallet-based: payment settled (revenue from wallet orders + bills), payouts, net profit
-    const platformWallet = await Wallet.findOne({ ownerType: "platform" }).lean();
-    const platformTx = (platformWallet && platformWallet.transactions) || [];
-    let walletRevenue = 0;
-    for (const t of platformTx) if (t.type === "credit") walletRevenue += t.amount || 0;
-    let amountToSuppliers = 0;
-    let amountToDeliveryPartners = 0;
-    const allUserWallets = await Wallet.find({ ownerType: "user" }).lean();
-    for (const uw of allUserWallets) {
-      for (const t of uw.transactions || []) {
-        if (t.type !== "credit") continue;
-        if ((t.ref || "").startsWith("supplier_payout_")) amountToSuppliers += t.amount || 0;
-        if ((t.ref || "").startsWith("delivery_")) amountToDeliveryPartners += t.amount || 0;
-      }
-    }
-    const totalPayouts = amountToSuppliers + amountToDeliveryPartners;
-    const netProfit = walletRevenue - totalPayouts;
-
-    res.json({
-      totalRevenue,
-      platformCutTotal,
-      platformCutPercent: totalRevenue > 0 ? (platformCutTotal / totalRevenue) * 100 : 0,
-      byDay: sortedDays.map(([date, data]) => ({ date, ...data })),
-      orderCount: orders.length,
-      // Wallet / payment settled
-      walletRevenue,
-      amountToSuppliers,
-      amountToDeliveryPartners,
-      totalPayouts,
-      netProfit,
-      platformWalletBalance: platformWallet ? platformWallet.balance : 0,
-    });
+    const data = await getAdminFinancials();
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

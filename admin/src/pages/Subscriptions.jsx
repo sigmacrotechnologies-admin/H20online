@@ -3,19 +3,6 @@ import PageHeader from "../components/PageHeader";
 import LoadingState from "../components/LoadingState";
 import { api } from "../api/client";
 
-const card = { background: "#f0f7fcd7", borderRadius: 16, padding: 24, marginBottom: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
-const tableWrap = { overflowX: "auto", background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
-const table = { width: "100%", borderCollapse: "collapse" };
-const th = { textAlign: "left", padding: "10px 12px", borderBottom: "2px solid #E5E7EB", fontWeight: 600, color: "#1B2B34" };
-const td = { padding: "10px 12px", borderBottom: "1px solid #E5E7EB", color: "#1B2B34" };
-const input = { padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", minWidth: 140 };
-const select = { padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", marginRight: 8 };
-const btn = { padding: "8px 16px", borderRadius: 8, border: "none", fontWeight: 600, cursor: "pointer" };
-const btnPrimary = { ...btn, background: "#1EA7FD", color: "#fff" };
-const btnSmall = { ...btn, background: "#E0F2FE", color: "#1B2B34", padding: "6px 12px", fontSize: 13 };
-const btnDanger = { ...btn, background: "#FEE2E2", color: "#B91C1C", padding: "6px 12px", fontSize: 13 };
-const tabRow = { display: "flex", gap: 4, marginBottom: 20, borderBottom: "1px solid #E5E7EB", flexWrap: "wrap" };
-
 const TABS = [
   { id: "details", label: "Subscription details" },
   { id: "financials", label: "Subscription value" },
@@ -404,7 +391,7 @@ export default function Subscriptions() {
                       <td>
                         {(s.status === "active" || s.status === "inactive") && (
                           <button
-                            style={{ ...btnSmall, background: s.status === "active" ? "#FEE2E2" : "#D1FAE5", color: s.status === "active" ? "#B91C1C" : "#059669" }}
+                            className={s.status === "active" ? "btn btn-danger btn-sm" : "btn btn-approve btn-sm"}
                             disabled={updatingId === s.id}
                             onClick={() => handleStatusToggle(s)}
                           >
@@ -473,7 +460,7 @@ export default function Subscriptions() {
         <>
           {filters}
           {/* Filter by locality and PIN code */}
-          <div style={{ ...card, marginBottom: 16 }}>
+          <div className="card" style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#1B2B34", marginBottom: 8 }}>Filter by locality & PIN code</div>
             <p style={{ color: "#6B7C85", marginBottom: 12, fontSize: 13 }}>
               Filter subscriptions to prioritise delivery or assign multiple deliveries to a single agent by area.
@@ -500,7 +487,7 @@ export default function Subscriptions() {
             </div>
           </div>
           {/* Club (same locality): assign same partner to multiple subscriptions */}
-          <div style={{ ...card, marginBottom: 16 }}>
+          <div className="card" style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: "#1B2B34", marginBottom: 8 }}>Club orders (same locality)</div>
             <p style={{ color: "#6B7C85", marginBottom: 12, fontSize: 13 }}>
               Select subscriptions below, then choose a delivery partner to assign to all selected. Partner will be checked for 13-minute slot conflicts.
@@ -561,7 +548,8 @@ export default function Subscriptions() {
                             const v = e.target.value.trim();
                             if (v !== (s.locality || "")) handleUpdateLocalityPinCode(s, "locality", v);
                           }}
-                          style={{ ...input, width: 100, minWidth: 80 }}
+                          className="input"
+                          style={{ width: 100, minWidth: 80 }}
                         />
                       </td>
                       <td>
@@ -573,7 +561,8 @@ export default function Subscriptions() {
                             const v = e.target.value.trim();
                             if (v !== (s.pinCode || "")) handleUpdateLocalityPinCode(s, "pinCode", v);
                           }}
-                          style={{ ...input, width: 80 }}
+                          className="input"
+                          style={{ width: 80 }}
                         />
                       </td>
                       <td>

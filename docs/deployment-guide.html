@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>H2O Online — Deployment Guide</title>
+  <style>
+    @page { size: A4; margin: 14mm 12mm 16mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      color: #1e293b;
+      font-size: 9pt;
+      line-height: 1.42;
+      margin: 0;
+    }
+    .cover {
+      page-break-after: always;
+      min-height: 255mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 22mm 20mm;
+      background: linear-gradient(145deg, #ecfeff 0%, #fff 45%, #fef9c3 100%);
+    }
+    .cover-badge {
+      display: inline-block;
+      background: #0e7490;
+      color: #fff;
+      font-size: 8pt;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      width: fit-content;
+    }
+    .cover h1 {
+      font-size: 24pt;
+      color: #0c4a6e;
+      margin: 0 0 12px;
+      line-height: 1.2;
+      max-width: 500px;
+    }
+    .cover .subtitle { font-size: 11pt; color: #475569; margin: 0 0 24px; max-width: 480px; line-height: 1.5; }
+    .cover-meta {
+      border-top: 2px solid #33afc1;
+      padding-top: 16px;
+      margin-top: 8px;
+      font-size: 9pt;
+      color: #64748b;
+    }
+    .cover-meta div { margin-bottom: 4px; }
+    .cover-stats {
+      display: flex;
+      gap: 14px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+    .stat-box {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      min-width: 95px;
+    }
+    .stat-box strong { display: block; font-size: 15pt; color: #0e7490; }
+    .stat-box span { font-size: 8pt; color: #64748b; }
+    h1 { font-size: 16pt; color: #0c4a6e; margin: 14pt 0 6pt; page-break-after: avoid; }
+    h2 {
+      font-size: 12pt; color: #0f172a; margin: 14pt 0 5pt;
+      border-bottom: 2px solid #7dd3fc; padding-bottom: 3px;
+      page-break-after: avoid;
+    }
+    h3 { font-size: 10.5pt; color: #1d4ed8; margin: 10pt 0 4pt; page-break-after: avoid; }
+    h4 { font-size: 9.5pt; color: #334155; margin: 8pt 0 3pt; page-break-after: avoid; }
+    p { margin: 0 0 7pt; color: #334155; }
+    p.footnote { font-style: italic; font-size: 8.5pt; color: #64748b; }
+    hr { border: none; border-top: 1px solid #cbd5e1; margin: 12pt 0; }
+    ul, ol { margin: 0 0 8pt; padding-left: 16pt; }
+    li { margin-bottom: 2pt; }
+    ul.checklist { list-style: none; padding-left: 4pt; }
+    ul.checklist li.check::before { content: "☐ "; color: #64748b; }
+    ul.checklist li.check.done::before { content: "☑ "; color: #059669; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 10pt;
+      font-size: 7.6pt;
+      page-break-inside: auto;
+    }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    th {
+      background: #0e7490;
+      color: #fff;
+      font-weight: 600;
+      text-align: left;
+      padding: 5px 6px;
+      border: 1px solid #0891b2;
+    }
+    td {
+      padding: 4px 6px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code.inline {
+      background: #f1f5f9;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 8pt;
+    }
+    pre {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 8px 10px;
+      border-radius: 4px;
+      margin: 0 0 10pt;
+      page-break-inside: avoid;
+    }
+    pre code.block { font-size: 7.2pt; white-space: pre-wrap; font-family: Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-badge">Deployment Guide</div>
+    <h1>H2O Online<br>Deployment Guide</h1>
+    <p class="subtitle">Local development with MongoDB Atlas, GitHub workflow, AWS EC2 deployment, production API configuration, and pre-deploy checklist.</p>
+    <div class="cover-stats">
+      <div class="stat-box"><strong>13.62.57.255</strong><span>AWS EC2 IP</span></div>
+      <div class="stat-box"><strong>:5000</strong><span>Production API</span></div>
+      <div class="stat-box"><strong>:3000</strong><span>Admin portal</span></div>
+      <div class="stat-box"><strong>13</strong><span>Sections</span></div>
+    </div>
+    <div class="cover-meta">
+      <div><strong>Document version:</strong> 1.0</div>
+      <div><strong>API:</strong> http://13.62.57.255:5000</div>
+      <div><strong>Admin:</strong> http://13.62.57.255:3000</div>
+      <div><strong>Generated:</strong> 24 June 2026</div>
+    </div>
+  </div>
+  <div class="content"><h1>H2O Online — Deployment Guide</h1>
+<p><strong>Document type:</strong> Deployment &amp; configuration guide  </p>
+<p><strong>Version:</strong> 1.0  </p>
+<p><strong>Platforms:</strong> Local development · GitHub · AWS EC2  </p>
+<p><strong>Production API (current):</strong> <code class="inline">http://13.62.57.255:5000</code>  </p>
+<p><strong>Production admin (current):</strong> <code class="inline">http://13.62.57.255:3000</code></p>
+<hr />
+<h2>1. Overview</h2>
+<p>H2O Online has three deployable components:</p>
+<table><thead><tr><th>Component</th><th>Folder</th><th>Local URL</th><th>Production (AWS) URL</th></tr></thead><tbody><tr><td>Backend API</td><td><code class="inline">backend/</code></td><td>http://localhost:5000</td><td>http://13.62.57.255:5000</td></tr><tr><td>Admin portal</td><td><code class="inline">admin/</code></td><td>http://localhost:5174</td><td>http://13.62.57.255:3000</td></tr><tr><td>Mobile app</td><td><code class="inline">mobile/</code></td><td>Expo Metro :8081</td><td>APK → production API</td></tr></tbody></table>
+<p><strong>Database:</strong> MongoDB Atlas (<code class="inline">H20online</code> database) — used for both local dev and production.</p>
+<p><strong>Single source of truth for AWS URLs:</strong> <code class="inline">config/aws-production.json</code></p>
+<p>When the EC2 IP or domain changes, update that file <strong>and</strong> sync all files listed in Section 3.</p>
+<hr />
+<h2>2. Architecture (Production)</h2>
+<pre><code class="block">┌─────────────┐     ┌─────────────┐     ┌─────────────────────────────────┐
+│ Mobile APK  │────►│  EC2 Ubuntu │────►│  MongoDB Atlas (H20online)      │
+│ Expo Go     │     │  :5000 API  │     │  mongodb+srv://...              │
+└─────────────┘     │  :3000 Admin│     └─────────────────────────────────┘
+                    └─────────────┘
+       Browser ────► Admin SPA (static dist via PM2 serve)</code></pre>
+<p><strong>GitHub flow:</strong> Push code → SSH to EC2 → <code class="inline">git pull</code> → rebuild → <code class="inline">pm2 restart</code></p>
+<hr />
+<h2>3. Configuration matrix — what to change where</h2>
+<h3>3.1 ⚠ CHANGE FOR PRODUCTION (before AWS deploy)</h3>
+<table><thead><tr><th>#</th><th>File</th><th>Variable / setting</th><th>Production value</th><th>Notes</th></tr></thead><tbody><tr><td>1</td><td><code class="inline">backend/.env</code> (on server)</td><td><code class="inline">NODE_ENV</code></td><td><code class="inline">production</code></td><td><strong>Required</strong> — enables CORS lock, env validation</td></tr><tr><td>2</td><td><code class="inline">backend/.env</code></td><td><code class="inline">MONGODB_URI</code></td><td>Atlas connection string</td><td>Same cluster OK; use strong credentials</td></tr><tr><td>3</td><td><code class="inline">backend/.env</code></td><td><code class="inline">JWT_SECRET</code></td><td>Random 32+ bytes</td><td><code class="inline">openssl rand -hex 32</code></td></tr><tr><td>4</td><td><code class="inline">backend/.env</code></td><td><code class="inline">MASTER_ADMIN_PASSWORD</code></td><td>Strong password</td><td>Must not be <code class="inline">admin@H2O</code></td></tr><tr><td>5</td><td><code class="inline">backend/.env</code></td><td><code class="inline">ALLOWED_ORIGINS</code></td><td><code class="inline">http://13.62.57.255:3000</code></td><td>Admin browser origin; add HTTPS domain later</td></tr><tr><td>6</td><td><code class="inline">backend/.env</code></td><td><code class="inline">RAZORPAY_KEY_ID</code></td><td>Live key</td><td><code class="inline">rzp_live_...</code> for real payments</td></tr><tr><td>7</td><td><code class="inline">backend/.env</code></td><td><code class="inline">RAZORPAY_KEY_SECRET</code></td><td>Live secret</td><td>Never commit to GitHub</td></tr><tr><td>8</td><td><code class="inline">admin/.env.production</code></td><td><code class="inline">VITE_API_URL</code></td><td><code class="inline">http://13.62.57.255:5000</code></td><td>Baked into admin build</td></tr><tr><td>9</td><td><code class="inline">mobile/config/apiUrl.json</code></td><td><code class="inline">production</code></td><td><code class="inline">http://13.62.57.255:5000</code></td><td>APK fallback URL</td></tr><tr><td>10</td><td><code class="inline">mobile/eas.json</code></td><td><code class="inline">EXPO_PUBLIC_API_URL</code></td><td><code class="inline">http://13.62.57.255:5000</code></td><td>All build profiles</td></tr><tr><td>11</td><td><code class="inline">config/aws-production.json</code></td><td>all fields</td><td>Current EC2 IP/URLs</td><td>Central reference</td></tr><tr><td>12</td><td>AWS Security Group</td><td>Inbound rules</td><td>22, 5000, 3000, 80, 443</td><td>See Section 7</td></tr></tbody></table>
+<p class="footnote">*Template files (safe to commit):*</p>
+<ul><li>Local backend: <code class="inline">backend/.env.local.example</code> → copy to <code class="inline">backend/.env</code></li><li>Production backend: <code class="inline">backend/.env.production.example</code> → copy to <code class="inline">backend/.env</code> on server</li><li>Local admin: <code class="inline">admin/.env.example</code> → copy to <code class="inline">admin/.env</code></li><li>Production admin: <code class="inline">admin/.env.production.aws.example</code> → copy to <code class="inline">admin/.env.production</code></li><li>Local mobile: <code class="inline">mobile/.env.local.example</code> → copy to <code class="inline">mobile/.env</code></li></ul>
+<h3>3.2 Local development (no production flags)</h3>
+<table><thead><tr><th>File</th><th>Setting</th><th>Local value</th></tr></thead><tbody><tr><td><code class="inline">backend/.env</code></td><td><code class="inline">NODE_ENV</code></td><td><code class="inline">development</code></td></tr><tr><td><code class="inline">backend/.env</code></td><td><code class="inline">MONGODB_URI</code></td><td>Atlas URI (same as prod cluster OK)</td></tr><tr><td><code class="inline">backend/.env</code></td><td><code class="inline">PORT</code></td><td><code class="inline">5000</code></td></tr><tr><td><code class="inline">admin/.env</code></td><td><code class="inline">VITE_API_URL</code></td><td><code class="inline">http://localhost:5000</code></td></tr><tr><td><code class="inline">mobile/.env</code></td><td><code class="inline">EXPO_PUBLIC_API_URL</code></td><td><code class="inline">http://YOUR_PC_IP:5000</code> or run <code class="inline">npm run local</code></td></tr></tbody></table>
+<p><strong>Do not set</strong> <code class="inline">NODE_ENV=production</code> locally unless testing CORS/production validation.</p>
+<hr />
+<h2>4. Run locally (Atlas DB + local servers)</h2>
+<h3>Prerequisites</h3>
+<ul><li>Node.js 18+</li><li>Git</li><li>MongoDB Atlas cluster reachable from your PC (IP allowlist: <code class="inline">0.0.0.0/0</code> for dev or your IP)</li><li>Phone on same Wi-Fi for Expo Go (optional)</li></ul>
+<h3>Step 1 — Backend</h3>
+<pre><code class="block">cd backend
+npm install
+cp .env.local.example .env
+# Edit .env: set MONGODB_URI (Atlas), JWT_SECRET, Razorpay test keys, Google Maps key
+npm run check-mongo
+npm run dev</code></pre>
+<p>Verify: http://localhost:5000/api/health → <code class="inline">{ &quot;ok&quot;: true, &quot;db&quot;: &quot;connected&quot;, &quot;env&quot;: &quot;development&quot; }</code></p>
+<h3>Step 2 — Admin</h3>
+<pre><code class="block">cd admin
+npm install
+cp .env.example .env
+npm run dev</code></pre>
+<p>Open: http://localhost:5174  </p>
+<p>Login: <code class="inline">H2O admin</code> / <code class="inline">admin@H2O</code></p>
+<h3>Step 3 — Mobile</h3>
+<pre><code class="block">cd mobile
+npm install
+npm run local</code></pre>
+<p>This auto-sets <code class="inline">EXPO_PUBLIC_API_URL</code> to your PC LAN IP and starts Expo. Scan QR with Expo Go.</p>
+<p><strong>Android emulator:</strong> set <code class="inline">EXPO_PUBLIC_API_URL=http://10.0.2.2:5000</code> in <code class="inline">mobile/.env</code></p>
+<p class="footnote">*Test production API from Expo (no APK rebuild):*</p>
+<pre><code class="block">cd mobile
+npm run prod:local
+npx expo start -c</code></pre>
+<hr />
+<h2>5. GitHub setup</h2>
+<h3>5.1 Repository</h3>
+<ol><li>Create a GitHub repository (private recommended).</li><li>Ensure <code class="inline">.gitignore</code> excludes secrets:</li></ol>
+<ul><li>   - <code class="inline">backend/.env</code></li><li>   - <code class="inline">admin/.env</code>, <code class="inline">admin/.env.production</code></li><li>   - <code class="inline">mobile/.env</code></li></ul>
+<ol><li>Push the codebase:</li></ol>
+<pre><code class="block">git add .
+git commit -m &quot;Initial H2O Online platform&quot;
+git remote add origin https://github.com/YOUR_ORG/H20online.git
+git push -u origin main</code></pre>
+<p><strong>Never commit</strong> real <code class="inline">MONGODB_URI</code>, <code class="inline">JWT_SECRET</code>, Razorpay live keys, or <code class="inline">.env</code> files.</p>
+<h3>5.2 Branch strategy (recommended)</h3>
+<table><thead><tr><th>Branch</th><th>Purpose</th></tr></thead><tbody><tr><td><code class="inline">main</code></td><td>Production-ready code deployed to EC2</td></tr><tr><td><code class="inline">develop</code></td><td>Integration / testing (optional)</td></tr></tbody></table>
+<p>Deploy to AWS from <code class="inline">main</code> after testing locally.</p>
+<h3>5.3 What stays on the server only (not in GitHub)</h3>
+<table><thead><tr><th>Secret / config</th><th>Location</th></tr></thead><tbody><tr><td>Production <code class="inline">backend/.env</code></td><td>EC2 <code class="inline">/home/ubuntu/H20online/backend/.env</code></td></tr><tr><td>Built admin <code class="inline">dist/</code></td><td>Generated on server via <code class="inline">npm run build:prod</code></td></tr><tr><td>PM2 process list</td><td><code class="inline">pm2 save</code> on EC2</td></tr></tbody></table>
+<hr />
+<h2>6. AWS EC2 deployment</h2>
+<h3>6.1 Server requirements</h3>
+<ul><li>Ubuntu 22.04 LTS (or similar)</li><li>Node.js 18+ (<code class="inline">nvm install 18</code>)</li><li>PM2: <code class="inline">sudo npm install -g pm2 serve</code></li><li>Git</li><li>Ports open in security group (Section 7)</li></ul>
+<h3>6.2 First-time setup on EC2</h3>
+<pre><code class="block"># SSH into EC2
+ssh -i your-key.pem ubuntu@13.62.57.255
+
+# Clone repository
+cd /home/ubuntu
+git clone https://github.com/YOUR_ORG/H20online.git
+cd H20online
+
+# Backend
+cd backend
+npm install --omit=dev
+cp .env.production.example .env
+nano .env   # Set MONGODB_URI, JWT_SECRET, MASTER_ADMIN_PASSWORD, ALLOWED_ORIGINS, Razorpay keys
+
+# Verify MongoDB + env
+npm run check-mongo
+node scripts/check-razorpay-env.js
+
+# Admin build
+cd ../admin
+npm install
+cp .env.production.aws.example .env.production
+npm run build:prod
+
+# Start with PM2 (from repo root)
+cd ..
+pm2 start ecosystem.config.cjs --env production
+pm2 save
+pm2 startup   # follow printed command</code></pre>
+<h3>6.3 Verify deployment</h3>
+<pre><code class="block">curl http://localhost:5000/api/health
+curl http://13.62.57.255:5000/api/health</code></pre>
+<p>Browser:</p>
+<ul><li>Admin: http://13.62.57.255:3000</li><li>API health: http://13.62.57.255:5000/api/health</li></ul>
+<h3>6.4 Redeploy after GitHub push</h3>
+<p>On EC2:</p>
+<pre><code class="block">cd /home/ubuntu/H20online
+git pull origin main
+
+# Backend
+cd backend
+npm install --omit=dev
+pm2 restart h20-backend
+
+# Admin (rebuild — API URL is baked in at build time)
+cd ../admin
+npm install
+npm run build:prod
+pm2 restart h20-admin
+
+pm2 save
+pm2 status</code></pre>
+<h3>6.5 Mobile APK (production API)</h3>
+<p>On your dev machine:</p>
+<pre><code class="block">cd mobile
+# Confirm eas.json + config/apiUrl.json point to http://13.62.57.255:5000
+npm run build:apk</code></pre>
+<p>Install APK on devices. API URL is embedded at build time.</p>
+<hr />
+<h2>7. AWS security group</h2>
+<table><thead><tr><th>Port</th><th>Protocol</th><th>Source</th><th>Purpose</th></tr></thead><tbody><tr><td>22</td><td>TCP</td><td>Your IP</td><td>SSH</td></tr><tr><td>5000</td><td>TCP</td><td>0.0.0.0/0</td><td>Backend API (mobile + admin)</td></tr><tr><td>3000</td><td>TCP</td><td>0.0.0.0/0</td><td>Admin SPA (PM2 serve)</td></tr><tr><td>80</td><td>TCP</td><td>0.0.0.0/0</td><td>Nginx HTTP (optional)</td></tr><tr><td>443</td><td>TCP</td><td>0.0.0.0/0</td><td>Nginx HTTPS (optional)</td></tr></tbody></table>
+<p><strong>MongoDB Atlas:</strong> Network Access → allow EC2 public IP or <code class="inline">0.0.0.0/0</code> (restrict in production if possible).</p>
+<hr />
+<h2>8. Production API reference</h2>
+<p><strong>Base URL:</strong> <code class="inline">http://13.62.57.255:5000</code>  </p>
+<p><strong>Auth:</strong> <code class="inline">Authorization: Bearer &lt;JWT&gt;</code> (customer/supplier/delivery routes)</p>
+<h3>8.1 Health &amp; public</h3>
+<table><thead><tr><th>Method</th><th>Path</th><th>Auth</th></tr></thead><tbody><tr><td>GET</td><td><code class="inline">/api/health</code></td><td>No</td></tr></tbody></table>
+<h3>8.2 Customer mobile APIs</h3>
+<table><thead><tr><th>Prefix</th><th>Examples</th></tr></thead><tbody><tr><td><code class="inline">/api/auth</code></td><td>login, register</td></tr><tr><td><code class="inline">/api/users</code></td><td>me, update profile</td></tr><tr><td><code class="inline">/api/orders</code></td><td>create, list, track</td></tr><tr><td><code class="inline">/api/water-intake</code></td><td>log intake, summary</td></tr><tr><td><code class="inline">/api/leaderboard</code></td><td>monthly rankings, preferences</td></tr><tr><td><code class="inline">/api/wallet</code></td><td>balance, credit, debit</td></tr><tr><td><code class="inline">/api/subscriptions</code></td><td>list, create, cancel</td></tr><tr><td><code class="inline">/api/payments</code></td><td>Razorpay create-order, verify</td></tr><tr><td><code class="inline">/api/settings</code></td><td>tax, payment settings</td></tr><tr><td><code class="inline">/api/serviceability</code></td><td>delivery area check</td></tr><tr><td><code class="inline">/api/addresses</code></td><td>CRUD</td></tr><tr><td><code class="inline">/api/bills</code></td><td>list, pay</td></tr><tr><td><code class="inline">/api/ai</code></td><td>water insight, report, ask</td></tr></tbody></table>
+<h3>8.3 Admin portal APIs</h3>
+<p><strong>Base:</strong> same host · <strong>Prefix:</strong> <code class="inline">/api/admin/*</code>  </p>
+<p><strong>Auth:</strong> Admin JWT from <code class="inline">POST /api/admin/auth/login</code></p>
+<table><thead><tr><th>Area</th><th>Paths</th></tr></thead><tbody><tr><td>Users</td><td><code class="inline">/api/admin/users</code>, CRUD</td></tr><tr><td>Orders</td><td><code class="inline">/api/admin/orders</code></td></tr><tr><td>Suppliers</td><td><code class="inline">/api/admin/suppliers</code>, verify</td></tr><tr><td>Delivery partners</td><td><code class="inline">/api/admin/delivery-partners</code></td></tr><tr><td>Plans &amp; products</td><td><code class="inline">/api/admin/plans</code>, plan-products</td></tr><tr><td>Subscriptions</td><td><code class="inline">/api/admin/subscriptions</code></td></tr><tr><td>Financials</td><td><code class="inline">/api/admin/financials</code></td></tr><tr><td>Wallet</td><td><code class="inline">/api/admin/wallet-management</code></td></tr><tr><td>Serviceable areas</td><td><code class="inline">/api/admin/serviceable-areas</code></td></tr><tr><td>Tax settings</td><td><code class="inline">/api/admin/tax-settings</code></td></tr><tr><td>Surveys</td><td><code class="inline">/api/admin/surveys</code></td></tr></tbody></table>
+<h3>8.4 Mobile client mapping</h3>
+<table><thead><tr><th>App</th><th>Config file</th><th>Production value</th></tr></thead><tbody><tr><td>APK / release</td><td><code class="inline">mobile/eas.json</code></td><td><code class="inline">EXPO_PUBLIC_API_URL=http://13.62.57.255:5000</code></td></tr><tr><td>APK fallback</td><td><code class="inline">mobile/config/apiUrl.json</code></td><td><code class="inline">&quot;production&quot;: &quot;http://13.62.57.255:5000&quot;</code></td></tr><tr><td>Admin SPA</td><td><code class="inline">admin/.env.production</code></td><td><code class="inline">VITE_API_URL=http://13.62.57.255:5000</code></td></tr></tbody></table>
+<hr />
+<h2>9. Pre-deployment checklist</h2>
+<h3>Backend</h3>
+<ul class="checklist"><li class="check "><code class="inline">NODE_ENV=production</code> on EC2</li><li class="check ">Strong <code class="inline">JWT_SECRET</code> (not default)</li><li class="check "><code class="inline">MASTER_ADMIN_PASSWORD</code> changed</li><li class="check "><code class="inline">ALLOWED_ORIGINS</code> includes admin URL</li><li class="check ">Atlas URI correct; EC2 IP allowed in Atlas</li><li class="check ">Razorpay keys set (live for production payments)</li><li class="check "><code class="inline">curl http://13.62.57.255:5000/api/health</code> returns ok</li></ul>
+<h3>Admin</h3>
+<ul class="checklist"><li class="check "><code class="inline">admin/.env.production</code> has production <code class="inline">VITE_API_URL</code></li><li class="check "><code class="inline">npm run build:prod</code> succeeds</li><li class="check ">PM2 serving <code class="inline">admin/dist</code> on port 3000</li><li class="check ">Login works at http://13.62.57.255:3000</li></ul>
+<h3>Mobile</h3>
+<ul class="checklist"><li class="check "><code class="inline">eas.json</code> production profile URL correct</li><li class="check "><code class="inline">config/apiUrl.json</code> matches</li><li class="check ">New APK built after API URL change</li><li class="check ">Security group port 5000 open</li></ul>
+<h3>GitHub</h3>
+<ul class="checklist"><li class="check ">No <code class="inline">.env</code> files committed</li><li class="check ">Latest code pushed to <code class="inline">main</code></li><li class="check ">EC2 <code class="inline">git pull</code> completed</li></ul>
+<hr />
+<h2>10. Troubleshooting</h2>
+<table><thead><tr><th>Issue</th><th>Fix</th></tr></thead><tbody><tr><td>CORS error on admin</td><td>Set <code class="inline">ALLOWED_ORIGINS=http://13.62.57.255:3000</code> and <code class="inline">NODE_ENV=production</code>; restart backend</td></tr><tr><td>Mobile cannot reach API</td><td>Check security group port 5000; verify URL in <code class="inline">mobile/.env</code></td></tr><tr><td><code class="inline">db: disconnected</code></td><td>Check Atlas URI; add EC2 IP to Atlas Network Access</td></tr><tr><td>Admin shows wrong API</td><td>Rebuild admin with correct <code class="inline">.env.production</code></td></tr><tr><td>Payments fail</td><td>Run <code class="inline">node backend/scripts/check-razorpay-env.js</code>; use matching test/live keys on backend + mobile</td></tr><tr><td>Production env check failed</td><td>See error list; fix <code class="inline">JWT_SECRET</code>, <code class="inline">MASTER_ADMIN_PASSWORD</code>, <code class="inline">ALLOWED_ORIGINS</code></td></tr></tbody></table>
+<hr />
+<h2>11. HTTPS &amp; custom domain (optional)</h2>
+<p>See <code class="inline">docs/DOMAIN-SETUP.md</code> for Nginx + Let's Encrypt.</p>
+<p>After HTTPS:</p>
+<ol><li>Update <code class="inline">config/aws-production.json</code></li><li>Update <code class="inline">backend/.env</code> → <code class="inline">ALLOWED_ORIGINS=https://admin.yourdomain.com</code></li><li>Rebuild admin with <code class="inline">VITE_API_URL=https://api.yourdomain.com</code></li><li>Rebuild mobile APK with new URL in <code class="inline">eas.json</code></li><li>Open ports 80/443; consider closing direct 5000/3000 to public</li></ol>
+<hr />
+<h2>12. Quick command reference</h2>
+<h3>Local</h3>
+<pre><code class="block">cd backend &amp;&amp; npm run dev
+cd admin &amp;&amp; npm run dev
+cd mobile &amp;&amp; npm run local</code></pre>
+<h3>Production (EC2)</h3>
+<pre><code class="block">cd /home/ubuntu/H20online
+git pull
+cd backend &amp;&amp; npm install --omit=dev &amp;&amp; pm2 restart h20-backend
+cd ../admin &amp;&amp; npm run build:prod &amp;&amp; pm2 restart h20-admin
+pm2 status</code></pre>
+<h3>Generate this PDF</h3>
+<pre><code class="block">cd docs
+npm run deployment-guide</code></pre>
+<hr />
+<h2>13. Document control</h2>
+<table><thead><tr><th>Version</th><th>Date</th><th>Changes</th></tr></thead><tbody><tr><td>1.0</td><td>June 2026</td><td>Initial deployment guide — AWS EC2 13.62.57.255, Atlas, GitHub flow</td></tr></tbody></table>
+<hr />
+<p class="footnote">End of document — H2O Online Deployment Guide v1.0</p></div>
+</body>
+</html>

@@ -4,14 +4,6 @@ import PageHeader from "../components/PageHeader";
 import LoadingState from "../components/LoadingState";
 import { api } from "../api/client";
 
-const card = { background: "#f0f7fcd7", borderRadius: 16, padding: 24, marginBottom: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
-const table = { width: "100%", borderCollapse: "collapse" };
-const th = { textAlign: "left", padding: "10px 12px", borderBottom: "2px solid #E5E7EB", fontWeight: 600, color: "#1B2B34" };
-const td = { padding: "10px 12px", borderBottom: "1px solid #E5E7EB", color: "#1B2B34", fontSize: 13 };
-const btn = { padding: "8px 16px", borderRadius: 8, border: "none", fontWeight: 600, cursor: "pointer" };
-const btnPrimary = { ...btn, background: "#1EA7FD", color: "#fff" };
-const btnGhost = { ...btn, background: "#E0F2FE", color: "#1B2B34" };
-
 function BarChart({ distribution, maxCount }) {
   const max = maxCount || Math.max(...(distribution || []).map((d) => d.count), 1);
   return (
@@ -121,28 +113,28 @@ export default function SurveyResults() {
         title={`Results: ${survey.title}`}
         subtitle={`${stats?.totalResponses || 0} total responses · ${stats?.responsesLast7Days || 0} in last 7 days`}
       >
-        <Link to="/surveys" style={{ ...btnGhost, textDecoration: "none", display: "inline-block", marginRight: 8 }}>
+        <Link to="/surveys" className="btn btn-secondary btn-sm" style={{ textDecoration: "none", marginRight: 8 }}>
           ← Back
         </Link>
-        <button type="button" style={btnPrimary} disabled={analyzing} onClick={runAnalysis}>
+        <button type="button" className="btn btn-primary" disabled={analyzing} onClick={runAnalysis}>
           {analyzing ? "Analyzing..." : "✨ AI analysis (Groq)"}
         </button>
       </PageHeader>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <div style={{ ...card, marginBottom: 0, textAlign: "center" }}>
+        <div className="card" style={{ marginBottom: 0, textAlign: "center" }}>
           <div style={{ fontSize: 28, fontWeight: 700, color: "#0369a1" }}>{stats?.totalResponses || 0}</div>
           <div style={{ color: "#6B7C85" }}>Total responses</div>
         </div>
-        <div style={{ ...card, marginBottom: 0, textAlign: "center" }}>
+        <div className="card" style={{ marginBottom: 0, textAlign: "center" }}>
           <div style={{ fontSize: 28, fontWeight: 700, color: "#0369a1" }}>{stats?.responsesLast7Days || 0}</div>
           <div style={{ color: "#6B7C85" }}>Last 7 days</div>
         </div>
-        <div style={{ ...card, marginBottom: 0, textAlign: "center" }}>
+        <div className="card" style={{ marginBottom: 0, textAlign: "center" }}>
           <div style={{ fontSize: 28, fontWeight: 700, color: "#0369a1" }}>{survey.questionCount}</div>
           <div style={{ color: "#6B7C85" }}>Questions</div>
         </div>
-        <div style={{ ...card, marginBottom: 0, textAlign: "center" }}>
+        <div className="card" style={{ marginBottom: 0, textAlign: "center" }}>
           <div style={{ fontSize: 16, fontWeight: 700, color: survey.isActive ? "#059669" : "#B45309" }}>
             {survey.isActive ? "Active" : "Inactive"}
           </div>
@@ -151,7 +143,7 @@ export default function SurveyResults() {
       </div>
 
       {analysis && (
-        <div style={card}>
+        <div className="card">
           <h2 style={{ marginTop: 0, color: "#0369a1" }}>{analysis.headline}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 24, alignItems: "start" }}>
             {analysis.sentiment && (
@@ -206,7 +198,7 @@ export default function SurveyResults() {
         </div>
       )}
 
-      <div style={card}>
+      <div className="card">
         <h2 style={{ marginTop: 0 }}>Response charts</h2>
         {(stats?.questionStats || []).length === 0 ? (
           <p>No responses yet.</p>
@@ -234,28 +226,28 @@ export default function SurveyResults() {
         )}
       </div>
 
-      <div style={card}>
+      <div className="card">
         <h2 style={{ marginTop: 0 }}>Individual responses</h2>
         {responses.length === 0 ? (
           <p>No submissions yet.</p>
         ) : (
-          <table style={table}>
+          <table className="data-table">
             <thead>
               <tr>
-                <th style={th}>Submitted</th>
-                <th style={th}>Respondent</th>
-                <th style={th}>Answers</th>
+                <th>Submitted</th>
+                <th>Respondent</th>
+                <th>Answers</th>
               </tr>
             </thead>
             <tbody>
               {responses.map((r) => (
                 <tr key={r.id}>
-                  <td style={td}>{new Date(r.submittedAt).toLocaleString()}</td>
-                  <td style={td}>
+                  <td>{new Date(r.submittedAt).toLocaleString()}</td>
+                  <td>
                     {r.respondentName || "Anonymous"}
                     {r.respondentEmail ? <div style={{ fontSize: 11, color: "#6B7C85" }}>{r.respondentEmail}</div> : null}
                   </td>
-                  <td style={td}>
+                  <td>
                     {r.customFields && Object.keys(r.customFields).length > 0 && (
                       <div style={{ marginBottom: 8 }}>
                         <strong style={{ fontSize: 12 }}>Custom fields</strong>

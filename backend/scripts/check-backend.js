@@ -72,6 +72,13 @@ async function main() {
     console.log("");
     if (!(await checkStoresApi())) process.exit(1);
     console.log("");
+    const rzOk = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+    if (rzOk) {
+      console.log("Razorpay: configured (" + String(process.env.RAZORPAY_KEY_ID).slice(0, 12) + "...)");
+    } else {
+      console.warn("Razorpay: NOT configured — add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to backend/.env");
+    }
+    console.log("");
     if (!(await checkRegister())) process.exit(1);
     console.log("");
     console.log("Backend is working. You can create a profile from the app.");

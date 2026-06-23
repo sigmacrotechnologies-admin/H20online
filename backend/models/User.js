@@ -33,6 +33,8 @@ const userSchema = new mongoose.Schema({
   planId: { type: mongoose.Schema.Types.ObjectId, ref: "Plan", default: null },
   societyId: { type: mongoose.Schema.Types.ObjectId, ref: "Society", default: null },
   avatarUrl: String,
+  leaderboardOptIn: { type: Boolean, default: false },
+  leaderboardMonthlyReport: { type: Boolean, default: false },
 }, { timestamps: true });
 
 userSchema.statics.generateUniqueUserCode = async function (role) {

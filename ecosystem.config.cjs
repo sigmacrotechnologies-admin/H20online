@@ -1,6 +1,10 @@
 /**
- * PM2 process config for production (run from repo root or backend folder).
- *   pm2 start ecosystem.config.cjs
+ * PM2 process config for AWS production (run from repo root).
+ *
+ *   pm2 start ecosystem.config.cjs --env production
+ *   pm2 save && pm2 startup
+ *
+ * Prerequisite: admin built with npm run build:prod (dist/ folder exists)
  */
 module.exports = {
   apps: [
@@ -21,7 +25,7 @@ module.exports = {
       name: "h20-admin",
       cwd: "./admin",
       script: "npx",
-      args: "vite preview --port 3000 --host 0.0.0.0",
+      args: "serve dist 3000 --spa --listen 3000 --no-clipboard",
       instances: 1,
       exec_mode: "fork",
       env_production: {

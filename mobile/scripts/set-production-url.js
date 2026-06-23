@@ -9,9 +9,10 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const envPath = path.join(root, ".env");
 const apiUrls = require("../config/apiUrl.json");
+const awsConfig = require("../../config/aws-production.json");
 
 const key = "EXPO_PUBLIC_API_URL=";
-const newUrl = apiUrls.production;
+const newUrl = awsConfig.apiUrl || apiUrls.production;
 
 let content = "";
 let replaced = false;

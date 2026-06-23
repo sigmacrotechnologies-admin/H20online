@@ -5,6 +5,7 @@ const Order = require("../models/Order");
 const Subscription = require("../models/Subscription");
 const Wallet = require("../models/Wallet");
 const { runPayoutOnDelivered } = require("../services/orderPayout");
+const { getDeliveryPartnerFinancials } = require("../services/financials");
 const { auth } = require("../middleware/auth");
 const { etaFromPartnerToCustomer } = require("../utils/deliveryEta");
 const { haversineMeters, formatDistanceMeters } = require("../utils/geo");
@@ -411,18 +412,7 @@ router.patch("/orders/:id/delivered", auth, async (req, res) => {
     resp.deliveryStage = "delivered";
     order.status = "delivered";
     await order.save();
-    if (order.paymentMethod === "wallet") {
-      await runPayoutOnDelivered(order, req.user._id);
-    } else {
-      const deliveryShare = Math.round((order.total || 0) * 0.1);
-      if (deliveryShare > 0) {
-        const w = await getOrCreateWallet(req.user._id);
-        w.balance = (w.balance || 0) + deliveryShare;
-        w.transactions = w.transactions || [];
-        w.transactions.push({ amount: deliveryShare, type: "credit", ref: "delivery" });
-        await w.save();
-      }
-    }
+    await runPayoutOnDelivered(order, req.user._id);
     const o = order.toObject();
     res.json({ id: o._id.toString(), status: o.status, supplierResponses: o.supplierResponses });
   } catch (err) {
@@ -434,18 +424,8 @@ router.get("/financials", auth, async (req, res) => {
   try {
     const dpId = await getDpId(req);
     if (!dpId) return res.status(403).json({ error: "Delivery partner profile required" });
-    const orders = await Order.find({
-      "supplierResponses.deliveryPartnerId": dpId,
-      status: "delivered",
-    }).lean();
-    const totalEarnings = orders.reduce((sum, o) => sum + (o.total || 0), 0);
-    const deliveryShare = Math.round(totalEarnings * 0.1);
-    res.json({
-      totalDeliveries: orders.length,
-      totalEarnings,
-      deliveryShare,
-      currency: "INR",
-    });
+    const result = await getDeliveryPartnerFinancials(dpId, req.user._id);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

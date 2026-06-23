@@ -34,6 +34,7 @@ function getLocalIP() {
   return null;
 }
 
+const { isRazorpayConfigured } = require("./services/razorpay");
 const authRoutes = require("./routes/auth");
 const adminAuthRoutes = require("./routes/adminAuth");
 const adminRoutes = require("./routes/admin");
@@ -52,6 +53,7 @@ const aiRoutes = require("./routes/ai");
 const plansRoutes = require("./routes/plans");
 const subscriptionsRoutes = require("./routes/subscriptions");
 const addressesRoutes = require("./routes/addresses");
+const serviceabilityRoutes = require("./routes/serviceability");
 const mapsRoutes = require("./routes/maps");
 const storesRoutes = require("./routes/stores");
 const reviewsRoutes = require("./routes/reviews");
@@ -119,14 +121,18 @@ app.use("/api/supplier-support", supplierSupportRoutes);
 app.use("/api/customer-support", customerSupportRoutes);
 app.use("/api/products", productsRoutes);
 app.use("/api/orders", ordersRoutes);
+app.use("/api/payments", require("./routes/payments"));
+app.use("/api/settings", require("./routes/settings"));
 app.use("/api/reviews", reviewsRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/water-intake", waterIntakeRoutes);
+app.use("/api/leaderboard", require("./routes/leaderboard"));
 app.use("/api/ai", aiRoutes);
 app.use("/api/plans", plansRoutes);
 app.use("/api/subscriptions", subscriptionsRoutes);
 app.use("/api/bills", require("./routes/bills"));
 app.use("/api/addresses", addressesRoutes);
+app.use("/api/serviceability", serviceabilityRoutes);
 app.use("/api/maps", mapsRoutes);
 app.use("/api/stores", storesRoutes);
 app.use("/api/surveys", surveysRoutes);
@@ -179,6 +185,11 @@ async function start() {
       if (localIP) {
         console.log("Mobile .env: EXPO_PUBLIC_API_URL=http://" + localIP + ":" + PORT);
       }
+    }
+    if (isRazorpayConfigured()) {
+      console.log("Razorpay: configured (test/live keys in .env)");
+    } else {
+      console.warn("Razorpay: NOT configured — payments will fail until RAZORPAY_KEY_ID + RAZORPAY_KEY_SECRET are in backend/.env");
     }
     console.log("");
   });

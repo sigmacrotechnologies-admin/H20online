@@ -243,9 +243,9 @@ const DashboardScreen = () => {
   ];
 
   const devices = [
-    { id: 1, name: "Apple Watch", icon: "watch-outline", connected: true },
-    { id: 2, name: "Smart Bottle", icon: "water-outline", connected: true },
-    { id: 3, name: "TV Hub", icon: "tv-outline", connected: true },
+    { id: 1, name: "Apple Watch", icon: "watch-outline" },
+    { id: 2, name: "Smart Bottle", icon: "water-outline" },
+    { id: 3, name: "TV Hub", icon: "tv-outline" },
   ];
 
   return (
@@ -482,23 +482,23 @@ const DashboardScreen = () => {
                   <LinearGradient colors={[theme.medium, theme.accent]} style={styles.deviceIconCircle}>
                     <Ionicons name={device.icon} size={24} color="#FFFFFF" />
                   </LinearGradient>
-                  <View style={styles.connectedDot}>
-                    <View style={styles.connectedDotInner} />
+                  <View style={styles.comingSoonBadge}>
+                    <Text style={styles.comingSoonBadgeText}>Soon</Text>
                   </View>
                 </View>
                 <Text style={styles.deviceName}>{device.name}</Text>
-                <Text style={styles.deviceStatus}>Connected</Text>
+                <Text style={styles.deviceStatus}>Coming soon</Text>
               </View>
             ))}
           </ScrollView>
 
-          <TouchableOpacity style={styles.challengeCard} activeOpacity={0.88}>
+          <TouchableOpacity style={styles.challengeCard} activeOpacity={0.88} onPress={() => router.push("/leaderboard")}>
             <LinearGradient colors={["#FEF9C3", "#FDE68A"]} style={styles.challengeIconWrap}>
               <Ionicons name="trophy" size={26} color="#CA8A04" />
             </LinearGradient>
             <View style={styles.challengeTextWrap}>
-              <Text style={styles.cardTitle}>Summer Hydration Challenge</Text>
-              <Text style={styles.challengeSubtitle}>Day 12 of 30 • You're in the top 5%</Text>
+              <Text style={styles.cardTitle}>Monthly Hydration Leaderboard</Text>
+              <Text style={styles.challengeSubtitle}>Ranked by water intake • Tap to view & manage</Text>
             </View>
             <View style={styles.chevronCircle}>
               <Ionicons name="chevron-forward" size={18} color={theme.accent} />
@@ -855,10 +855,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  connectedDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: "#D1FAE5", justifyContent: "center", alignItems: "center" },
-  connectedDotInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#10B981" },
+  comingSoonBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: "#FEF3C7",
+  },
+  comingSoonBadgeText: { fontSize: 10, fontWeight: "800", color: "#D97706", textTransform: "uppercase", letterSpacing: 0.3 },
   deviceName: { fontSize: 14, fontWeight: "700", color: theme.textPrimary },
-  deviceStatus: { fontSize: 11, fontWeight: "600", color: "#10B981", marginTop: 4 },
+  deviceStatus: { fontSize: 11, fontWeight: "600", color: theme.textMuted, marginTop: 4 },
 
   challengeCard: {
     flexDirection: "row",

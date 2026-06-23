@@ -20,6 +20,8 @@ import Stores from "./pages/Stores";
 import Products from "./pages/Products";
 import Surveys from "./pages/Surveys";
 import SurveyResults from "./pages/SurveyResults";
+import TaxSettings from "./pages/TaxSettings";
+import ServiceableAreas from "./pages/ServiceableAreas";
 import LoadingState from "./components/LoadingState";
 
 function PrivateRoute({ children }) {
@@ -63,6 +65,8 @@ function AppRoutes() {
         <Route path="stores" element={<Stores />} />
         <Route path="products" element={<Products />} />
         <Route path="wallet-management" element={<WalletManagement />} />
+        <Route path="tax-settings" element={<TaxSettings />} />
+        <Route path="serviceable-areas" element={<ServiceableAreas />} />
         <Route path="financials" element={<FinancialsRoute />} />
         <Route path="admin-users" element={<AdminUsersRoute />} />
         <Route path="delivery-partners" element={<DeliveryPartners />} />

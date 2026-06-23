@@ -90,4 +90,10 @@ export const api = {
   surveyResponses: (id) => request(`/api/admin/surveys/${id}/responses`),
   surveyStats: (id) => request(`/api/admin/surveys/${id}/stats`),
   analyzeSurvey: (id) => request(`/api/admin/surveys/${id}/analyze`, { method: "POST" }),
+  taxSettings: () => request("/api/admin/tax-settings"),
+  updateTaxSettings: (body) => request("/api/admin/tax-settings", { method: "PUT", body: JSON.stringify(body) }),
+  serviceableAreas: () => request("/api/admin/serviceable-areas"),
+  createServiceableArea: (body) => request("/api/admin/serviceable-areas", { method: "POST", body: JSON.stringify(body) }),
+  updateServiceableArea: (id, body) => request(`/api/admin/serviceable-areas/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteServiceableArea: (id) => request(`/api/admin/serviceable-areas/${id}`, { method: "DELETE" }),
 };

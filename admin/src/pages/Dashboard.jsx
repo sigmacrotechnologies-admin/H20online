@@ -12,7 +12,7 @@ const tiles = [
   { to: "/societies", title: "Society management", subtitle: "Societies, members, tanker plans & assignment", icon: "🏘️" },
   { to: "/stores", title: "Store management", subtitle: "Approve stores, locator & supplier links", icon: "🏬" },
   { to: "/wallet-management", title: "Wallet management", subtitle: "Customer, supplier & delivery wallets", icon: "💳" },
-  { to: "/financials", title: "Financials", subtitle: "Revenue, platform cut (20% / 30%)", icon: "💰", requireMasterOrAdmin: true },
+  { to: "/financials", title: "Financials", subtitle: "Revenue, settlements, supplier & rider cuts", icon: "💰", requireMasterOrAdmin: true },
   { to: "/admin-users", title: "Admin users", subtitle: "Create admin or sub-admin", icon: "🔐", requireMasterOrAdmin: true },
   { to: "/delivery-partners", title: "Delivery partners", subtitle: "Verify & approve delivery partners", icon: "🏍️" },
   { to: "/customer-support", title: "Customer support", subtitle: "Complaints and support tickets", icon: "🎫" },

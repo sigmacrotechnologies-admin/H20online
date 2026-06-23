@@ -7,7 +7,7 @@ import { travelFromSupplierCoords } from "@/src/utils/geo";
  * Distance/ETA from customer to approved store/warehouse locations.
  * destinations: [{ id, lat, lng, name }]
  */
-export function useStoreTravelInfo(customerCoords, destinations = []) {
+export function useStoreTravelInfo(customerCoords, destinations = [], storeIdsFallback = []) {
   const [travelByStore, setTravelByStore] = useState({});
   const [loading, setLoading] = useState(false);
 
@@ -26,22 +26,39 @@ export function useStoreTravelInfo(customerCoords, destinations = []) {
     return [...map.values()];
   }, [destinations]);
 
+  const storeIds = useMemo(() => {
+    const ids = new Set();
+    (storeIdsFallback || []).forEach((id) => {
+      if (id) ids.add(String(id));
+    });
+    uniqueDestinations.forEach((d) => ids.add(String(d.id)));
+    return [...ids];
+  }, [storeIdsFallback, uniqueDestinations]);
+
   const refresh = useCallback(async () => {
     const lat = customerCoords?.latitude;
     const lng = customerCoords?.longitude;
-    if (!Number.isFinite(lat) || !Number.isFinite(lng) || uniqueDestinations.length === 0) {
-      setTravelByStore({});
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setTravelByStore((prev) => (Object.keys(prev).length === 0 ? prev : {}));
+      setLoading(false);
+      return;
+    }
+    if (uniqueDestinations.length === 0 && storeIds.length === 0) {
+      setTravelByStore((prev) => (Object.keys(prev).length === 0 ? prev : {}));
+      setLoading(false);
       return;
     }
 
     setLoading(true);
     let apiResults = {};
     try {
-      const data = await api.maps.travel({
-        fromLat: lat,
-        fromLng: lng,
-        destinations: uniqueDestinations,
-      });
+      const payload = { fromLat: lat, fromLng: lng };
+      if (uniqueDestinations.length > 0) {
+        payload.destinations = uniqueDestinations;
+      } else if (storeIds.length > 0) {
+        payload.storeIds = storeIds;
+      }
+      const data = await api.maps.travel(payload);
       apiResults = data?.results || {};
     } catch {
       apiResults = {};
@@ -54,9 +71,20 @@ export function useStoreTravelInfo(customerCoords, destinations = []) {
       if (est[d.id]) merged[d.id] = est[d.id];
     });
 
+    const missingStoreIds = storeIds.filter((id) => !merged[id]);
+    if (missingStoreIds.length > 0) {
+      try {
+        const data2 = await api.maps.travel({ fromLat: lat, fromLng: lng, storeIds: missingStoreIds });
+        const extra = data2?.results || {};
+        Object.assign(merged, extra);
+      } catch {
+        // keep partial results
+      }
+    }
+
     setTravelByStore(merged);
     setLoading(false);
-  }, [customerCoords?.latitude, customerCoords?.longitude, uniqueDestinations]);
+  }, [customerCoords?.latitude, customerCoords?.longitude, uniqueDestinations, storeIds]);
 
   useEffect(() => {
     refresh();

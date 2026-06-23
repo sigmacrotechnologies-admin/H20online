@@ -46,8 +46,21 @@ const orderSchema = new mongoose.Schema(
     orderId: { type: String, trim: true, unique: true, sparse: true }, // ORD_XXXXXXXX
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     items: [orderItemSchema],
+    subtotal: { type: Number, default: 0 },
+    taxLines: [
+      {
+        label: { type: String, default: "" },
+        percent: { type: Number, default: 0 },
+        amount: { type: Number, default: 0 },
+      },
+    ],
+    taxTotal: { type: Number, default: 0 },
     total: { type: Number, required: true },
     paymentMethod: { type: String, default: "card" },
+    paymentStatus: { type: String, enum: ["pending", "paid", "failed"], default: "paid" },
+    razorpayOrderId: { type: String, default: null },
+    razorpayPaymentId: { type: String, default: null },
+    razorpayTestMode: { type: Boolean, default: false },
     status: { type: String, enum: ["in_progress", "delivered", "cancelled"], default: "in_progress" },
     address: { type: String, default: "" },
     orderType: { type: String, enum: ["instant", "scheduled"], default: "instant" },

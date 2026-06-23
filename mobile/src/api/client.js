@@ -172,6 +172,9 @@ export const api = {
     update: (id, body) => request("/api/addresses/" + id, { method: "PUT", body: JSON.stringify(body) }),
     delete: (id) => request("/api/addresses/" + id, { method: "DELETE" }),
   },
+  serviceability: {
+    check: (body) => request("/api/serviceability/check", { method: "POST", body: JSON.stringify(body) }),
+  },
   maps: {
     travel: (body) => request("/api/maps/travel", { method: "POST", body: JSON.stringify(body) }),
   },
@@ -216,11 +219,32 @@ export const api = {
     list: () => request("/api/bills"),
     pay: (id) => request("/api/bills/" + id + "/pay", { method: "POST" }),
   },
+  settings: {
+    tax: () => request("/api/settings/tax"),
+    payment: () => request("/api/settings/payment"),
+  },
+  payments: {
+    razorpayCreateOrder: (body) =>
+      request("/api/payments/razorpay/create-order", { method: "POST", body: JSON.stringify(body) }),
+    razorpayVerify: (body) =>
+      request("/api/payments/razorpay/verify-payment", { method: "POST", body: JSON.stringify(body) }),
+  },
   ai: {
     waterInsight: () => request("/api/ai/water-insight"),
     intakeSense: (date) =>
       request("/api/ai/intake-sense" + (date ? "?date=" + encodeURIComponent(date) : "")),
     waterReport: () => request("/api/ai/water-report", { method: "POST" }),
     ask: (question) => request("/api/ai/ask", { method: "POST", body: JSON.stringify({ question }) }),
+  },
+  leaderboard: {
+    get: (year, month) => {
+      const params = [];
+      if (year) params.push("year=" + encodeURIComponent(year));
+      if (month) params.push("month=" + encodeURIComponent(month));
+      const q = params.length ? "?" + params.join("&") : "";
+      return request("/api/leaderboard" + q);
+    },
+    updatePreferences: (body) =>
+      request("/api/leaderboard/preferences", { method: "PUT", body: JSON.stringify(body) }),
   },
 };

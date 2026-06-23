@@ -83,8 +83,9 @@ export default function DeliveryFinancialsScreen() {
   }
 
   const totalDeliveries = data?.totalDeliveries ?? 0;
-  const totalEarnings = data?.totalEarnings ?? 0;
-  const deliveryShare = data?.deliveryShare ?? 0;
+  const estimatedShare = data?.deliveryShareEstimated ?? 0;
+  const walletEarnings = data?.walletEarnings ?? data?.deliveryShare ?? 0;
+  const sharePercent = data?.deliverySharePercent ?? 10;
   const currency = data?.currency ?? "INR";
   const prefix = currency === "INR" ? "₹" : "";
 
@@ -96,15 +97,15 @@ export default function DeliveryFinancialsScreen() {
           contentContainerStyle={ui.scrollContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />}
         >
-          <SectionCard icon="cash-outline" title="Earnings" subtitle="From completed deliveries">
+          <SectionCard icon="cash-outline" title="Earnings" subtitle={`${sharePercent}% of order total on each delivery`}>
             <View style={styles.metricRow}>
               <View style={styles.metricCard}>
-                <Text style={styles.metricLabel}>Delivery share</Text>
-                <Text style={styles.metricValue}>{prefix}{deliveryShare}</Text>
+                <Text style={styles.metricLabel}>Paid to wallet</Text>
+                <Text style={styles.metricValue}>{prefix}{walletEarnings}</Text>
               </View>
               <View style={styles.metricCard}>
-                <Text style={styles.metricLabel}>Order value delivered</Text>
-                <Text style={styles.metricValue}>{prefix}{totalEarnings}</Text>
+                <Text style={styles.metricLabel}>Estimated ({sharePercent}%)</Text>
+                <Text style={styles.metricValue}>{prefix}{estimatedShare}</Text>
               </View>
             </View>
             <View style={styles.metricCardFull}>

@@ -3,24 +3,6 @@ import PageHeader from "../components/PageHeader";
 import LoadingState from "../components/LoadingState";
 import { api } from "../api/client";
 
-const card = { background: "#f0f7fcd7", borderRadius: 16, padding: 24, marginBottom: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
-const tableWrap = { overflowX: "auto", background: "#fff", borderRadius: 16, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
-const table = { width: "100%", borderCollapse: "collapse" };
-const th = { textAlign: "left", padding: "10px 12px", borderBottom: "2px solid #E5E7EB", fontWeight: 600, color: "#1B2B34" };
-const td = { padding: "10px 12px", borderBottom: "1px solid #E5E7EB", color: "#1B2B34", verticalAlign: "top" };
-const input = { padding: "8px 12px", borderRadius: 8, border: "1px solid #E5E7EB", minWidth: 180 };
-const btn = { padding: "6px 12px", borderRadius: 8, border: "none", fontWeight: 600, cursor: "pointer", background: "#DC2626", color: "#fff", fontSize: 13 };
-const btnGhost = { ...btn, background: "#E0F2FE", color: "#1B2B34" };
-const badge = (inStock) => ({
-  display: "inline-block",
-  padding: "2px 8px",
-  borderRadius: 6,
-  fontSize: 12,
-  fontWeight: 600,
-  background: inStock ? "#D1FAE5" : "#FEE2E2",
-  color: inStock ? "#059669" : "#DC2626",
-});
-
 export default function Products() {
   const [products, setProducts] = useState([]);
   const [total, setTotal] = useState(0);
@@ -82,16 +64,16 @@ export default function Products() {
         subtitle="View and delete catalog products from any supplier (master, admin & sub-admin)"
       />
 
-      <div style={card}>
+      <div className="card">
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
           <input
             type="search"
             placeholder="Search product, supplier, ID..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={input}
+            className="input"
           />
-          <select value={audience} onChange={(e) => setAudience(e.target.value)} style={input}>
+          <select value={audience} onChange={(e) => setAudience(e.target.value)} className="input">
             <option value="">All audiences</option>
             <option value="customer">Customer</option>
             <option value="society">Society</option>
@@ -103,51 +85,51 @@ export default function Products() {
       {loading ? (
         <LoadingState label="Loading products..." />
       ) : products.length === 0 ? (
-        <div style={card}>No products found.</div>
+        <div className="card">No products found.</div>
       ) : (
-        <div style={tableWrap}>
-          <table style={table}>
+        <div className="table-wrap">
+          <table className="data-table">
             <thead>
               <tr>
-                <th style={th}>Product</th>
-                <th style={th}>Supplier</th>
-                <th style={th}>Price</th>
-                <th style={th}>Stock</th>
-                <th style={th}>Audience</th>
-                <th style={th}>Actions</th>
+                <th>Product</th>
+                <th>Supplier</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Audience</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {products.map((p) => (
                 <tr key={p.id}>
-                  <td style={td}>
+                  <td>
                     <div style={{ fontWeight: 600 }}>{p.productName}</div>
                     <div style={{ fontSize: 12, color: "#6B7280" }}>
                       {p.productType?.toUpperCase()} · {p.capacityL}L · ID {p.id}
                     </div>
                   </td>
-                  <td style={td}>
+                  <td>
                     <div>{p.supplierName || "—"}</div>
                     <div style={{ fontSize: 12, color: "#6B7280" }}>{p.supplierId}</div>
                   </td>
-                  <td style={td}>
+                  <td>
                     ₹{Number(p.price || 0).toLocaleString()}
                     <div style={{ fontSize: 12, color: "#6B7280" }}>{p.priceUnit}</div>
                   </td>
-                  <td style={td}>
-                    <span style={badge(p.inStock)}>{p.inStock ? "In stock" : "Out"}</span>
+                  <td>
+                    <span className={p.inStock ? "badge badge-success" : "badge badge-danger"}>{p.inStock ? "In stock" : "Out"}</span>
                     <div style={{ fontSize: 12, color: "#6B7280", marginTop: 4 }}>Qty: {p.stockQty}</div>
                   </td>
-                  <td style={td}>
+                  <td>
                     {p.audience === "society" ? "Society" : "Customer"}
                     {p.audience === "society" && p.waterQuality ? (
                       <div style={{ fontSize: 12, color: "#6B7280" }}>{p.waterQuality}</div>
                     ) : null}
                   </td>
-                  <td style={td}>
+                  <td>
                     <button
                       type="button"
-                      style={btn}
+                      className="btn btn-primary btn-sm"
                       disabled={deletingId === p.id}
                       onClick={() => handleDelete(p)}
                     >
@@ -165,7 +147,7 @@ export default function Products() {
         <div style={{ display: "flex", gap: 8, marginTop: 16, alignItems: "center" }}>
           <button
             type="button"
-            style={btnGhost}
+            className="btn btn-secondary btn-sm"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
@@ -176,7 +158,7 @@ export default function Products() {
           </span>
           <button
             type="button"
-            style={btnGhost}
+            className="btn btn-secondary btn-sm"
             disabled={page >= pageCount}
             onClick={() => setPage((p) => p + 1)}
           >

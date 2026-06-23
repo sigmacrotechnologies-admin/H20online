@@ -31,6 +31,7 @@ export default function RootLayout() {
             <Stack.Screen name="saved-addresses" options={{ headerShown: false }} />
             <Stack.Screen name="track-order" options={{ headerShown: false }} />
             <Stack.Screen name="water-intake" options={{ headerShown: false }} />
+            <Stack.Screen name="leaderboard" options={{ headerShown: false }} />
             <Stack.Screen name="plan-subscription" options={{ headerShown: false }} />
             <Stack.Screen name="billing" options={{ headerShown: false }} />
             <Stack.Screen name="customer-support" options={{ headerShown: false }} />
