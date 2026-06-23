@@ -8,6 +8,7 @@ backend/.env
 admin/.env
 admin/.env.production
 mobile/.env
+mobile/.env.production
 
 # Build outputs (build on server with npm run build)
 admin/dist/

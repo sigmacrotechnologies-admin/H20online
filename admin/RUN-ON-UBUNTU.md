@@ -58,32 +58,82 @@ Then open in browser: **http://YOUR_SERVER_IP:3000**
 
 ## Redeploy after code updates (EC2)
 
+**Important:** `pm2 restart` alone does **not** update the UI. You must **rebuild** `admin/dist` after every `git pull`.
+
 On the server (`/home/ubuntu/H20online` or your clone path):
 
 ```bash
 cd /home/ubuntu/H20online
 git pull
 
-# Backend
-cd backend
-npm install --omit=dev
-pm2 restart h20-backend || pm2 restart backend || pm2 start server.js --name h20-backend
-pm2 save
+# Recommended — clean build + PM2 restart
+chmod +x scripts/redeploy-admin.sh
+./scripts/redeploy-admin.sh
+```
 
-# Admin (rebuild so new UI + API URL are baked in)
-cd ../admin
-echo 'VITE_API_URL=http://13.62.57.255:5000' > .env.production
+Or manually:
+
+```bash
+cd /home/ubuntu/H20online
+git pull
+
+cd admin
+cp .env.production.aws.example .env.production   # if missing
 npm install
-npm run build
-pm2 restart h20-admin || pm2 serve dist 3000 --spa --name h20-admin
+npm run deploy:prod    # deletes old dist, builds fresh production bundle
+
+cd ..
+pm2 delete h20-admin 2>/dev/null || true
+pm2 start ecosystem.config.cjs --only h20-admin --env production
 pm2 save
+```
+
+Verify the **new** bundle is live (hash must match build output):
+
+```bash
+curl -s http://127.0.0.1:3000/ | grep assets
+```
+
+Browser: open **http://13.62.57.255:3000** and hard refresh (**Ctrl+Shift+R**).
+
+---
+
+## Still seeing the old admin?
+
+| Cause | Fix |
+|-------|-----|
+| Only ran `pm2 restart` | Run `npm run deploy:prod` in `admin/` first |
+| Old `dist/` not replaced | `deploy:prod` removes `dist/` before build |
+| Code not on server | Push to GitHub, then `git pull` on EC2 |
+| Wrong URL (port **5000**) | Use **:3000** for PM2 admin, or rebuild and `pm2 restart h20-backend` if `NODE_ENV=production` serves admin on :5000 |
+| Old PM2 process (`vite preview`) | `pm2 delete h20-admin` then start via `ecosystem.config.cjs` |
+| Browser cache | Hard refresh or incognito |
+| Multiple PM2 apps | `pm2 list` — stop duplicate admin processes |
+
+Check new UI: sidebar should include **Tax settings** and **Serviceable areas**.
+
+---
+
+## Backend redeploy
+
+```bash
+cd /home/ubuntu/H20online/backend
+npm install --omit=dev
+pm2 restart h20-backend
+pm2 save
+```
+
+If `NODE_ENV=production`, backend also serves `admin/dist` on port **5000**. After admin rebuild, restart backend too:
+
+```bash
+pm2 restart h20-backend
 ```
 
 Verify:
 
 ```bash
 curl http://13.62.57.255:5000/api/health
-curl http://13.62.57.255:5000/api/surveys/your-slug   # after surveys deployed
+curl -s http://13.62.57.255:3000/ | grep assets
 ```
 
 **Note:** If you set `NODE_ENV=production` in `backend/.env`, you must also set `ALLOWED_ORIGINS=http://13.62.57.255:3000` (admin origin). Without `NODE_ENV=production`, CORS stays open (current AWS behavior).
