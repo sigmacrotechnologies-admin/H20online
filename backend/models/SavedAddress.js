@@ -10,6 +10,8 @@ const savedAddressSchema = new mongoose.Schema(
     pinCode: { type: String, trim: true },
     phoneNumber: { type: String, trim: true, required: true },
     fullAddress: { type: String, trim: true }, // built from parts for display/delivery
+    latitude: { type: Number },
+    longitude: { type: Number },
     isDefault: { type: Boolean, default: false },
   },
   { timestamps: true }

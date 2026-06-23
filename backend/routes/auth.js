@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const User = require("../models/User");
 const Supplier = require("../models/Supplier");
 const DeliveryPartner = require("../models/DeliveryPartner");
+const Society = require("../models/Society");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "h20-secret";
@@ -40,9 +41,10 @@ router.post("/register", async (req, res) => {
     });
 
     const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "7d" });
-    const u = await User.findById(user._id).select("-password");
-    res.status(201).json({ user: u, token });
-    console.log("User created:", u._id.toString());
+    const u = await User.findById(user._id).select("-password").lean();
+    const out = { ...u, id: u._id.toString(), _id: u._id.toString(), role: u.role || "customer" };
+    res.status(201).json({ user: out, token });
+    console.log("User created:", out.id);
   } catch (err) {
     console.error("Register error:", err.message);
     res.status(500).json({ error: err.message });
@@ -190,6 +192,58 @@ router.post("/register-delivery", async (req, res) => {
     res.status(201).json({ user: out, token, deliveryPartnerId: dp._id.toString(), onboardingStatus: "pending" });
   } catch (err) {
     console.error("Register delivery error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/register-society", async (req, res) => {
+  try {
+    const {
+      societyName,
+      registrationNo,
+      gstNumber,
+      pocName,
+      pocEmail,
+      pocPhone,
+      password,
+      address,
+      city,
+    } = req.body;
+    if (!societyName || !registrationNo || !pocName || !pocEmail || !pocPhone || !password) {
+      return res.status(400).json({ error: "Society name, registration no., POC name, email, phone and password are required" });
+    }
+    const existingUser = await User.findOne({ email: pocEmail.toLowerCase() });
+    if (existingUser) return res.status(400).json({ error: "Email already registered" });
+    const existingReg = await Society.findOne({ registrationNo: String(registrationNo).trim() });
+    if (existingReg) return res.status(400).json({ error: "Registration number already in use" });
+
+    const user = await User.create({
+      name: pocName.trim(),
+      email: pocEmail.toLowerCase(),
+      phone: pocPhone.trim(),
+      password,
+      role: "society",
+      segment: "society",
+    });
+
+    const society = await Society.create({
+      societyName: String(societyName).trim(),
+      registrationNo: String(registrationNo).trim(),
+      gstNumber: (gstNumber || "").trim(),
+      pocName: pocName.trim(),
+      pocEmail: pocEmail.toLowerCase(),
+      pocPhone: pocPhone.trim(),
+      address: (address || "").trim(),
+      city: (city || "").trim(),
+      userId: user._id,
+    });
+
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: "7d" });
+    const u = await User.findById(user._id).select("-password").lean();
+    const out = { ...u, id: u._id.toString(), role: "society" };
+    res.status(201).json({ user: out, token, societyId: society._id.toString() });
+  } catch (err) {
+    console.error("Register society error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });

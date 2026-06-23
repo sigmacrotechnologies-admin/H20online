@@ -49,12 +49,35 @@ async function checkRegister() {
   return false;
 }
 
+async function checkStoresApi() {
+  const res = await fetch(`${BASE}/api/stores`);
+  if (res.status === 404) {
+    console.error("Stores API missing (404). Stop all node servers and restart: npm run dev");
+    return false;
+  }
+  if (res.status !== 401) {
+    console.error("Stores API unexpected status:", res.status);
+    return false;
+  }
+  console.log("Stores API: OK (route registered, auth required)");
+  return true;
+}
+
 async function main() {
   console.log("Backend base URL:", BASE);
   console.log("");
 
   try {
     if (!(await checkHealth())) process.exit(1);
+    console.log("");
+    if (!(await checkStoresApi())) process.exit(1);
+    console.log("");
+    const rzOk = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+    if (rzOk) {
+      console.log("Razorpay: configured (" + String(process.env.RAZORPAY_KEY_ID).slice(0, 12) + "...)");
+    } else {
+      console.warn("Razorpay: NOT configured — add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to backend/.env");
+    }
     console.log("");
     if (!(await checkRegister())) process.exit(1);
     console.log("");

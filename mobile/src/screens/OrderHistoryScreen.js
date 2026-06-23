@@ -22,6 +22,7 @@ import DropletOverlay from "@/src/components/modern/DropletOverlay";
 import OrderDetailsModal from "@/src/components/OrderDetailsModal";
 import { useCart } from "@/src/context/CartContext";
 import { useAuth } from "@/src/context/AuthContext";
+import { useCustomerPortal } from "@/src/utils/customerPortal";
 import { getOrderId, getOrderIdShort } from "@/src/utils/orderId";
 import { theme } from "@/src/theme";
 
@@ -61,8 +62,13 @@ function statusMeta(status) {
 
 const OrderHistoryScreen = () => {
   const router = useRouter();
+  const portal = useCustomerPortal();
   const { orders, refreshOrders } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
+  const sourceOrders = useMemo(() => {
+    if (!portal.isSociety) return orders;
+    return orders.filter((o) => o.orderChannel === "society");
+  }, [orders, portal.isSociety]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -86,19 +92,19 @@ const OrderHistoryScreen = () => {
   }, [isAuthenticated, refreshOrders]);
 
   const filteredOrders = useMemo(() => {
-    const sorted = [...orders].sort(
+    const sorted = [...sourceOrders].sort(
       (a, b) => new Date(b.date || b.createdAt || 0) - new Date(a.date || a.createdAt || 0)
     );
     if (activeFilter === "all") return sorted;
     return sorted.filter((o) => (o.status || "in_progress") === activeFilter);
-  }, [orders, activeFilter]);
+  }, [sourceOrders, activeFilter]);
 
   const stats = useMemo(() => {
-    const totalSpent = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-    const delivered = orders.filter((o) => o.status === "delivered").length;
-    const active = orders.filter((o) => o.status === "in_progress").length;
-    return { totalSpent, delivered, active, count: orders.length };
-  }, [orders]);
+    const totalSpent = sourceOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const delivered = sourceOrders.filter((o) => o.status === "delivered").length;
+    const active = sourceOrders.filter((o) => o.status === "in_progress").length;
+    return { totalSpent, delivered, active, count: sourceOrders.length };
+  }, [sourceOrders]);
 
   const openDetails = (order) => {
     setSelectedOrder(order);
@@ -175,7 +181,7 @@ const OrderHistoryScreen = () => {
             <View style={styles.headerTopRow}>
               <BackButton />
               <AppLogo size="header" />
-              <TouchableOpacity style={styles.headerMenuBtn} activeOpacity={0.85} onPress={() => router.push("/profile")}>
+              <TouchableOpacity style={styles.headerMenuBtn} activeOpacity={0.85} onPress={() => router.push(portal.profile)}>
                 <Ionicons name="menu" size={22} color="#FFFFFF" />
               </TouchableOpacity>
             </View>

@@ -1,0 +1,9 @@
+{
+  "ec2PublicIp": "13.62.57.255",
+  "apiUrl": "http://13.62.57.255:5000",
+  "adminUrl": "http://13.62.57.255:3000",
+  "apiPort": 5000,
+  "adminPort": 3000,
+  "healthCheck": "http://13.62.57.255:5000/api/health",
+  "_comment": "Single source of truth for AWS production URLs. After EC2 IP or domain change, update here and sync files listed in docs/DEPLOYMENT-GUIDE.md"
+}

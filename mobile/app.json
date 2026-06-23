@@ -1,26 +1,27 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "H20nline",
+    "slug": "h20online",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "h20online",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.h20online.app"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1B2B34",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": false,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.mobile",
+      "package": "com.h20online.app",
       "usesCleartextTraffic": true
     },
     "web": {
@@ -43,14 +44,13 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#1B2B34",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#1B2B34"
           }
         }
       ],
-      "expo-font",
-      "expo-build-properties"
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -59,8 +59,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "f9d49dba-bdbe-4f53-a581-85990eacc261"
+        "projectId": "617044f2-1ffb-421f-94e0-3d1cd4530c70"
       }
-    }
+    },
+    "owner": "apps-sigma"
   }
 }

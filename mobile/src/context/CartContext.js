@@ -11,7 +11,7 @@ const DOCS_DEMO_CART = [
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
   const [checkoutDetails, setCheckoutDetailsState] = useState(null);
@@ -70,31 +70,47 @@ export function CartProvider({ children }) {
   const cartCount = cart.reduce((sum, i) => sum + (i.qty || 1), 0);
   const cartTotal = cart.reduce((sum, i) => sum + (i.price || 0) * (i.qty || 1), 0);
 
-  const setCheckoutDetails = (details) => setCheckoutDetailsState(details);
-  const getCheckoutDetails = () => checkoutDetails;
+  const setCheckoutDetails = useCallback((details) => {
+    setCheckoutDetailsState(details);
+  }, []);
 
-  const placeOrder = async (paymentMethod, details) => {
+  const getCheckoutDetails = useCallback(() => checkoutDetails, [checkoutDetails]);
+
+  const placeOrder = async (paymentMethod, details, billing) => {
     if (cart.length === 0) return null;
     const address = (details && details.address) || "";
     const receiverName = (details && details.receiverName) || null;
     const receiverPhone = (details && details.receiverPhone) || null;
     const scheduledAt = (details && details.scheduledAt) || null;
+    const bill = billing || {
+      subtotal: cartTotal,
+      taxLines: [],
+      taxTotal: 0,
+      grandTotal: cartTotal,
+    };
     if (isAuthenticated) {
       try {
         const payload = {
           items: cart,
-          total: cartTotal,
+          subtotal: bill.subtotal,
+          taxLines: bill.taxLines || [],
+          taxTotal: bill.taxTotal || 0,
+          total: bill.grandTotal,
           paymentMethod: paymentMethod || "card",
           address,
+          pinCode: details?.pinCode || null,
+          city: details?.city || null,
+          state: details?.state || null,
+          addressId: details?.addressId || null,
           receiverName,
           receiverPhone,
           scheduledAt,
+          customerLatitude: details?.customerLatitude ?? null,
+          customerLongitude: details?.customerLongitude ?? null,
         };
+        if (user?.role === "society") payload.orderChannel = "society";
         const order = await api.orders.create(payload);
-        setOrders((prev) => [order, ...prev]);
-        setCart([]);
-        setCheckoutDetailsState(null);
-        api.orders.list().then((list) => { if (Array.isArray(list) && list.length > 0) setOrders(list); }).catch(() => {});
+        finalizeOrder(order);
         return order;
       } catch (err) {
         throw err;
@@ -103,16 +119,26 @@ export function CartProvider({ children }) {
     const order = {
       id: `ord_${Date.now()}`,
       items: [...cart],
-      total: cartTotal,
+      subtotal: bill.subtotal,
+      taxLines: bill.taxLines || [],
+      taxTotal: bill.taxTotal || 0,
+      total: bill.grandTotal,
       paymentMethod: paymentMethod || "Card",
       status: "in_progress",
       date: new Date().toISOString(),
       address: address || "Current location (tap to change)",
     };
+    finalizeOrder(order);
+    return order;
+  };
+
+  const finalizeOrder = (order) => {
     setOrders((prev) => [order, ...prev]);
     setCart([]);
     setCheckoutDetailsState(null);
-    return order;
+    if (isAuthenticated) {
+      api.orders.list().then((list) => { if (Array.isArray(list) && list.length > 0) setOrders(list); }).catch(() => {});
+    }
   };
 
   const getLatestOrder = () => orders[0] || null;
@@ -143,8 +169,10 @@ export function CartProvider({ children }) {
         clearCart,
         setCartForBuyNow,
         placeOrder,
+        finalizeOrder,
         setCheckoutDetails,
         getCheckoutDetails,
+        checkoutDetails,
         getLatestOrder,
         refreshOrders,
         cancelOrder,

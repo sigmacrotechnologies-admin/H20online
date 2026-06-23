@@ -114,6 +114,9 @@ const ProfileScreen = () => {
   const [editEmail, setEditEmail] = useState(user?.email || "");
   const [editPhone, setEditPhone] = useState(user?.phone || "");
   const [editAddress, setEditAddress] = useState("123 Hydration St, City");
+  const [editSocietyId, setEditSocietyId] = useState(user?.societyId || "");
+  const [societiesList, setSocietiesList] = useState([]);
+  const [societiesLoading, setSocietiesLoading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -181,7 +184,16 @@ const ProfileScreen = () => {
     setEditName(user?.name || "");
     setEditEmail(user?.email || "");
     setEditPhone(user?.phone || "");
+    setEditSocietyId(user?.societyId || "");
     setSaveError("");
+    if (user?.role === "customer") {
+      setSocietiesLoading(true);
+      api.societies
+        .list()
+        .then((list) => setSocietiesList(Array.isArray(list) ? list : []))
+        .catch(() => setSocietiesList([]))
+        .finally(() => setSocietiesLoading(false));
+    }
     setShowPersonalModal(true);
   };
 
@@ -212,6 +224,7 @@ const ProfileScreen = () => {
         name: nameVal,
         email: emailVal,
         phone: editPhone.trim(),
+        societyId: user?.role === "customer" ? (editSocietyId || null) : undefined,
       });
       setUser(updated);
       setShowPersonalModal(false);
@@ -282,6 +295,9 @@ const ProfileScreen = () => {
                   <View style={styles.profileHeroInfo}>
                     <Text style={styles.userName}>{displayName}</Text>
                     <Text style={styles.userEmail}>{user?.email || "Login to sync your account"}</Text>
+                    {user?.societyName ? (
+                      <Text style={styles.userSocietyText}>Member of {user.societyName}</Text>
+                    ) : null}
                     {user?.userCode ? <Text style={styles.userIdText}>Member ID · {user.userCode}</Text> : null}
                   </View>
                   <TouchableOpacity style={styles.profileEditBtn} onPress={openPersonalModal} activeOpacity={0.85}>
@@ -409,6 +425,37 @@ const ProfileScreen = () => {
         <ModernInput label="Full name" icon="person-outline" value={editName} onChangeText={setEditName} placeholder="Your name" />
         <ModernInput label="Email" icon="mail-outline" value={editEmail} onChangeText={setEditEmail} placeholder="you@email.com" keyboardType="email-address" autoCapitalize="none" />
         <ModernInput label="Phone" icon="call-outline" value={editPhone} onChangeText={setEditPhone} placeholder="Phone number" keyboardType="phone-pad" />
+        {user?.role === "customer" ? (
+          <View style={styles.societySection}>
+            <Text style={styles.societyLabel}>Your society</Text>
+            <Text style={styles.societyHint}>Select your residential society to link your profile as a member.</Text>
+            {societiesLoading ? (
+              <ActivityIndicator color={theme.accent} style={{ marginVertical: 12 }} />
+            ) : (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.societyChipRow}>
+                <TouchableOpacity
+                  style={[styles.societyChip, !editSocietyId && styles.societyChipActive]}
+                  onPress={() => setEditSocietyId("")}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.societyChipText, !editSocietyId && styles.societyChipTextActive]}>None</Text>
+                </TouchableOpacity>
+                {societiesList.map((s) => (
+                  <TouchableOpacity
+                    key={s.id}
+                    style={[styles.societyChip, editSocietyId === s.id && styles.societyChipActive]}
+                    onPress={() => setEditSocietyId(s.id)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.societyChipText, editSocietyId === s.id && styles.societyChipTextActive]}>
+                      {s.societyName}{s.city ? ` · ${s.city}` : ""}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        ) : null}
         <ModernInput label="Address note" icon="home-outline" value={editAddress} onChangeText={setEditAddress} placeholder="Optional address note" />
         {saveError ? (
           <View style={styles.errBanner}>
@@ -499,6 +546,22 @@ const styles = StyleSheet.create({
   userName: { fontSize: 20, fontWeight: "800", color: "#FFFFFF", letterSpacing: -0.3 },
   userEmail: { fontSize: 13, color: "rgba(255,255,255,0.9)", marginTop: 4 },
   userIdText: { fontSize: 12, color: "rgba(255,255,255,0.78)", marginTop: 4 },
+  userSocietyText: { fontSize: 12, color: "rgba(255,255,255,0.9)", marginTop: 4, fontWeight: "600" },
+  societySection: { marginBottom: 8 },
+  societyLabel: { fontSize: 14, fontWeight: "700", color: theme.textPrimary, marginBottom: 4 },
+  societyHint: { fontSize: 12, color: theme.textMuted, marginBottom: 10, lineHeight: 18 },
+  societyChipRow: { gap: 8, paddingVertical: 4 },
+  societyChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
+  },
+  societyChipActive: { backgroundColor: theme.accent, borderColor: theme.accent },
+  societyChipText: { fontSize: 13, fontWeight: "600", color: theme.textPrimary },
+  societyChipTextActive: { color: "#FFFFFF" },
   profileEditBtn: {
     width: 38,
     height: 38,

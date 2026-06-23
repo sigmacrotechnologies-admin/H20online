@@ -16,14 +16,17 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/src/api/client";
 import BackButton from "@/src/components/BackButton";
 import AppLogo from "@/src/components/AppLogo";
 import DropletOverlay from "@/src/components/modern/DropletOverlay";
 import { ModernInput } from "@/src/components/modern";
+import AddressMapPicker from "@/src/components/AddressMapPicker";
 import { theme } from "@/src/theme";
+import { useCart } from "@/src/context/CartContext";
+import { addressToCheckoutFields, normalizePin } from "@/src/utils/checkoutAddress";
 
 const FIELDS = [
   { key: "houseNumber", label: "House / Building no.", placeholder: "e.g. 12, Tower A", icon: "home-outline" },
@@ -60,6 +63,21 @@ function AddressFormSheet({ visible, editingId, form, setForm, error, saving, on
   const preview = buildPreviewAddress(form);
   const filledCount = FIELDS.filter((f) => String(form[f.key] || "").trim()).length;
   const progress = filledCount / FIELDS.length;
+
+  const handleCoordinatesChange = ({ latitude, longitude }) => {
+    setForm((prev) => ({ ...prev, latitude, longitude }));
+  };
+
+  const handleAddressFromMap = (parts) => {
+    setForm((prev) => ({
+      ...prev,
+      houseNumber: parts.houseNumber || prev.houseNumber,
+      locality: parts.locality || prev.locality,
+      city: parts.city || prev.city,
+      state: parts.state || prev.state,
+      pinCode: parts.pinCode || prev.pinCode,
+    }));
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -119,18 +137,14 @@ function AddressFormSheet({ visible, editingId, form, setForm, error, saving, on
               )}
             </View>
 
-            <View style={styles.mapPlaceholderCard}>
-              <LinearGradient colors={["#E0F7FA", "#F8FDFF"]} style={styles.mapPlaceholderBg}>
-                <Ionicons name="map-outline" size={28} color={theme.accent} />
-              </LinearGradient>
-              <View style={styles.mapPlaceholderText}>
-                <Text style={styles.mapPlaceholderTitle}>Pin on map</Text>
-                <Text style={styles.mapPlaceholderHint}>Map picker coming soon — enter address manually for now</Text>
-              </View>
-              <View style={styles.mapSoonBadge}>
-                <Text style={styles.mapSoonText}>Soon</Text>
-              </View>
-            </View>
+            <FormSectionCard icon="location-outline" title="Pin on map" subtitle="Tap map, drag pin, or use current location">
+              <AddressMapPicker
+                latitude={form.latitude}
+                longitude={form.longitude}
+                onCoordinatesChange={handleCoordinatesChange}
+                onAddressResolved={handleAddressFromMap}
+              />
+            </FormSectionCard>
 
             <FormSectionCard icon="home-outline" title="Property details" subtitle="House or building info">
               <ModernInput
@@ -281,24 +295,30 @@ function ListSectionCard({ icon, title, subtitle, children }) {
   );
 }
 
-function DefaultAddressHero({ address, onEdit, onDelete }) {
-  return (
-    <View style={styles.defaultHeroWrap}>
-      <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.defaultHero}>
+function DefaultAddressHero({ address, onEdit, onDelete, selectMode, onSelect, isSelected }) {
+  const inner = (
+    <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.defaultHero}>
         <View style={styles.defaultHeroTop}>
           <View style={styles.defaultHeroBadge}>
             <Ionicons name="star" size={12} color="#FFFFFF" />
             <Text style={styles.defaultHeroBadgeText}>Primary address</Text>
           </View>
-          <TouchableOpacity onPress={() => onEdit(address)} activeOpacity={0.85}>
-            <Ionicons name="create-outline" size={18} color="rgba(255,255,255,0.9)" />
-          </TouchableOpacity>
+          {!selectMode ? (
+            <TouchableOpacity onPress={() => onEdit(address)} activeOpacity={0.85}>
+              <Ionicons name="create-outline" size={18} color="rgba(255,255,255,0.9)" />
+            </TouchableOpacity>
+          ) : isSelected ? (
+            <Ionicons name="checkmark-circle" size={22} color="#FFFFFF" />
+          ) : null}
         </View>
         <Text style={styles.defaultHeroLabel}>{getAddressLabel(address, 0)}</Text>
         <Text style={styles.defaultHeroAddress} numberOfLines={3}>{address.fullAddress || "—"}</Text>
         <View style={styles.defaultHeroMeta}>
           {address.city || address.state ? (
             <Text style={styles.defaultHeroMetaText}>{[address.city, address.state].filter(Boolean).join(", ")}</Text>
+          ) : null}
+          {address.pinCode ? (
+            <Text style={styles.defaultHeroMetaText}>PIN {address.pinCode}</Text>
           ) : null}
           {address.phoneNumber ? (
             <View style={styles.defaultHeroPhone}>
@@ -307,27 +327,45 @@ function DefaultAddressHero({ address, onEdit, onDelete }) {
             </View>
           ) : null}
         </View>
-        <View style={styles.heroActions}>
-          <TouchableOpacity style={styles.heroActionBtn} onPress={() => onEdit(address)} activeOpacity={0.85}>
-            <Ionicons name="create-outline" size={15} color="#FFFFFF" />
-            <Text style={styles.heroActionText}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.heroActionBtnDanger} onPress={() => onDelete(address)} activeOpacity={0.85}>
-            <Ionicons name="trash-outline" size={15} color="#FFFFFF" />
-            <Text style={styles.heroActionText}>Delete</Text>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-    </View>
+        {selectMode ? (
+          <View style={styles.heroActions}>
+            <TouchableOpacity style={styles.heroActionBtn} onPress={() => onSelect?.(address)} activeOpacity={0.85}>
+              <Ionicons name="checkmark-outline" size={15} color="#FFFFFF" />
+              <Text style={styles.heroActionText}>Use for checkout</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.heroActions}>
+            <TouchableOpacity style={styles.heroActionBtn} onPress={() => onEdit(address)} activeOpacity={0.85}>
+              <Ionicons name="create-outline" size={15} color="#FFFFFF" />
+              <Text style={styles.heroActionText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.heroActionBtnDanger} onPress={() => onDelete(address)} activeOpacity={0.85}>
+              <Ionicons name="trash-outline" size={15} color="#FFFFFF" />
+              <Text style={styles.heroActionText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+    </LinearGradient>
   );
+
+  if (selectMode) {
+    return (
+      <TouchableOpacity style={styles.defaultHeroWrap} onPress={() => onSelect?.(address)} activeOpacity={0.9}>
+        {inner}
+      </TouchableOpacity>
+    );
+  }
+
+  return <View style={styles.defaultHeroWrap}>{inner}</View>;
 }
 
-function AddressCard({ address, index, onEdit, onDelete, onSetDefault, settingDefaultId }) {
+function AddressCard({ address, index, onEdit, onDelete, onSetDefault, settingDefaultId, selectMode, onSelect, isSelected }) {
   const label = getAddressLabel(address, index);
   const isSetting = settingDefaultId === address.id;
 
-  return (
-    <View style={[styles.addressCard, address.isDefault && styles.addressCardDefault]}>
+  const cardInner = (
+    <View style={[styles.addressCard, address.isDefault && styles.addressCardDefault, isSelected && styles.addressCardSelected]}>
       <View style={styles.addressCardTop}>
         <LinearGradient
           colors={address.isDefault ? [theme.medium, theme.accent] : ["#E0F7FA", "#F8FDFF"]}
@@ -371,7 +409,12 @@ function AddressCard({ address, index, onEdit, onDelete, onSetDefault, settingDe
       </View>
 
       <View style={styles.cardActions}>
-        {!address.isDefault ? (
+        {selectMode ? (
+          <TouchableOpacity style={styles.selectCheckoutBtn} onPress={() => onSelect?.(address)} activeOpacity={0.85}>
+            <Ionicons name="checkmark-circle-outline" size={16} color={theme.accent} />
+            <Text style={styles.selectCheckoutBtnText}>Use for checkout</Text>
+          </TouchableOpacity>
+        ) : !address.isDefault ? (
           <TouchableOpacity
             style={styles.defaultBtn}
             onPress={() => onSetDefault(address)}
@@ -393,20 +436,38 @@ function AddressCard({ address, index, onEdit, onDelete, onSetDefault, settingDe
             <Text style={styles.defaultActiveText}>Active default</Text>
           </View>
         )}
-        <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(address)} activeOpacity={0.85}>
-          <Ionicons name="create-outline" size={16} color={theme.accent} />
-          <Text style={styles.editBtnText}>Edit</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.delBtn} onPress={() => onDelete(address)} activeOpacity={0.85}>
-          <Ionicons name="trash-outline" size={16} color="#DC2626" />
-        </TouchableOpacity>
+        {!selectMode ? (
+          <>
+            <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(address)} activeOpacity={0.85}>
+              <Ionicons name="create-outline" size={16} color={theme.accent} />
+              <Text style={styles.editBtnText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.delBtn} onPress={() => onDelete(address)} activeOpacity={0.85}>
+              <Ionicons name="trash-outline" size={16} color="#DC2626" />
+            </TouchableOpacity>
+          </>
+        ) : null}
       </View>
     </View>
   );
+
+  if (selectMode) {
+    return (
+      <TouchableOpacity onPress={() => onSelect?.(address)} activeOpacity={0.9}>
+        {cardInner}
+      </TouchableOpacity>
+    );
+  }
+
+  return cardInner;
 }
 
 export default function SavedAddressesScreen() {
   const router = useRouter();
+  const { from } = useLocalSearchParams();
+  const selectMode = from === "checkout";
+  const { setCheckoutDetails, getCheckoutDetails } = useCart();
+  const selectedCheckoutId = getCheckoutDetails?.()?.addressId || null;
   const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -419,6 +480,8 @@ export default function SavedAddressesScreen() {
     state: "",
     pinCode: "",
     phoneNumber: "",
+    latitude: null,
+    longitude: null,
     isDefault: false,
   });
   const [saving, setSaving] = useState(false);
@@ -455,7 +518,17 @@ export default function SavedAddressesScreen() {
 
   const openAdd = () => {
     setEditingId(null);
-    setForm({ houseNumber: "", locality: "", city: "", state: "", pinCode: "", phoneNumber: "", isDefault: false });
+    setForm({
+      houseNumber: "",
+      locality: "",
+      city: "",
+      state: "",
+      pinCode: "",
+      phoneNumber: "",
+      latitude: null,
+      longitude: null,
+      isDefault: false,
+    });
     setError("");
     setShowForm(true);
   };
@@ -469,6 +542,8 @@ export default function SavedAddressesScreen() {
       state: a.state || "",
       pinCode: a.pinCode || "",
       phoneNumber: a.phoneNumber || "",
+      latitude: a.latitude ?? null,
+      longitude: a.longitude ?? null,
       isDefault: a.isDefault || false,
     });
     setError("");
@@ -483,8 +558,13 @@ export default function SavedAddressesScreen() {
 
   const validate = () => {
     const { locality, city, state, pinCode, phoneNumber } = form;
-    if (!locality.trim() && !city.trim() && !state.trim() && !pinCode.trim()) {
-      setError("Please fill at least locality, city, state or PIN code.");
+    const pin = String(pinCode || "").replace(/\D/g, "");
+    if (!pin || pin.length < 6) {
+      setError("Valid 6-digit PIN code is required.");
+      return false;
+    }
+    if (!locality.trim() && !city.trim() && !state.trim()) {
+      setError("Please fill at least locality, city or state.");
       return false;
     }
     if (!String(phoneNumber || "").trim()) {
@@ -534,6 +614,8 @@ export default function SavedAddressesScreen() {
         state: address.state || "",
         pinCode: address.pinCode || "",
         phoneNumber: address.phoneNumber || "",
+        latitude: address.latitude ?? null,
+        longitude: address.longitude ?? null,
         isDefault: true,
       });
       setAddresses((prev) => prev.map((a) => (a.id === updated.id ? updated : { ...a, isDefault: false })));
@@ -559,6 +641,27 @@ export default function SavedAddressesScreen() {
     ]);
   };
 
+  const handleSelectForCheckout = (address) => {
+    const fields = addressToCheckoutFields(address);
+    if (!fields) return;
+    const pin = normalizePin(fields.pinCode);
+    if (!pin || pin.length < 6) {
+      Alert.alert("PIN required", "This address needs a valid 6-digit PIN. Please edit the address first.");
+      return;
+    }
+    if (!String(fields.receiverPhone || "").trim()) {
+      Alert.alert("Phone required", "This address needs a phone number. Please edit the address first.");
+      return;
+    }
+    const prev = getCheckoutDetails?.() || {};
+    setCheckoutDetails({
+      ...prev,
+      ...fields,
+      pinCode: pin,
+    });
+    router.back();
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.pageBody}>
@@ -577,8 +680,10 @@ export default function SavedAddressesScreen() {
                 <Ionicons name="add" size={22} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.headerTitle}>Saved addresses</Text>
-            <Text style={styles.headerSubtitle}>Manage delivery locations and contact numbers</Text>
+            <Text style={styles.headerTitle}>{selectMode ? "Choose address" : "Saved addresses"}</Text>
+            <Text style={styles.headerSubtitle}>
+              {selectMode ? "Tap an address to use it on checkout (PIN & phone included)" : "Manage delivery locations and contact numbers"}
+            </Text>
           </LinearGradient>
         </View>
 
@@ -648,7 +753,16 @@ export default function SavedAddressesScreen() {
                 </View>
               ) : (
                 <>
-                  {defaultAddress ? <DefaultAddressHero address={defaultAddress} onEdit={openEdit} onDelete={handleDelete} /> : null}
+                  {defaultAddress ? (
+                    <DefaultAddressHero
+                      address={defaultAddress}
+                      onEdit={openEdit}
+                      onDelete={handleDelete}
+                      selectMode={selectMode}
+                      onSelect={handleSelectForCheckout}
+                      isSelected={selectedCheckoutId === defaultAddress.id}
+                    />
+                  ) : null}
 
                   {(defaultAddress ? otherAddresses : addresses).length > 0 ? (
                     <ListSectionCard
@@ -665,6 +779,9 @@ export default function SavedAddressesScreen() {
                           onDelete={handleDelete}
                           onSetDefault={handleSetDefault}
                           settingDefaultId={settingDefaultId}
+                          selectMode={selectMode}
+                          onSelect={handleSelectForCheckout}
+                          isSelected={selectedCheckoutId === a.id}
                         />
                       ))}
                     </ListSectionCard>
@@ -884,6 +1001,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(214,234,242,0.95)",
   },
   addressCardDefault: { borderColor: theme.accent, backgroundColor: "rgba(51,175,193,0.06)" },
+  addressCardSelected: { borderColor: "#059669", backgroundColor: "rgba(5,150,105,0.08)" },
   addressCardTop: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   addressIconWrap: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   addressCardBody: { flex: 1, minWidth: 0 },
@@ -943,6 +1061,19 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(5,150,105,0.08)",
   },
   defaultActiveText: { fontSize: 13, fontWeight: "600", color: "#059669" },
+  selectCheckoutBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(51,175,193,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(51,175,193,0.22)",
+  },
+  selectCheckoutBtnText: { fontSize: 13, fontWeight: "700", color: theme.accent },
   editBtn: {
     flexDirection: "row",
     alignItems: "center",

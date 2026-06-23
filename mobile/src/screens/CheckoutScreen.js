@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -24,6 +24,11 @@ import { useWallet } from "@/src/context/WalletContext";
 import WalletModal from "@/src/components/WalletModal";
 import { api } from "@/src/api/client";
 import { ModernInput } from "@/src/components/modern";
+import RouteMapPreview from "@/src/components/RouteMapPreview";
+import StoreTravelBadge from "@/src/components/StoreTravelBadge";
+import { useStoreTravelInfo } from "@/src/hooks/useStoreTravel";
+import { useBilling } from "@/src/hooks/useBilling";
+import { addressToCheckoutFields, normalizePin } from "@/src/utils/checkoutAddress";
 
 function SectionCard({ icon, title, subtitle, children }) {
   return (
@@ -44,9 +49,14 @@ function SectionCard({ icon, title, subtitle, children }) {
 
 const CheckoutScreen = () => {
   const router = useRouter();
-  const { cart, cartCount, cartTotal, setCheckoutDetails, getCheckoutDetails } = useCart();
+  const { cart, cartCount, cartTotal, setCheckoutDetails, checkoutDetails } = useCart();
   const { balance } = useWallet();
+  const { billing } = useBilling(cartTotal);
+  const grandTotal = billing.grandTotal;
   const [fullAddress, setFullAddress] = useState("");
+  const [pinCode, setPinCode] = useState("");
+  const [city, setCity] = useState("");
+  const [stateName, setStateName] = useState("");
   const [receiverPhone, setReceiverPhone] = useState("");
   const [orderForSomeoneElse, setOrderForSomeoneElse] = useState(false);
   const [receiverName, setReceiverName] = useState("");
@@ -62,7 +72,79 @@ const CheckoutScreen = () => {
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [showHourDropdown, setShowHourDropdown] = useState(false);
   const [showMinuteDropdown, setShowMinuteDropdown] = useState(false);
+  const [customerCoords, setCustomerCoords] = useState(null);
+  const [checkingService, setCheckingService] = useState(false);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
   const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
+
+  const checkoutDetailsRef = useRef(checkoutDetails);
+  checkoutDetailsRef.current = checkoutDetails;
+  const syncedAddressIdRef = useRef(null);
+  const skipAutoDefaultRef = useRef(false);
+  const initialHydrationDoneRef = useRef(false);
+
+  const syncFormFromDetails = useCallback((details) => {
+    if (!details) return;
+    if (details.address != null) setFullAddress(details.address);
+    if (details.pinCode != null) setPinCode(details.pinCode);
+    if (details.city != null) setCity(details.city);
+    if (details.state != null) setStateName(details.state);
+    if (details.receiverPhone != null) setReceiverPhone(details.receiverPhone);
+    if (details.addressId) {
+      setSelectedAddressId(details.addressId);
+      syncedAddressIdRef.current = details.addressId;
+    } else {
+      setSelectedAddressId(null);
+      syncedAddressIdRef.current = null;
+    }
+    if (details.customerLatitude != null && details.customerLongitude != null) {
+      setCustomerCoords({ latitude: details.customerLatitude, longitude: details.customerLongitude });
+    }
+  }, []);
+
+  const releaseSavedAddressLock = useCallback((force = false) => {
+    skipAutoDefaultRef.current = true;
+    if (!force && !syncedAddressIdRef.current) return;
+    syncedAddressIdRef.current = null;
+    setSelectedAddressId(null);
+    setCheckoutDetails({ ...(checkoutDetailsRef.current || {}), addressId: null });
+  }, [setCheckoutDetails]);
+
+  const applySelectedAddress = useCallback(
+    (address) => {
+      const fields = addressToCheckoutFields(address);
+      if (!fields) return false;
+      const pin = normalizePin(fields.pinCode);
+      if (!pin || pin.length < 6) {
+        alert("This address needs a valid 6-digit PIN. Please update it in Saved Addresses.");
+        return false;
+      }
+      if (!String(fields.receiverPhone || "").trim()) {
+        alert("This address needs a phone number. Please update it in Saved Addresses.");
+        return false;
+      }
+      skipAutoDefaultRef.current = false;
+      syncedAddressIdRef.current = fields.addressId;
+      setFullAddress(fields.address);
+      setPinCode(fields.pinCode);
+      setCity(fields.city);
+      setStateName(fields.state);
+      setReceiverPhone(fields.receiverPhone);
+      setSelectedAddressId(fields.addressId);
+      if (fields.customerLatitude != null && fields.customerLongitude != null) {
+        setCustomerCoords({ latitude: fields.customerLatitude, longitude: fields.customerLongitude });
+      }
+      setCheckoutDetails({
+        ...(checkoutDetailsRef.current || {}),
+        ...fields,
+        pinCode: pin,
+      });
+      return true;
+    },
+    [setCheckoutDetails]
+  );
 
   const dateOptions = useMemo(() => {
     const base = new Date();
@@ -87,28 +169,106 @@ const CheckoutScreen = () => {
   useFocusEffect(
     useCallback(() => {
       if (cart.length === 0) router.replace("/cart");
-      const details = getCheckoutDetails?.();
-      if (details?.address) setFullAddress(details.address);
-      if (details?.receiverPhone) setReceiverPhone(details.receiverPhone);
-      if (!details?.address || !details?.receiverPhone) {
-        api.addresses
-          .list()
-          .then((list) => {
-            const safe = Array.isArray(list) ? list : [];
-            const defaultEntry = safe.find((a) => a.isDefault) || safe[0] || null;
-            if (!details?.address && defaultEntry?.fullAddress) setFullAddress(defaultEntry.fullAddress);
-            if (!details?.receiverPhone && defaultEntry?.phoneNumber) setReceiverPhone(defaultEntry.phoneNumber);
-          })
-          .catch(() => {});
+
+      api.addresses
+        .list()
+        .then((list) => setSavedAddresses(Array.isArray(list) ? list : []))
+        .catch(() => setSavedAddresses([]));
+
+      const details = checkoutDetailsRef.current;
+      const externalId = details?.addressId;
+      if (externalId && externalId !== syncedAddressIdRef.current) {
+        syncFormFromDetails(details);
       }
-    }, [cart.length, getCheckoutDetails, router])
+    }, [cart.length, router, syncFormFromDetails])
   );
+
+  useEffect(() => {
+    if (initialHydrationDoneRef.current) return;
+    initialHydrationDoneRef.current = true;
+
+    const details = checkoutDetailsRef.current;
+    if (details?.addressId || details?.address) {
+      syncFormFromDetails(details);
+      return;
+    }
+
+    if (skipAutoDefaultRef.current) return;
+
+    api.addresses
+      .list()
+      .then((list) => {
+        const safe = Array.isArray(list) ? list : [];
+        setSavedAddresses(safe);
+        if (skipAutoDefaultRef.current || checkoutDetailsRef.current?.address) return;
+        const defaultEntry = safe.find((a) => a.isDefault) || safe[0] || null;
+        if (defaultEntry) applySelectedAddress(defaultEntry);
+      })
+      .catch(() => {});
+  }, [applySelectedAddress, syncFormFromDetails]);
+
+  const storeDestinations = useMemo(() => {
+    const map = new Map();
+    cart.forEach((i) => {
+      if (i.storeId && i.storeLatitude != null && i.storeLongitude != null) {
+        map.set(String(i.storeId), {
+          id: String(i.storeId),
+          lat: i.storeLatitude,
+          lng: i.storeLongitude,
+          name: i.storeName || i.supplierName || "Store",
+        });
+      } else if (i.supplierId && i.supplierLatitude != null && i.supplierLongitude != null) {
+        map.set(String(i.supplierId), {
+          id: String(i.supplierId),
+          lat: i.supplierLatitude,
+          lng: i.supplierLongitude,
+          name: i.supplierName || "Supplier",
+        });
+      }
+    });
+    return [...map.values()];
+  }, [cart]);
+
+  const storeIdsForTravel = useMemo(
+    () => cart.map((i) => i.storeId).filter((id) => id != null && String(id).trim()),
+    [cart]
+  );
+
+  const supplierIdsForService = useMemo(
+    () => [...new Set(cart.map((i) => i.supplierId).filter((id) => id != null && String(id).trim()).map(String))],
+    [cart]
+  );
+
+  const { travelByStore, loading: travelLoading } = useStoreTravelInfo(
+    customerCoords,
+    storeDestinations,
+    storeIdsForTravel
+  );
+
+  const travelKeyForItem = (item) => {
+    if (item?.storeId && travelByStore[item.storeId]) return item.storeId;
+    if (item?.supplierId && travelByStore[item.supplierId]) return item.supplierId;
+    return item?.storeId || item?.supplierId || null;
+  };
+
+  const primaryTravel = useMemo(() => {
+    for (const item of cart) {
+      const key = travelKeyForItem(item);
+      if (key && travelByStore[key]) return travelByStore[key];
+    }
+    return null;
+  }, [cart, travelByStore]);
 
   const applyCoupon = () => {};
 
-  const handleProceed = () => {
+  const handleProceed = async () => {
     if (!fullAddress.trim()) {
       alert("Please select or enter full address.");
+      return;
+    }
+    const pin = String(pinCode || "").replace(/\D/g, "");
+    if (!pin || pin.length < 6) {
+      alert("Please enter a valid 6-digit PIN code.");
       return;
     }
     if (!orderForSomeoneElse && !receiverPhone.trim()) {
@@ -123,10 +283,47 @@ const CheckoutScreen = () => {
       alert("Please select schedule date and time.");
       return;
     }
+
+    if (supplierIdsForService.length > 0) {
+      setCheckingService(true);
+      try {
+        const result = await api.serviceability.check({
+          pinCode: pin,
+          latitude: customerCoords?.latitude,
+          longitude: customerCoords?.longitude,
+          city: city.trim() || undefined,
+          state: stateName.trim() || undefined,
+          supplierIds: supplierIdsForService,
+        });
+        if (!result.serviceable) {
+          const blocked = (result.unserviceableSupplierIds || [])
+            .map((id) => result.suppliers?.[id]?.supplierName || result.suppliers?.[id]?.message)
+            .filter(Boolean);
+          alert(
+            blocked.length
+              ? `This address is not within the availability range for: ${blocked.join(", ")}.`
+              : result.error || "This address is not within the supplier's availability range."
+          );
+          return;
+        }
+      } catch (err) {
+        alert(err.message || "Could not verify delivery availability. Please try again.");
+        return;
+      } finally {
+        setCheckingService(false);
+      }
+    }
+
     setCheckoutDetails({
+      addressId: selectedAddressId,
       address: fullAddress,
+      pinCode: pin,
+      city: city.trim() || null,
+      state: stateName.trim() || null,
       receiverName: orderForSomeoneElse ? receiverName : null,
       receiverPhone: orderForSomeoneElse ? receiverPhoneOther : receiverPhone,
+      customerLatitude: customerCoords?.latitude ?? null,
+      customerLongitude: customerCoords?.longitude ?? null,
       scheduledAt:
         !instantDelivery && scheduledDate
           ? new Date(`${scheduledDate}T${scheduledHour}:${scheduledMinute}:00`).toISOString()
@@ -182,7 +379,7 @@ const CheckoutScreen = () => {
                   </View>
                 </View>
                 <View style={styles.orderSummaryRight}>
-                  <Text style={styles.orderSummaryTotal}>₹{cartTotal}</Text>
+                  <Text style={styles.orderSummaryTotal}>₹{grandTotal}</Text>
                   <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.9)" />
                 </View>
               </LinearGradient>
@@ -195,25 +392,107 @@ const CheckoutScreen = () => {
                 </View>
               ))}
               {cart.length > 2 ? <Text style={styles.orderMoreText}>+{cart.length - 2} more item{cart.length - 2 !== 1 ? "s" : ""}</Text> : null}
+              {billing.taxTotal > 0 ? (
+                <Text style={styles.orderTaxHint}>
+                  Includes ₹{billing.taxTotal} tax (GST and others)
+                </Text>
+              ) : null}
             </TouchableOpacity>
 
-            <SectionCard icon="location-outline" title="Delivery address" subtitle="Where should we deliver?">
-              <View style={styles.mapCard}>
-                <Ionicons name="map-outline" size={28} color={theme.accent} />
-                <View style={styles.mapTextWrap}>
-                  <Text style={styles.mapTitle}>Pin on map</Text>
-                  <Text style={styles.mapHint}>Map integration coming soon</Text>
+            <SectionCard icon="navigate-outline" title="Store distance & ETA" subtitle="From your delivery address to fulfilment location">
+              {customerCoords && primaryTravel && primaryTravel.storeLatitude != null && primaryTravel.storeLongitude != null ? (
+                <>
+                  <RouteMapPreview
+                    fromLatitude={customerCoords.latitude}
+                    fromLongitude={customerCoords.longitude}
+                    toLatitude={primaryTravel.storeLatitude}
+                    toLongitude={primaryTravel.storeLongitude}
+                    height={160}
+                  />
+                  <StoreTravelBadge info={primaryTravel} loading={travelLoading} />
+                </>
+              ) : customerCoords && travelLoading ? (
+                <StoreTravelBadge info={null} loading={true} />
+              ) : (
+                <Text style={styles.mapHint}>
+                  {!customerCoords
+                    ? "Pin your delivery address on the map in Saved Addresses to see distance and ETA."
+                    : cart.some((i) => i.storeId || i.supplierId)
+                      ? "Distance is being calculated… If this persists, ensure the supplier store has a map location set."
+                      : "Products in your cart need a linked fulfilment store to show distance."}
+                </Text>
+              )}
+              {cart.filter((i) => i.storeId || i.supplierId).length > 0 ? (
+                <View style={styles.travelList}>
+                  {cart
+                    .filter((i) => i.storeId || i.supplierId)
+                    .map((item) => {
+                      const key = travelKeyForItem(item);
+                      return (
+                        <View key={item.id + String(item.storeId || item.supplierId)} style={styles.travelListRow}>
+                          <Text style={styles.travelListName} numberOfLines={1}>
+                            {item.storeName || item.supplierName || "Fulfilment location"}
+                          </Text>
+                          <StoreTravelBadge info={key ? travelByStore[key] : null} loading={travelLoading} compact />
+                        </View>
+                      );
+                    })}
                 </View>
-                <TouchableOpacity style={styles.mapBtn} onPress={() => router.push("/saved-addresses")} activeOpacity={0.85}>
-                  <Text style={styles.mapBtnText}>Saved</Text>
+              ) : null}
+            </SectionCard>
+
+            <SectionCard icon="location-outline" title="Delivery address" subtitle="Select a saved address or enter details manually">
+              <View style={styles.addressActionRow}>
+                <TouchableOpacity
+                  style={styles.selectAddressBtn}
+                  onPress={() => setShowAddressPicker(true)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="list-outline" size={18} color={theme.accent} />
+                  <Text style={styles.selectAddressBtnText}>Select saved address</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.mapBtn}
+                  onPress={() => router.push({ pathname: "/saved-addresses", params: { from: "checkout" } })}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.mapBtnText}>Manage</Text>
                 </TouchableOpacity>
               </View>
+              {selectedAddressId ? (
+                <View style={styles.selectedAddressRow}>
+                  <View style={styles.selectedAddressChip}>
+                    <Ionicons name="checkmark-circle" size={18} color={theme.accent} />
+                    <Text style={styles.selectedAddressChipText}>
+                      Saved address · PIN {normalizePin(pinCode) || "—"}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => releaseSavedAddressLock(true)} activeOpacity={0.85} style={styles.enterManualLink}>
+                    <Text style={styles.enterManualLinkText}>Enter manually</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+              <ModernInput
+                label="PIN code"
+                icon="mail-outline"
+                value={pinCode}
+                onChangeText={(t) => {
+                  releaseSavedAddressLock();
+                  setPinCode(t);
+                }}
+                placeholder={selectedAddressId ? "From saved address" : "6-digit PIN (required)"}
+                keyboardType="number-pad"
+                editable={!selectedAddressId}
+              />
               <ModernInput
                 label="Full address"
                 icon="home-outline"
                 value={fullAddress}
-                onChangeText={setFullAddress}
-                placeholder="House, street, area, city, PIN"
+                onChangeText={(t) => {
+                  releaseSavedAddressLock();
+                  setFullAddress(t);
+                }}
+                placeholder="House, street, area, city"
                 multiline
                 numberOfLines={3}
               />
@@ -344,17 +623,78 @@ const CheckoutScreen = () => {
       <View style={styles.footer}>
         <View style={styles.footerSummary}>
           <Text style={styles.footerLabel}>Order total</Text>
-          <Text style={styles.footerTotal}>₹{cartTotal}</Text>
+          <Text style={styles.footerTotal}>₹{grandTotal}</Text>
+          {billing.taxTotal > 0 ? (
+            <Text style={styles.footerTaxHint}>Subtotal ₹{billing.subtotal} + tax ₹{billing.taxTotal}</Text>
+          ) : null}
         </View>
-        <TouchableOpacity style={styles.payBtnWrap} onPress={handleProceed} activeOpacity={0.9}>
+        <TouchableOpacity style={styles.payBtnWrap} onPress={handleProceed} activeOpacity={0.9} disabled={checkingService}>
           <LinearGradient colors={[theme.medium, theme.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.payBtn}>
-            <Text style={styles.payBtnText}>Proceed to payment</Text>
+            <Text style={styles.payBtnText}>{checkingService ? "Checking area…" : "Proceed to payment"}</Text>
             <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
           </LinearGradient>
         </TouchableOpacity>
       </View>
 
       <WalletModal visible={showWallet} onClose={() => setShowWallet(false)} />
+
+      <Modal visible={showAddressPicker} transparent animationType="slide">
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowAddressPicker(false)}>
+          <View style={styles.addressSheetContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.sheetHandle} />
+            <View style={styles.scheduleModalHeader}>
+              <Text style={styles.scheduleModalTitle}>Select delivery address</Text>
+              <TouchableOpacity onPress={() => setShowAddressPicker(false)}>
+                <Ionicons name="close" size={24} color={theme.textPrimary} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.addressPickerList} showsVerticalScrollIndicator={false}>
+              {savedAddresses.length === 0 ? (
+                <Text style={styles.addressPickerEmpty}>No saved addresses yet.</Text>
+              ) : (
+                savedAddresses.map((a) => {
+                  const isSelected = selectedAddressId === a.id;
+                  return (
+                    <TouchableOpacity
+                      key={a.id}
+                      style={[styles.addressPickerRow, isSelected && styles.addressPickerRowActive]}
+                      onPress={() => {
+                        if (applySelectedAddress(a)) setShowAddressPicker(false);
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <View style={styles.addressPickerIcon}>
+                        <Ionicons name={isSelected ? "checkmark-circle" : "location-outline"} size={20} color={theme.accent} />
+                      </View>
+                      <View style={styles.addressPickerBody}>
+                        <Text style={styles.addressPickerTitle} numberOfLines={2}>
+                          {a.fullAddress || "Address"}
+                        </Text>
+                        <Text style={styles.addressPickerMeta}>
+                          {[a.pinCode, a.city].filter(Boolean).join(" · ") || "No PIN"}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+              <TouchableOpacity
+                style={[styles.addressPickerRow, styles.addressPickerRowLast]}
+                onPress={() => {
+                  setShowAddressPicker(false);
+                  router.push({ pathname: "/saved-addresses", params: { from: "checkout" } });
+                }}
+                activeOpacity={0.85}
+              >
+                <View style={styles.addressPickerIcon}>
+                  <Ionicons name="add-outline" size={20} color={theme.link} />
+                </View>
+                <Text style={styles.addressPickerAddText}>Add or manage addresses</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <Modal visible={showScheduleModal} transparent animationType="slide">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowScheduleModal(false)}>
@@ -571,6 +911,7 @@ const styles = StyleSheet.create({
   orderItemName: { flex: 1, fontSize: 13, fontWeight: "600", color: theme.textPrimary, marginRight: 8 },
   orderItemPrice: { fontSize: 13, fontWeight: "700", color: theme.accent },
   orderMoreText: { fontSize: 12, color: theme.textMuted, paddingHorizontal: 16, paddingBottom: 12 },
+  orderTaxHint: { fontSize: 12, color: theme.textMuted, paddingHorizontal: 16, paddingBottom: 12 },
 
   sectionCard: {
     backgroundColor: "#FFFFFF",
@@ -603,7 +944,18 @@ const styles = StyleSheet.create({
   },
   mapTextWrap: { flex: 1 },
   mapTitle: { fontSize: 14, fontWeight: "700", color: theme.textPrimary },
-  mapHint: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  mapHint: { fontSize: 12, color: theme.textMuted, marginTop: 2, lineHeight: 18 },
+  travelList: { marginTop: 10, gap: 8 },
+  travelListRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    paddingVertical: 6,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(214,234,242,0.95)",
+  },
+  travelListName: { fontSize: 13, fontWeight: "600", color: theme.textPrimary, flex: 1 },
   mapBtn: {
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -613,6 +965,79 @@ const styles = StyleSheet.create({
     borderColor: "rgba(214,234,242,0.95)",
   },
   mapBtnText: { fontSize: 12, fontWeight: "700", color: theme.link },
+  addressActionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 12,
+  },
+  selectAddressBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    borderWidth: 1,
+    borderColor: "rgba(51,175,193,0.22)",
+  },
+  selectAddressBtnText: { fontSize: 13, fontWeight: "700", color: theme.accent },
+  selectedAddressChip: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: "rgba(5,150,105,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(5,150,105,0.18)",
+  },
+  selectedAddressChipText: { fontSize: 13, fontWeight: "600", color: theme.textPrimary, flex: 1 },
+  selectedAddressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    marginBottom: 12,
+  },
+  enterManualLink: { paddingVertical: 4, paddingHorizontal: 4 },
+  enterManualLinkText: { fontSize: 13, fontWeight: "700", color: theme.link },
+  addressSheetContent: {
+    backgroundColor: theme.contentPanelBackground,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "72%",
+    paddingBottom: 16,
+  },
+  addressPickerList: { maxHeight: 420, paddingHorizontal: 20 },
+  addressPickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(214,234,242,0.95)",
+  },
+  addressPickerRowActive: { backgroundColor: "rgba(51,175,193,0.08)", borderRadius: 12 },
+  addressPickerRowLast: { borderBottomWidth: 0 },
+  addressPickerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(51,175,193,0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addressPickerBody: { flex: 1 },
+  addressPickerTitle: { fontSize: 14, fontWeight: "600", color: theme.textPrimary, lineHeight: 19 },
+  addressPickerMeta: { fontSize: 12, color: theme.textMuted, marginTop: 4 },
+  addressPickerAddText: { flex: 1, fontSize: 14, fontWeight: "700", color: theme.link },
+  addressPickerEmpty: { padding: 16, color: theme.textMuted, fontSize: 14 },
 
   toggleCard: {
     flexDirection: "row",
@@ -724,6 +1149,7 @@ const styles = StyleSheet.create({
   footerSummary: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   footerLabel: { fontSize: 13, fontWeight: "600", color: theme.textMuted },
   footerTotal: { fontSize: 22, fontWeight: "800", color: theme.accent },
+  footerTaxHint: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
   payBtnWrap: { borderRadius: 16, overflow: "hidden" },
   payBtn: {
     flexDirection: "row",

@@ -13,14 +13,13 @@ const roles = [
   { id: 4, title: "Corporate", subtitle: "Office supply analytics", icon: "business-outline", comingSoon: true },
   { id: 5, title: "Restaurant", subtitle: "Hospitality solutions", icon: "restaurant-outline", comingSoon: true },
   { id: 6, title: "Event Org", subtitle: "Large volume planning", icon: "calendar-outline", comingSoon: true },
-  { id: 7, title: "Institute", subtitle: "Campus monitoring", icon: "school-outline", comingSoon: true },
+  { id: 7, title: "Society", subtitle: "Tanker orders for residents", icon: "home-outline" },
 ];
 
 const COMING_SOON_MESSAGES = {
   Corporate: "Corporate feature is coming soon.",
   Restaurant: "Restaurant feature is coming soon.",
   "Event Org": "Event org feature is coming soon.",
-  Institute: "Institute feature is coming soon.",
 };
 
 const HEADER_DROPLETS = [
@@ -88,6 +87,8 @@ const RoleSelectionScreen = ({ onReplayLoading }) => {
       router.push("/create-profile");
     } else if (selectedRole.title === "Partner") {
       router.push("/supplier-onboarding");
+    } else if (selectedRole.title === "Society") {
+      router.push("/society-onboarding");
     }
   };
 
@@ -95,12 +96,14 @@ const RoleSelectionScreen = ({ onReplayLoading }) => {
     if (selectedRole.comingSoon) return `Continue as ${selectedRole.title}`;
     if (selectedRole.title === "Customer") return "Sign up as customer";
     if (selectedRole.title === "Partner") return "Sign up as partner or supplier";
+    if (selectedRole.title === "Society") return "Sign up as society";
     return `Continue as ${selectedRole.title}`;
   };
 
   const getLoginButtonText = () => {
     if (selectedRole.title === "Customer") return "Login as customer";
     if (selectedRole.title === "Partner") return "Login as supplier";
+    if (selectedRole.title === "Society") return "Login as society";
     return `Login as ${selectedRole.title}`;
   };
 
@@ -108,6 +111,20 @@ const RoleSelectionScreen = ({ onReplayLoading }) => {
     const roleConfig = roles.find((r) => r.title === roleParam);
     if (roleConfig?.comingSoon) {
       Alert.alert("Coming soon", COMING_SOON_MESSAGES[roleParam] || "This feature is coming soon.");
+      return;
+    }
+    if (roleParam === "Customer") {
+      router.push({ pathname: "/login", params: { role: "Customer" } });
+      return;
+    }
+    if (
+      roleParam === "Partner" ||
+      roleParam === "Supplier" ||
+      roleParam === "Delivery partner"
+    ) {
+      const partnerRole =
+        roleParam === "Partner" || roleParam === "Supplier" ? "Supplier" : roleParam;
+      router.push({ pathname: "/partner-login", params: { role: partnerRole } });
       return;
     }
     router.push({ pathname: "/login", params: { role: roleParam } });
@@ -230,8 +247,47 @@ const RoleSelectionScreen = ({ onReplayLoading }) => {
 
           {selectedRole.title === "Partner" ? (
             <View onLayout={(e) => setActionAnchorY(e.nativeEvent.layout.y)}>
-              <ActionButton label="Login as supplier" onPress={() => handleLogin("Supplier")} variant="outline" />
-              <ActionButton label="Login as partner" onPress={() => handleLogin("Delivery partner")} variant="outline" />
+              <TouchableOpacity
+                style={styles.partnerSignInCard}
+                onPress={() => router.push("/partner-login")}
+                activeOpacity={0.9}
+              >
+                <LinearGradient
+                  colors={[theme.medium, theme.accent]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.partnerSignInGradient}
+                >
+                  <View style={styles.partnerSignInIcon}>
+                    <Ionicons name="briefcase-outline" size={26} color="#FFFFFF" />
+                  </View>
+                  <View style={styles.partnerSignInText}>
+                    <Text style={styles.partnerSignInTitle}>Sign in to partner portal</Text>
+                    <Text style={styles.partnerSignInDesc}>
+                      Supplier or delivery partner — one secure login hub
+                    </Text>
+                  </View>
+                  <Ionicons name="arrow-forward" size={22} color="#FFFFFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+              <View style={styles.partnerQuickRow}>
+                <TouchableOpacity
+                  style={styles.partnerQuickChip}
+                  onPress={() => handleLogin("Supplier")}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="storefront-outline" size={16} color={theme.accent} />
+                  <Text style={styles.partnerQuickText}>Supplier</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.partnerQuickChip}
+                  onPress={() => handleLogin("Delivery partner")}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="bicycle-outline" size={16} color={theme.accent} />
+                  <Text style={styles.partnerQuickText}>Delivery</Text>
+                </TouchableOpacity>
+              </View>
               <ActionButton label="Sign up as partner or supplier" onPress={handleContinue} variant="primary" />
             </View>
           ) : (
@@ -658,4 +714,54 @@ const styles = StyleSheet.create({
     color: theme.link,
     fontWeight: "600",
   },
+  partnerSignInCard: {
+    borderRadius: 22,
+    overflow: "hidden",
+    marginTop: 6,
+    marginBottom: 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: theme.accent,
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.2,
+        shadowRadius: 14,
+      },
+      android: { elevation: 0 },
+    }),
+  },
+  partnerSignInGradient: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 18,
+    gap: 14,
+  },
+  partnerSignInIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.22)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  partnerSignInText: { flex: 1 },
+  partnerSignInTitle: { fontSize: 17, fontWeight: "800", color: "#FFFFFF" },
+  partnerSignInDesc: { fontSize: 12, color: "rgba(255,255,255,0.9)", marginTop: 4, lineHeight: 17 },
+  partnerQuickRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 4,
+  },
+  partnerQuickChip: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "rgba(51,175,193,0.28)",
+  },
+  partnerQuickText: { fontSize: 13, fontWeight: "700", color: theme.accent },
 });

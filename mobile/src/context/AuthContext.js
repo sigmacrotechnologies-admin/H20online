@@ -7,6 +7,12 @@ try { AsyncStorage = require("@react-native-async-storage/async-storage").defaul
 
 const AuthContext = createContext(null);
 
+function normalizeUser(u) {
+  if (!u) return null;
+  const id = u.id || (u._id != null ? String(u._id) : undefined);
+  return { ...u, id, _id: id, role: u.role || "customer" };
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setTokenState] = useState(null);
@@ -28,7 +34,7 @@ export function AuthProvider({ children }) {
           setTokenState(stored);
           try {
             const u = await api.users.me();
-            setUser(u);
+            setUser(normalizeUser(u));
           } catch (_) {
             setAuthToken(null);
             setTokenState(null);
@@ -42,21 +48,31 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     const { user: u, token: t } = await api.auth.login(email, password);
+    const normalized = normalizeUser(u);
     setToken(t);
-    setUser(u);
-    return u;
+    setUser(normalized);
+    return normalized;
   };
 
   const loginWithToken = (token, user) => {
     setToken(token);
-    setUser(user);
+    setUser(normalizeUser(user));
   };
 
   const register = async (body) => {
     const { user: u, token: t } = await api.auth.register(body);
+    const normalized = normalizeUser(u);
     setToken(t);
-    setUser(u);
-    return u;
+    setUser(normalized);
+    return normalized;
+  };
+
+  const registerSociety = async (body) => {
+    const { user: u, token: t } = await api.auth.registerSociety(body);
+    const normalized = normalizeUser(u);
+    setToken(t);
+    setUser(normalized);
+    return normalized;
   };
 
   const logout = () => {
@@ -67,7 +83,7 @@ export function AuthProvider({ children }) {
   const isAuthenticated = !!token;
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, loginWithToken, register, logout, isAuthenticated, setUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, loginWithToken, register, registerSociety, logout, isAuthenticated, setUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,11 @@
 import PaymentScreen from "@/src/screens/PaymentScreen";
+import { RazorpayCheckoutHost } from "@/src/components/RazorpayCheckoutHost";
 
 export default function PaymentRoute() {
-  return <PaymentScreen />;
+  return (
+    <>
+      <RazorpayCheckoutHost />
+      <PaymentScreen />
+    </>
+  );
 }

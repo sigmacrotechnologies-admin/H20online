@@ -28,6 +28,8 @@ const MENU_SECTIONS = [
     title: "Catalog & money",
     items: [
       { id: "products", label: "My products", desc: "Manage your catalog", icon: "cube-outline", route: "/supplier-products" },
+      { id: "stores", label: "My stores", desc: "Stores & warehouses for fulfilment", icon: "storefront-outline", route: "/supplier-stores" },
+      { id: "partners", label: "Delivery partners", desc: "Your fleet + platform pool", icon: "bicycle-outline", route: "/supplier-delivery-partners" },
       { id: "financials", label: "Financials", desc: "Revenue & earnings", icon: "stats-chart-outline", route: "/supplier-financials" },
       { id: "wallet", label: "Wallet", desc: "Balance & transactions", icon: "wallet-outline", route: "/supplier-wallet" },
     ],

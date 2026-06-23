@@ -5,7 +5,14 @@
   "main": "index.js",
   "scripts": {
     "capture": "node capture-screenshots.mjs",
+    "capture:customer": "node capture-customer-journey.mjs",
     "pdf": "node generate-screens-pdf.mjs",
+    "pdf:customer": "node generate-customer-journey-pdf.mjs",
+    "customer-journey": "node capture-customer-journey.mjs && node generate-customer-journey-pdf.mjs",
+    "readme-pdf": "node generate-readme-pdf.mjs",
+    "requirement-capture": "node generate-requirement-capture-pdf.mjs",
+    "customer-dashboard-brd": "node generate-customer-dashboard-brd-pdf.mjs",
+    "deployment-guide": "node generate-deployment-guide-pdf.mjs",
     "docs": "node capture-screenshots.mjs && node generate-screens-pdf.mjs"
   },
   "keywords": [],

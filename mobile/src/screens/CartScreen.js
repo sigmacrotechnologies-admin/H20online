@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,9 @@ import { useCart } from "@/src/context/CartContext";
 import BackButton from "@/src/components/BackButton";
 import AppLogo from "@/src/components/AppLogo";
 import { useAppBack } from "@/src/utils/navigation";
+import StoreTravelBadge from "@/src/components/StoreTravelBadge";
+import { useStoreTravelInfo } from "@/src/hooks/useStoreTravel";
+import { api } from "@/src/api/client";
 import { theme } from "@/src/theme";
 
 const PRODUCT_ASSET_MAP = {
@@ -69,7 +72,7 @@ function CartHeader({ cartCount, onBack, showSubtitle = true }) {
   );
 }
 
-function CartItemCard({ item, onDecrease, onIncrease, onRemove }) {
+function CartItemCard({ item, onDecrease, onIncrease, onRemove, travelInfo, travelLoading }) {
   const qty = item.qty || 1;
   const lineTotal = (item.price || 0) * qty;
 
@@ -87,6 +90,10 @@ function CartItemCard({ item, onDecrease, onIncrease, onRemove }) {
             <Ionicons name="storefront-outline" size={12} color={theme.accent} />
             <Text style={styles.itemSupplier} numberOfLines={1}>{item.supplierName}</Text>
           </View>
+          <StoreTravelBadge info={travelInfo} loading={travelLoading} compact />
+          {!item.hasRegisteredStore ? (
+            <Text style={styles.noStoreHint}>Store not registered — tracking unavailable</Text>
+          ) : null}
           <Text style={styles.itemUnitPrice}>₹{item.price} each</Text>
           <Text style={styles.itemLineTotal}>₹{lineTotal}</Text>
         </View>
@@ -114,7 +121,49 @@ function CartItemCard({ item, onDecrease, onIncrease, onRemove }) {
 const CartScreen = () => {
   const router = useRouter();
   const handleBack = useAppBack("/order");
-  const { cart, cartTotal, updateCartQty, removeFromCart } = useCart();
+  const { cart, cartTotal, updateCartQty, removeFromCart, checkoutDetails } = useCart();
+  const [customerCoords, setCustomerCoords] = useState(null);
+
+  useEffect(() => {
+    if (checkoutDetails?.customerLatitude != null && checkoutDetails?.customerLongitude != null) {
+      setCustomerCoords((prev) => {
+        const lat = checkoutDetails.customerLatitude;
+        const lng = checkoutDetails.customerLongitude;
+        if (prev?.latitude === lat && prev?.longitude === lng) return prev;
+        return { latitude: lat, longitude: lng };
+      });
+      return;
+    }
+    api.addresses
+      .list()
+      .then((list) => {
+        const safe = Array.isArray(list) ? list : [];
+        const entry = safe.find((a) => a.isDefault) || safe[0];
+        if (entry?.latitude != null && entry?.longitude != null) {
+          setCustomerCoords((prev) => {
+            if (prev?.latitude === entry.latitude && prev?.longitude === entry.longitude) return prev;
+            return { latitude: entry.latitude, longitude: entry.longitude };
+          });
+        }
+      })
+      .catch(() => {});
+  }, [checkoutDetails?.customerLatitude, checkoutDetails?.customerLongitude]);
+
+  const storeDestinations = useMemo(() => {
+    const map = new Map();
+    cart.forEach((i) => {
+      if (i.hasRegisteredStore && i.storeId && i.storeLatitude != null && i.storeLongitude != null) {
+        map.set(i.storeId, {
+          id: i.storeId,
+          lat: i.storeLatitude,
+          lng: i.storeLongitude,
+          name: i.storeName || "",
+        });
+      }
+    });
+    return [...map.values()];
+  }, [cart]);
+  const { travelByStore, loading: travelLoading } = useStoreTravelInfo(customerCoords, storeDestinations);
 
   if (cart.length === 0) {
     return (
@@ -170,6 +219,8 @@ const CartScreen = () => {
                 onDecrease={() => updateCartQty(item.id, (item.qty || 1) - 1)}
                 onIncrease={() => updateCartQty(item.id, (item.qty || 1) + 1)}
                 onRemove={() => removeFromCart(item.id)}
+                travelInfo={item.hasRegisteredStore ? travelByStore[item.storeId] : null}
+                travelLoading={travelLoading}
               />
             ))}
 
@@ -289,6 +340,7 @@ const styles = StyleSheet.create({
   itemName: { fontSize: 15, fontWeight: "800", color: theme.textPrimary, lineHeight: 19 },
   supplierRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 },
   itemSupplier: { flex: 1, fontSize: 11, fontWeight: "600", color: theme.accent },
+  noStoreHint: { fontSize: 10, color: "#B45309", marginTop: 4, lineHeight: 14 },
   itemUnitPrice: { fontSize: 12, color: theme.textMuted, marginTop: 6 },
   itemLineTotal: { fontSize: 18, fontWeight: "800", color: theme.accent, marginTop: 2 },
   itemActionsRow: {

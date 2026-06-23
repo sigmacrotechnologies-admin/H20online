@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   ActivityIndicator,
   RefreshControl,
@@ -14,6 +13,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/src/api/client";
 import DeliveryPartnerLayout from "@/src/components/DeliveryPartnerLayout";
+import { ui } from "@/src/components/supplier/supplierUi";
 import { theme } from "@/src/theme";
 
 const SCHEDULE_FILTERS = [
@@ -68,19 +68,17 @@ export default function DeliverySubscriptionOrdersScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <DeliveryPartnerLayout title="Subscription orders" subtitle="Your assigned subscription deliveries" icon="repeat-outline">
-          <View style={styles.centered}>
-            <ActivityIndicator size="large" color={theme.primary} />
-          </View>
-        </DeliveryPartnerLayout>
-      </SafeAreaView>
+      <DeliveryPartnerLayout title="Subscription orders" subtitle="Your assigned subscription deliveries" icon="repeat-outline">
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      </DeliveryPartnerLayout>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <DeliveryPartnerLayout title="Subscription orders" subtitle="Your assigned subscription deliveries" icon="repeat-outline">
+    <DeliveryPartnerLayout title="Subscription orders" subtitle="Your assigned subscription deliveries" icon="repeat-outline">
+      <View style={styles.pagePad}>
         <View style={styles.filterSection}>
           <Text style={styles.filterLabel}>Schedule</Text>
           <View style={styles.filterChips}>
@@ -148,7 +146,7 @@ export default function DeliverySubscriptionOrdersScreen() {
         </Modal>
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={ui.scrollContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />}
         >
           {subscriptions.length === 0 ? (
@@ -191,15 +189,14 @@ export default function DeliverySubscriptionOrdersScreen() {
             ))
           )}
         </ScrollView>
-      </DeliveryPartnerLayout>
-    </SafeAreaView>
+      </View>
+    </DeliveryPartnerLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
+  pagePad: { paddingHorizontal: 20, paddingTop: 24, flex: 1 },
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 40 },
   centered: { flex: 1, justifyContent: "center", alignItems: "center" },
   filterSection: { backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 12, padding: 12, marginBottom: 12 },
   filterLabel: { fontSize: 12, fontWeight: "600", color: "#6B7C85", marginBottom: 6 },

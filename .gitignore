@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Secrets — never commit
+.env
+.env.local
+backend/.env
+admin/.env
+admin/.env.production
+mobile/.env
+
+# Build outputs (build on server with npm run build)
+admin/dist/
+
+# Expo / mobile temp
+mobile/.expo/
+mobile/.expo-web-test/
+mobile/.expo-temp-bundle-check/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

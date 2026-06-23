@@ -1,103 +1,107 @@
-# Build APK for testing with your AWS backend
+# Build APK (production) — H20nline
 
-The APK must be built with your backend URL so the app talks to your deployed API (e.g. AWS Ubuntu + Atlas).
-
----
-
-## 1. Set your backend URL
-
-**Option A – EAS Build (recommended, cloud build)**
-
-1. Open **`mobile/eas.json`**.
-2. In the profile you will use (`preview` or `production`), replace `YOUR_AWS_BACKEND_URL` in `env.EXPO_PUBLIC_API_URL` with your real backend host:
-   - Example: `http://3.110.xx.xx:5000` (EC2 public IP)
-   - Or: `https://api.yourdomain.com` (if you use a domain and HTTPS)
-3. Do **not** add a trailing slash. Example: `http://3.110.xx.xx:5000`
-
-**Option B – Local build**
-
-1. Open **`mobile/.env`**.
-2. Set `EXPO_PUBLIC_API_URL` to your backend URL, e.g.:
-   ```env
-   EXPO_PUBLIC_API_URL=http://YOUR_EC2_PUBLIC_IP:5000
-   ```
-3. Replace `YOUR_EC2_PUBLIC_IP` with your AWS server’s public IP or domain.
+Production API: **`http://13.62.57.255:5000`** (AWS EC2).  
+Single source of truth for the URL: **`mobile/config/apiUrl.json`** — keep `eas.json` in sync when the IP changes.
 
 ---
 
-## 2. Install EAS CLI (one time)
+## Quick: build production APK
+
+```bash
+cd mobile
+npm install
+npm run icons          # once, or after logo change — sets launcher icon from H20 logo
+npm run build:apk      # EAS cloud build → download APK link
+```
+
+**Missing Product-icon images on EAS?** Do not exclude `mobile/assets/images/Product-icon/` in `.easignore` — Cart/Order screens require those PNGs at bundle time. Usually a bad nested `react-native@0.86` inside `0.81.5`. Fixed via `overrides` in `package.json` and `.npmrc` (`legacy-peer-deps=true`). After pulling, run `npm install` in `mobile/` then rebuild.
+
+**Upload failed (`ECONNRESET` / large archive)?** Root `.easignore` uploads only the `mobile/` folder (~small archive). Retry on stable Wi‑Fi.
+
+Or preview profile (also APK):
+
+```bash
+npm run build:apk:preview
+```
+
+Install the new APK on Android. Uninstall an old APK first if you changed `app.json` (icon, package name, cleartext).
+
+---
+
+## API URL: production vs local dev
+
+| Mode | How API URL is set | Command |
+|------|-------------------|---------|
+| **Production APK** | `eas.json` → `EXPO_PUBLIC_API_URL` at build time | `npm run build:apk` |
+| **Local dev (PC IP)** | `mobile/.env` auto-set to LAN IP | `npm run local` |
+| **Test AWS API in Expo** | `mobile/.env` → production URL | `npm run prod:local` |
+| **Back to local dev** | `mobile/.env` → PC LAN IP again | `npm run local` |
+
+You do **not** need to edit `.env` before every APK build — EAS uses `eas.json`.
+
+### Change AWS IP later
+
+1. Edit **`mobile/config/apiUrl.json`** → `"production": "http://NEW_IP:5000"`
+2. Copy the same URL into **`mobile/eas.json`** (preview + production `env`)
+3. Rebuild: `npm run build:apk`
+
+---
+
+## One-time EAS setup
 
 ```bash
 npm install -g eas-cli
-```
-
-Log in (or create an Expo account):
-
-```bash
 eas login
-```
-
----
-
-## 3. Configure the project for EAS (one time)
-
-In the **`mobile`** folder:
-
-```bash
 cd mobile
 eas build:configure
 ```
 
-Choose the default options if you’re unsure.
+---
+
+## App name & icon
+
+- **Display name:** H20nline (`app.json` → `expo.name`)
+- **Package:** `com.h20online.app`
+- **Icon:** generated from `assets/images/H20-logo.png` via `npm run icons`
+
+After changing the logo, run `npm run icons` then rebuild the APK.
 
 ---
 
-## 4. Build the APK
+## Requirements on AWS
 
-In the **`mobile`** folder:
+- Backend running: `pm2 list` → `backend` online
+- Security group: inbound **TCP 5000**
+- Test: `http://13.62.57.255:5000/api/health`
 
-```bash
-eas build --platform android --profile preview
-```
-
-- **preview** = builds an **APK** (good for testing and sharing).
-- Build runs on Expo’s servers. When it finishes, you get a link to download the APK.
-
-To build for production (also APK with current config):
-
-```bash
-eas build --platform android --profile production
-```
+HTTP (not HTTPS) is allowed via `usesCleartextTraffic` in `app.json`.
 
 ---
 
-## 5. Download and install
+## Google Maps (address picker, distance, tracking)
 
-1. When the build completes, EAS prints a download link (or open the link from the email).
-2. Download the APK to your computer or phone.
-3. On your Android device: enable “Install from unknown sources” for the browser or file manager you use, then open the APK and install.
-4. Open the app; it will use the backend URL you set in step 1.
+**Web** loads Maps via JavaScript — works when `EXPO_PUBLIC_GOOGLE_MAPS_API_KEY` is set.
 
----
+**Expo Go on a phone** cannot use native Google Maps tiles with your own API key. The app uses a **WebView / Static Maps fallback** in Expo Go when the key is in `mobile/.env`.
 
-## 6. Backend and firewall
+1. Add to **`mobile/.env`** (same value as `GOOGLE_MAPS_API_KEY` in `backend/.env`):
+   ```
+   EXPO_PUBLIC_GOOGLE_MAPS_API_KEY=your_key
+   ```
+2. Enable in Google Cloud: **Maps JavaScript API**, **Geocoding API**, **Maps Static API**, **Maps SDK for Android**, **Maps SDK for iOS**.
+3. Restart Expo: `npx expo start -c`
 
-- Your AWS backend must be listening on the port you use (e.g. `5000`).
-- The EC2 security group must allow **inbound** traffic on that port (e.g. from `0.0.0.0/0` for testing, or restrict later).
-- If you use a domain and HTTPS, set `EXPO_PUBLIC_API_URL` to `https://your-api.domain.com` (no port if it’s 443).
+For **full native maps** (best on Android APK), use a **development build** or production APK (`npm run build:apk`) — `app.config.js` sets `android.config.googleMaps.apiKey` for native tiles.
 
 ---
 
 ## Local build (without EAS)
 
-If you prefer to build the APK on your machine:
-
 ```bash
 cd mobile
+npm run prod:local     # or set .env to AWS URL
 npx expo prebuild --platform android
-cd android
-./gradlew assembleRelease
+cd android && ./gradlew assembleRelease
 ```
 
-The APK is at: `android/app/build/outputs/apk/release/app-release.apk`.  
-The app will use whatever `EXPO_PUBLIC_API_URL` is in **`mobile/.env`** at the time you run `expo prebuild` / build.
+APK: `android/app/build/outputs/apk/release/app-release.apk`

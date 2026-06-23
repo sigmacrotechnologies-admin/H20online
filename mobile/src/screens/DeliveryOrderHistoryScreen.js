@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   ActivityIndicator,
   RefreshControl,
@@ -13,6 +12,7 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "@/src/api/client";
 import DeliveryPartnerLayout from "@/src/components/DeliveryPartnerLayout";
+import { ui } from "@/src/components/supplier/supplierUi";
 import { theme } from "@/src/theme";
 
 export default function DeliveryOrderHistoryScreen() {
@@ -45,8 +45,8 @@ export default function DeliveryOrderHistoryScreen() {
   const statusLabel = (s) => (s === "delivered" ? "Delivered" : s === "cancelled" ? "Cancelled" : "In progress");
 
   return (
-    <SafeAreaView style={styles.container}>
-      <DeliveryPartnerLayout title="Order history" icon="receipt-outline">
+    <DeliveryPartnerLayout title="Order history" subtitle="Past & completed deliveries" icon="receipt-outline">
+      <View style={styles.pagePad}>
         <View style={styles.filterRow}>
           {["", "in_progress", "delivered", "cancelled"].map((s) => (
             <TouchableOpacity
@@ -60,7 +60,7 @@ export default function DeliveryOrderHistoryScreen() {
         </View>
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={ui.scrollContent}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />}
         >
           {loading ? (
@@ -87,20 +87,19 @@ export default function DeliveryOrderHistoryScreen() {
             ))
           )}
         </ScrollView>
-      </DeliveryPartnerLayout>
-    </SafeAreaView>
+      </View>
+    </DeliveryPartnerLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.screenBackground, paddingHorizontal: 20 },
+  pagePad: { paddingHorizontal: 20, paddingTop: 24, flex: 1 },
   filterRow: { flexDirection: "row", flexWrap: "wrap", marginBottom: 16, gap: 8 },
   filterChip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.9)" },
   filterChipSelected: { backgroundColor: theme.primary },
   filterChipText: { fontSize: 13, color: "#1B2B34", fontWeight: "600" },
   filterChipTextSelected: { color: "#FFF" },
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 40 },
   empty: { alignItems: "center", paddingVertical: 48 },
   emptyText: { fontSize: 16, color: "#6B7C85", marginTop: 12 },
   card: { backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 16, padding: 16, marginBottom: 12 },

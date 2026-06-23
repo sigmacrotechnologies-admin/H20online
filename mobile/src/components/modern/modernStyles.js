@@ -61,6 +61,10 @@ export const modern = StyleSheet.create({
     borderColor: "rgba(214,234,242,0.95)",
     ...(Platform.OS === "android" ? { overflow: "hidden", elevation: 0 } : surfaceShadow("md")),
   },
+  inputDisabled: {
+    backgroundColor: "rgba(248,252,253,0.95)",
+    opacity: 0.92,
+  },
   inputIcon: {
     marginRight: 12,
   },

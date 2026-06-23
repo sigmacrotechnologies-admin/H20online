@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -16,12 +16,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCart } from "@/src/context/CartContext";
 import { useWallet } from "@/src/context/WalletContext";
+import { useAuth } from "@/src/context/AuthContext";
 import BackButton from "@/src/components/BackButton";
 import AppLogo from "@/src/components/AppLogo";
 import WalletModal from "@/src/components/WalletModal";
-import { getOrderId } from "@/src/utils/orderId";
+import { getOrderMongoId } from "@/src/utils/orderId";
 import { api } from "@/src/api/client";
 import { theme } from "@/src/theme";
+import { useBilling } from "@/src/hooks/useBilling";
+
+const RAZORPAY_KEY_ID = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || "";
 
 const PAYMENT_OPTIONS = [
   {
@@ -32,18 +36,12 @@ const PAYMENT_OPTIONS = [
     accent: "#059669",
   },
   {
-    id: "upi",
-    label: "UPI",
-    desc: "GPay, PhonePe, Paytm & more",
-    icon: "phone-portrait-outline",
-    accent: "#0E7490",
-  },
-  {
-    id: "card",
-    label: "Credit / Debit Card",
-    desc: "Visa, Mastercard, RuPay",
+    id: "razorpay",
+    label: "Razorpay",
+    desc: "UPI, cards & wallets — test gateway",
     icon: "card-outline",
-    accent: "#7C3AED",
+    accent: "#0E7490",
+    testBadge: true,
   },
   {
     id: "cod",
@@ -73,13 +71,17 @@ function SectionCard({ icon, title, subtitle, children }) {
 
 const PaymentScreen = () => {
   const router = useRouter();
-  const { cart, cartCount, cartTotal, placeOrder, getCheckoutDetails } = useCart();
+  const { cart, cartCount, cartTotal, placeOrder, finalizeOrder, getCheckoutDetails } = useCart();
+  const { user } = useAuth();
   const { balance, setBalance } = useWallet();
+  const { billing } = useBilling(cartTotal);
   const [selected, setSelected] = useState("wallet");
   const [paying, setPaying] = useState(false);
   const [showWallet, setShowWallet] = useState(false);
-  const canPayWithWallet = balance >= cartTotal;
-  const shortfall = Math.max(0, cartTotal - balance);
+  const orderPlacedRef = useRef(false);
+  const grandTotal = billing.grandTotal;
+  const canPayWithWallet = balance >= grandTotal;
+  const shortfall = Math.max(0, grandTotal - balance);
   const androidTopInset = Platform.OS === "android" ? StatusBar.currentHeight || 0 : 0;
   const checkoutDetails = getCheckoutDetails?.() || {};
   const deliveryAddress = checkoutDetails.address?.trim() || "";
@@ -88,6 +90,7 @@ const PaymentScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      if (orderPlacedRef.current || paying) return;
       if (cart.length === 0) {
         router.replace("/cart");
         return;
@@ -96,8 +99,30 @@ const PaymentScreen = () => {
       if (!details?.address?.trim()) {
         router.replace("/checkout");
       }
-    }, [cart.length, getCheckoutDetails, router])
+    }, [cart.length, paying, router])
   );
+
+  const buildOrderPayload = (details) => {
+    const payload = {
+      items: cart,
+      subtotal: billing.subtotal,
+      taxLines: billing.taxLines,
+      taxTotal: billing.taxTotal,
+      total: billing.grandTotal,
+      address: details?.address || "",
+      pinCode: details?.pinCode || null,
+      city: details?.city || null,
+      state: details?.state || null,
+      addressId: details?.addressId || null,
+      receiverName: details?.receiverName || null,
+      receiverPhone: details?.receiverPhone || null,
+      scheduledAt: details?.scheduledAt || null,
+      customerLatitude: details?.customerLatitude ?? null,
+      customerLongitude: details?.customerLongitude ?? null,
+    };
+    if (user?.role === "society") payload.orderChannel = "society";
+    return payload;
+  };
 
   const handlePay = async () => {
     if (paying) return;
@@ -108,9 +133,44 @@ const PaymentScreen = () => {
     setPaying(true);
     try {
       const details = getCheckoutDetails();
-      const order = await placeOrder(selected, details);
-      const id = getOrderId(order);
+
+      if (selected === "razorpay") {
+        const createRes = await api.payments.razorpayCreateOrder({ subtotal: billing.subtotal });
+        const keyId = RAZORPAY_KEY_ID || createRes.key_id;
+        const { openRazorpayCheckout } = await import("@/src/utils/razorpayCheckout");
+        const paymentResult = await openRazorpayCheckout({
+          keyId,
+          orderId: createRes.order_id,
+          amount: createRes.amount,
+          description: `H2O order · ₹${billing.grandTotal}`,
+          prefill: {
+            contact: details?.receiverPhone || "",
+            name: details?.receiverName || "",
+          },
+        });
+        const order = await api.payments.razorpayVerify({
+          razorpay_order_id: paymentResult.razorpay_order_id,
+          razorpay_payment_id: paymentResult.razorpay_payment_id,
+          razorpay_signature: paymentResult.razorpay_signature,
+          order: buildOrderPayload(details),
+        });
+        const id = getOrderMongoId(order);
+        if (order && id) {
+          orderPlacedRef.current = true;
+          finalizeOrder(order);
+          setPaying(false);
+          router.replace({ pathname: "/order-confirmed", params: { orderId: id } });
+        } else {
+          setPaying(false);
+          alert("Order could not be placed. Please try again.");
+        }
+        return;
+      }
+
+      const order = await placeOrder(selected, details, billing);
+      const id = getOrderMongoId(order);
       if (order && id) {
+        orderPlacedRef.current = true;
         if (selected === "wallet") {
           api.wallet.get().then((d) => setBalance(d.balance ?? 0)).catch(() => {});
         }
@@ -159,13 +219,36 @@ const PaymentScreen = () => {
                   <View>
                     <Text style={styles.amountLabel}>Amount to pay</Text>
                     <Text style={styles.amountHint}>
-                      {itemCount} item{itemCount !== 1 ? "s" : ""} · inclusive of item charges
+                      {itemCount} item{itemCount !== 1 ? "s" : ""} · subtotal ₹{billing.subtotal}
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.amountValue}>₹{cartTotal}</Text>
+                <Text style={styles.amountValue}>₹{grandTotal}</Text>
               </LinearGradient>
             </View>
+
+            <SectionCard icon="calculator-outline" title="Bill breakdown" subtitle="Taxes applied from admin settings">
+              <View style={styles.recapRow}>
+                <Text style={styles.recapItemName}>Subtotal</Text>
+                <Text style={styles.recapItemPrice}>₹{billing.subtotal}</Text>
+              </View>
+              {billing.taxLines.map((line) => (
+                <View key={`${line.label}-${line.percent}`} style={styles.recapRow}>
+                  <Text style={styles.recapItemName}>{line.label} ({line.percent}%)</Text>
+                  <Text style={styles.recapItemPrice}>₹{line.amount}</Text>
+                </View>
+              ))}
+              {billing.taxTotal > 0 ? (
+                <View style={styles.recapRow}>
+                  <Text style={styles.recapItemName}>Total tax</Text>
+                  <Text style={styles.recapItemPrice}>₹{billing.taxTotal}</Text>
+                </View>
+              ) : null}
+              <View style={[styles.recapRow, styles.recapTotalRow]}>
+                <Text style={styles.recapTotalLabel}>Grand total</Text>
+                <Text style={styles.recapTotalValue}>₹{grandTotal}</Text>
+              </View>
+            </SectionCard>
 
             <SectionCard icon="bag-check-outline" title="Order recap" subtitle="Items and delivery details">
               {cart.slice(0, 3).map((item) => (
@@ -197,8 +280,14 @@ const PaymentScreen = () => {
               <Text style={styles.billTitle}>Bill details</Text>
               <View style={styles.billRow}>
                 <Text style={styles.billLabel}>Item total ({cartCount})</Text>
-                <Text style={styles.billValue}>₹{cartTotal}</Text>
+                <Text style={styles.billValue}>₹{billing.subtotal}</Text>
               </View>
+              {billing.taxLines.map((line) => (
+                <View key={`bill-${line.label}-${line.percent}`} style={styles.billRow}>
+                  <Text style={styles.billLabel}>{line.label} ({line.percent}%)</Text>
+                  <Text style={styles.billValue}>₹{line.amount}</Text>
+                </View>
+              ))}
               <View style={styles.billRow}>
                 <Text style={styles.billLabel}>Delivery</Text>
                 <Text style={styles.billValueFree}>Included</Text>
@@ -206,7 +295,7 @@ const PaymentScreen = () => {
               <View style={styles.billDivider} />
               <View style={styles.billRow}>
                 <Text style={styles.billTotalLabel}>Total payable</Text>
-                <Text style={styles.billTotalValue}>₹{cartTotal}</Text>
+                <Text style={styles.billTotalValue}>₹{grandTotal}</Text>
               </View>
             </View>
 
@@ -267,6 +356,10 @@ const PaymentScreen = () => {
                     <View style={styles.optionTextWrap}>
                       <Text style={styles.optionLabel}>
                         {opt.label}
+                        {opt.testBadge ? "  " : ""}
+                        {opt.testBadge ? (
+                          <Text style={styles.testBadge}>TEST</Text>
+                        ) : null}
                         {isWallet ? ` · ₹${balance}` : ""}
                       </Text>
                       <Text style={styles.optionDesc}>{opt.desc}</Text>
@@ -303,7 +396,7 @@ const PaymentScreen = () => {
       <View style={styles.footer}>
         <View style={styles.footerSummary}>
           <Text style={styles.footerLabel}>Total payable</Text>
-          <Text style={styles.footerTotal}>₹{cartTotal}</Text>
+          <Text style={styles.footerTotal}>₹{grandTotal}</Text>
         </View>
         <TouchableOpacity style={[styles.payBtnWrap, paying && styles.payBtnDisabled]} onPress={handlePay} activeOpacity={0.9} disabled={paying}>
           <LinearGradient
@@ -319,7 +412,7 @@ const PaymentScreen = () => {
                 <View style={styles.payBtnLeft}>
                   <Ionicons name={walletNeedsTopUp ? "wallet-outline" : "lock-closed-outline"} size={16} color="#FFFFFF" />
                   <Text style={styles.payBtnText}>
-                    {walletNeedsTopUp ? `Add ₹${shortfall} to pay` : `Pay ₹${cartTotal}`}
+                    {walletNeedsTopUp ? `Add ₹${shortfall} to pay` : `Pay ₹${grandTotal}`}
                   </Text>
                 </View>
                 <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />

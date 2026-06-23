@@ -5,7 +5,11 @@ const Order = require("../models/Order");
 const Subscription = require("../models/Subscription");
 const Wallet = require("../models/Wallet");
 const { runPayoutOnDelivered } = require("../services/orderPayout");
+const { getDeliveryPartnerFinancials } = require("../services/financials");
 const { auth } = require("../middleware/auth");
+const { etaFromPartnerToCustomer } = require("../utils/deliveryEta");
+const { haversineMeters, formatDistanceMeters } = require("../utils/geo");
+const { getActiveDeliveryForPartner } = require("../utils/partnerAvailability");
 
 async function getOrCreateWallet(userId) {
   let w = await Wallet.findOne({ userId });
@@ -30,7 +34,15 @@ router.get("/me", auth, async (req, res) => {
   try {
     const dp = await DeliveryPartner.findOne({ userId: req.user._id }).lean();
     if (!dp) return res.status(404).json({ error: "Delivery partner profile not found" });
-    res.json({ ...dp, id: dp._id.toString(), _id: dp._id.toString() });
+    const active = await getActiveDeliveryForPartner(dp._id);
+    res.json({
+      ...dp,
+      id: dp._id.toString(),
+      _id: dp._id.toString(),
+      inFlight: Boolean(active),
+      activeDeliveryOrderId: active?.orderId || null,
+      activeDeliveryStage: active?.deliveryStage || null,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -43,7 +55,8 @@ router.patch("/me", auth, async (req, res) => {
     const { name, phone, vehicleType, profileImageUrl } = req.body;
     if (name !== undefined && String(name).trim()) dp.name = String(name).trim();
     if (phone !== undefined && String(phone).trim()) dp.phone = String(phone).trim();
-    if (vehicleType !== undefined && ["bicycle", "bike", "truck", "minivan", "camper", "cycle"].includes(vehicleType)) dp.vehicleType = vehicleType;
+  const validVehicle = ["bicycle", "bike", "van", "tanker", "miniTruck", "truck", "minivan", "camper", "cycle"];
+    if (vehicleType !== undefined && validVehicle.includes(vehicleType)) dp.vehicleType = vehicleType;
     if (profileImageUrl !== undefined && typeof profileImageUrl === "string") dp.profileImageUrl = profileImageUrl;
     await dp.save();
     const out = await DeliveryPartner.findById(dp._id).lean();
@@ -53,14 +66,64 @@ router.patch("/me", auth, async (req, res) => {
   }
 });
 
+router.patch("/me/online", auth, async (req, res) => {
+  try {
+    const dp = await DeliveryPartner.findOne({ userId: req.user._id });
+    if (!dp) return res.status(404).json({ error: "Delivery partner profile not found" });
+    const isOnline = Boolean(req.body?.isOnline);
+    dp.isOnline = isOnline;
+    const lat = Number(req.body?.latitude);
+    const lng = Number(req.body?.longitude);
+    if (isOnline && Number.isFinite(lat) && Number.isFinite(lng)) {
+      dp.lastLatitude = lat;
+      dp.lastLongitude = lng;
+      dp.locationUpdatedAt = new Date();
+    }
+    if (!isOnline) {
+      dp.locationUpdatedAt = undefined;
+    }
+    await dp.save();
+    const out = await DeliveryPartner.findById(dp._id).lean();
+    res.json({ ...out, id: out._id.toString(), _id: out._id.toString() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch("/me/location", auth, async (req, res) => {
+  try {
+    const dp = await DeliveryPartner.findOne({ userId: req.user._id });
+    if (!dp) return res.status(404).json({ error: "Delivery partner profile not found" });
+    if (!dp.isOnline) return res.status(400).json({ error: "Go online to share live location" });
+    const lat = Number(req.body?.latitude);
+    const lng = Number(req.body?.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return res.status(400).json({ error: "latitude and longitude required" });
+    }
+    dp.lastLatitude = lat;
+    dp.lastLongitude = lng;
+    dp.locationUpdatedAt = new Date();
+    await dp.save();
+    res.json({
+      id: dp._id.toString(),
+      isOnline: dp.isOnline,
+      lastLatitude: lat,
+      lastLongitude: lng,
+      locationUpdatedAt: dp.locationUpdatedAt,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get("/", auth, async (req, res) => {
   try {
     const { vehicleType } = req.query;
     const filter = { onboardingStatus: "approved" };
-    if (vehicleType && ["bicycle", "bike", "truck", "minivan", "camper", "cycle"].includes(vehicleType)) {
+    if (vehicleType && ["bicycle", "bike", "truck", "minivan", "camper", "cycle", "van", "tanker", "miniTruck"].includes(vehicleType)) {
       filter.vehicleType = vehicleType;
     }
-    const list = await DeliveryPartner.find(filter).select("name phone vehicleType").sort({ name: 1 }).lean();
+    const list = await DeliveryPartner.find(filter).select("name phone vehicleType isOnline lastLatitude lastLongitude locationUpdatedAt").sort({ name: 1 }).lean();
     res.json(list.map((d) => ({ ...d, id: d._id.toString(), _id: d._id.toString() })));
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -264,9 +327,71 @@ router.patch("/orders/:id/picked-up", auth, async (req, res) => {
     if (resp.status !== "accepted") return res.status(400).json({ error: "Order not accepted" });
     if (order.status !== "in_progress") return res.status(400).json({ error: "Order no longer in progress" });
     resp.deliveryStage = "picked_up";
+    const lat = Number(req.body?.latitude);
+    const lng = Number(req.body?.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      resp.partnerLatitude = lat;
+      resp.partnerLongitude = lng;
+      resp.partnerLocationUpdatedAt = new Date();
+    }
     await order.save();
     const o = order.toObject();
     res.json({ id: o._id.toString(), supplierResponses: o.supplierResponses });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Live location while en route to customer (after pick-up)
+router.patch("/orders/:id/location", auth, async (req, res) => {
+  try {
+    const dpId = await getDpId(req);
+    if (!dpId) return res.status(403).json({ error: "Delivery partner profile required" });
+    const orderId = toObjectId(req.params.id);
+    if (!orderId) return res.status(400).json({ error: "Invalid order id" });
+    const lat = Number(req.body?.latitude);
+    const lng = Number(req.body?.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      return res.status(400).json({ error: "latitude and longitude required" });
+    }
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ error: "Order not found" });
+    const resp = (order.supplierResponses || []).find(
+      (r) => r.deliveryPartnerId && String(r.deliveryPartnerId) === String(dpId)
+    );
+    if (!resp) return res.status(404).json({ error: "Order not assigned to you" });
+    if (resp.deliveryStage !== "picked_up") {
+      return res.status(400).json({ error: "Live tracking only after order is picked up" });
+    }
+    if (order.status !== "in_progress") {
+      return res.status(400).json({ error: "Order no longer in progress" });
+    }
+
+    resp.partnerLatitude = lat;
+    resp.partnerLongitude = lng;
+    resp.partnerLocationUpdatedAt = new Date();
+
+    const custLat = order.customerLatitude;
+    const custLng = order.customerLongitude;
+    if (custLat != null && custLng != null) {
+      const live = etaFromPartnerToCustomer(lat, lng, custLat, custLng);
+      const acceptedEta = resp.eta || order.estimatedDeliveryText || "";
+      resp.liveDistanceText = live.distanceText || "";
+      resp.liveDistanceMeters = live.distanceMeters || 0;
+      resp.liveEtaText = acceptedEta || live.etaText;
+      resp.liveEtaSeconds = (live.max || live.min || 0) * 60;
+    }
+
+    await order.save();
+    res.json({
+      id: order._id.toString(),
+      partnerLatitude: lat,
+      partnerLongitude: lng,
+      partnerLocationUpdatedAt: resp.partnerLocationUpdatedAt,
+      liveEtaText: resp.liveEtaText,
+      liveEtaSeconds: resp.liveEtaSeconds,
+      liveDistanceText: resp.liveDistanceText,
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -287,18 +412,7 @@ router.patch("/orders/:id/delivered", auth, async (req, res) => {
     resp.deliveryStage = "delivered";
     order.status = "delivered";
     await order.save();
-    if (order.paymentMethod === "wallet") {
-      await runPayoutOnDelivered(order, req.user._id);
-    } else {
-      const deliveryShare = Math.round((order.total || 0) * 0.1);
-      if (deliveryShare > 0) {
-        const w = await getOrCreateWallet(req.user._id);
-        w.balance = (w.balance || 0) + deliveryShare;
-        w.transactions = w.transactions || [];
-        w.transactions.push({ amount: deliveryShare, type: "credit", ref: "delivery" });
-        await w.save();
-      }
-    }
+    await runPayoutOnDelivered(order, req.user._id);
     const o = order.toObject();
     res.json({ id: o._id.toString(), status: o.status, supplierResponses: o.supplierResponses });
   } catch (err) {
@@ -310,18 +424,8 @@ router.get("/financials", auth, async (req, res) => {
   try {
     const dpId = await getDpId(req);
     if (!dpId) return res.status(403).json({ error: "Delivery partner profile required" });
-    const orders = await Order.find({
-      "supplierResponses.deliveryPartnerId": dpId,
-      status: "delivered",
-    }).lean();
-    const totalEarnings = orders.reduce((sum, o) => sum + (o.total || 0), 0);
-    const deliveryShare = Math.round(totalEarnings * 0.1);
-    res.json({
-      totalDeliveries: orders.length,
-      totalEarnings,
-      deliveryShare,
-      currency: "INR",
-    });
+    const result = await getDeliveryPartnerFinancials(dpId, req.user._id);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

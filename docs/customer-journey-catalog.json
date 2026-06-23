@@ -1,0 +1,184 @@
+[
+  {
+    "route": "/",
+    "name": "Welcome & Role Selection",
+    "category": "Getting Started",
+    "journeyStep": 1,
+    "features": "Animated splash screen introducing the H2O Online brand. Choose how you want to use the app: Customer (order water for home), Partner (water supplier), or preview upcoming roles like Corporate, Restaurant, and Institute. Sign up as a new customer or log in to an existing account.",
+    "auth": null,
+    "wait": 4500
+  },
+  {
+    "route": "/create-profile",
+    "name": "Create Your Profile",
+    "category": "Getting Started",
+    "journeyStep": 2,
+    "features": "Complete customer registration with name, email, phone, password, age, gender, and activity level. Set a daily hydration goal, upload a profile photo, and pick a starter plan (Basic, Family, Active, or Premium). Accept terms and conditions to activate your account.",
+    "auth": null,
+    "wait": 3500
+  },
+  {
+    "route": "/login?role=Customer",
+    "name": "Customer Login",
+    "category": "Getting Started",
+    "journeyStep": 3,
+    "features": "Sign in with email and password. Accept terms before logging in. Links to forgot password, OTP login, and new customer sign-up. After login you land on your personal dashboard.",
+    "auth": null,
+    "wait": 3000
+  },
+  {
+    "route": "/login-otp",
+    "name": "OTP Login",
+    "category": "Getting Started",
+    "journeyStep": 4,
+    "features": "Alternative sign-in using a one-time password sent to your registered phone or email. Enter the 6-digit code to access your account without a password.",
+    "auth": null,
+    "wait": 3000
+  },
+  {
+    "route": "/forgot-password",
+    "name": "Forgot Password",
+    "category": "Getting Started",
+    "journeyStep": 5,
+    "features": "Recover access when you forget your password. Enter your registered email to receive reset instructions. Option to return to standard login or OTP login.",
+    "auth": null,
+    "wait": 3000
+  },
+  {
+    "route": "/dashboard",
+    "name": "Home Dashboard",
+    "category": "Daily Hub",
+    "journeyStep": 6,
+    "features": "Personalised greeting with your name and profile photo. View wallet balance and loyalty points at a glance. Quick actions: Order Jar, My Plan, Track Delivery, Wallet, Water Intake, and Billing. See ongoing order banner with live status. Weekly hydration graph and today's goal progress. Active subscription selector. Water AI Sense insights with expandable tips, health report, and ask-a-question. Connected devices section (Apple Watch, Smart Bottle, TV Hub).",
+    "auth": "customer",
+    "wait": 4000
+  },
+  {
+    "route": "/order",
+    "name": "Browse & Order Water",
+    "category": "Ordering",
+    "journeyStep": 7,
+    "features": "Browse the full water product catalog in a visual grid. Filter by All, Price, Fastest Delivery, Top Rated, or Nearest Supplier. Filter by size ranges from 1–5 L up to 20+ L. Options for bulk orders (500+ L) and tanker delivery. Use-case filters for parties and office orders. View star ratings and customer reviews. Compare products side by side. Add items to cart or buy instantly. Access saved delivery addresses from the header.",
+    "auth": "customer",
+    "wait": 4500
+  },
+  {
+    "route": "/cart?docs=1",
+    "name": "Shopping Cart",
+    "category": "Ordering",
+    "journeyStep": 8,
+    "features": "Review all items added to your cart with product images and supplier names. Increase or decrease quantities with +/− controls. Remove unwanted items. See line totals and cart subtotal. Continue shopping or proceed to checkout.",
+    "auth": "customer",
+    "wait": 3000
+  },
+  {
+    "route": "/checkout?docs=1",
+    "name": "Checkout",
+    "category": "Ordering",
+    "journeyStep": 9,
+    "features": "Confirm delivery address manually or pick from saved addresses. Choose instant delivery or schedule for a later date and time. Order for someone else with receiver name and phone. Apply coupon codes for discounts. Review complete order summary. Quick access to wallet top-up.",
+    "auth": "customer",
+    "wait": 3500
+  },
+  {
+    "route": "/payment?docs=1",
+    "name": "Payment",
+    "category": "Ordering",
+    "journeyStep": 10,
+    "features": "Choose how to pay: H2 Wallet balance, UPI, Credit/Debit Card, or Cash on Delivery. View final order summary with itemised costs. Confirm and place your order securely.",
+    "auth": "customer",
+    "wait": 3500
+  },
+  {
+    "route": "/order-confirmed",
+    "name": "Order Confirmed",
+    "category": "Ordering",
+    "journeyStep": 11,
+    "features": "Success confirmation with your order ID. Clear message that your order has been placed. Buttons to track your delivery in real time or return to the home dashboard.",
+    "auth": "customer",
+    "routeKey": "confirmedOrder",
+    "wait": 3500
+  },
+  {
+    "route": "/track-order",
+    "name": "Track Your Order",
+    "category": "Ordering",
+    "journeyStep": 12,
+    "features": "Live delivery timeline showing each stage: Order Accepted → Picked Up → Out for Delivery → Delivered. Estimated time of arrival. Supplier and delivery partner details. One-tap call driver button. Order items and delivery address summary.",
+    "auth": "customer",
+    "routeKey": "trackOrder",
+    "wait": 4000
+  },
+  {
+    "route": "/order-history",
+    "name": "Order History",
+    "category": "Ordering",
+    "journeyStep": 13,
+    "features": "Complete list of past and current orders with status badges. Filter by order status. View product details for each order. Rate and review delivered products. Reorder or shop again with one tap.",
+    "auth": "customer",
+    "wait": 3500
+  },
+  {
+    "route": "/saved-addresses",
+    "name": "Saved Addresses",
+    "category": "Account & Addresses",
+    "journeyStep": 14,
+    "features": "Manage home, office, and other delivery locations. Add new addresses with house number, locality, city, state, PIN code, and contact phone. Edit or delete existing addresses. Set a default address for faster checkout and subscription deliveries.",
+    "auth": "customer",
+    "wait": 3000
+  },
+  {
+    "route": "/plan-subscription",
+    "name": "Water Subscription Plans",
+    "category": "Subscriptions",
+    "journeyStep": 15,
+    "features": "Choose a subscription plan: Basic, Family, Active, or Premium — each with different jar sizes and delivery frequency. Set delivery frequency (daily, weekly, or monthly). Pick preferred delivery time window. Select products included in your plan. Add delivery address and locality. Create, update, or pause active subscriptions.",
+    "auth": "customer",
+    "wait": 3500
+  },
+  {
+    "route": "/billing",
+    "name": "Subscription Billing",
+    "category": "Subscriptions",
+    "journeyStep": 16,
+    "features": "View all monthly subscription bills in one place. Filter by All, Pending, Paid, or Overdue. See bill amount, billing period, and due date. Pay pending bills directly from your H2 Wallet. Status badges show payment state at a glance.",
+    "auth": "customer",
+    "wait": 3500
+  },
+  {
+    "route": "/water-intake",
+    "name": "Water Intake Tracker",
+    "category": "Health & Hydration",
+    "journeyStep": 17,
+    "features": "Log daily water intake by glass, jar, bottle, or custom volume. Track progress toward your personal daily hydration goal. View a 7-day consumption graph. Water AI Sense banner with personalised hydration tips. Suggested intake based on your profile and activity level.",
+    "auth": "customer",
+    "wait": 3500
+  },
+  {
+    "route": "/profile",
+    "name": "My Profile",
+    "category": "Account & Settings",
+    "journeyStep": 18,
+    "features": "Profile header with photo, name, and member stats (total orders, loyalty points, wallet balance). Quick links to My Plan, Saved Addresses, and Order History. Account section: edit personal information (name, email, phone), manage payment methods (cards, UPI, wallet), change password, and view order history. Support section: Help & Support tickets and Privacy Policy. Secure logout.",
+    "auth": "customer",
+    "wait": 3500
+  },
+  {
+    "route": "/customer-support",
+    "name": "Help & Support",
+    "category": "Support",
+    "journeyStep": 19,
+    "features": "View all your support tickets with status (Open, In Progress, Resolved, Closed). Create a new ticket by choosing a category: Order Issue, Delivery Problem, Payment/Billing, Account & Login, Product Quality, or Other. Add subject and detailed description. Follow ticket conversation thread and add replies. Pull to refresh ticket list.",
+    "auth": "customer",
+    "wait": 3500
+  },
+  {
+    "route": "/privacy-policy",
+    "name": "Privacy Policy",
+    "category": "Support",
+    "journeyStep": 20,
+    "features": "Clear explanation of how H2O Online collects, uses, and protects your personal data. Sections covering data collection, usage purposes, third-party sharing, security measures, data retention, your rights, children's privacy, and contact information for privacy enquiries.",
+    "auth": "customer",
+    "wait": 3000
+  }
+]

@@ -8,6 +8,7 @@ const USER_CODE_PREFIX = {
   admin: "Admin_",
   "sub-admin": "SubAdmin_",
   corporate: "Corp_",
+  society: "Soc_",
 };
 
 function randomCode(len = 8) {
@@ -23,14 +24,17 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, trim: true, lowercase: true },
   phone: { type: String, trim: true },
   password: { type: String, required: true, minlength: 6, select: false },
-  role: { type: String, default: "customer", enum: ["customer", "supplier", "admin", "sub-admin", "deliveryPartner"] },
-  segment: { type: String, default: "", enum: ["", "corporate", "organization", "institute", "college"] }, // for customers: corporate / org / institute / college
+  role: { type: String, default: "customer", enum: ["customer", "supplier", "admin", "sub-admin", "deliveryPartner", "society"] },
+  segment: { type: String, default: "", enum: ["", "corporate", "organization", "institute", "college", "society"] },
   age: Number,
   gender: { type: String, enum: ["male", "female", "other", ""] },
   activityLevel: String,
   familyMembers: Number,
   planId: { type: mongoose.Schema.Types.ObjectId, ref: "Plan", default: null },
+  societyId: { type: mongoose.Schema.Types.ObjectId, ref: "Society", default: null },
   avatarUrl: String,
+  leaderboardOptIn: { type: Boolean, default: false },
+  leaderboardMonthlyReport: { type: Boolean, default: false },
 }, { timestamps: true });
 
 userSchema.statics.generateUniqueUserCode = async function (role) {

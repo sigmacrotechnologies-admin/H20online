@@ -1,0 +1,16 @@
+# EAS uploads the whole git repo — only include the mobile app.
+# https://expo.fyi/eas-build-archive
+
+/*
+!/mobile
+!/mobile/**
+
+# Heavy / generated inside mobile
+mobile/node_modules/
+mobile/.expo/
+mobile/android/
+mobile/ios/
+mobile/dist/
+mobile/web-build/
+mobile/.env
+mobile/.env*.local

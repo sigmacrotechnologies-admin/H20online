@@ -143,20 +143,20 @@ const LoginOTPScreen = () => {
     >
       <View style={styles.roleBanner}>
         <LinearGradient
-          colors={["rgba(51,175,193,0.14)", "rgba(30,143,177,0.08)"]}
+          colors={[theme.medium, theme.accent]}
           start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.roleBannerInner}
+          end={{ x: 1, y: 1 }}
+          style={styles.roleBannerGradient}
         >
           <View style={styles.roleBannerIcon}>
-            <Ionicons name={roleInfo.icon} size={20} color={theme.accent} />
+            <Ionicons name={roleInfo.icon} size={24} color="#FFFFFF" />
           </View>
           <View style={styles.roleBannerText}>
             <Text style={styles.roleBannerLabel}>Signing in as</Text>
             <Text style={styles.roleBannerValue}>{roleInfo.label}</Text>
             <Text style={styles.roleBannerDesc}>{roleInfo.desc}</Text>
           </View>
-          <Ionicons name="shield-checkmark-outline" size={20} color={theme.accent} />
+          <Ionicons name="shield-checkmark" size={22} color="rgba(255,255,255,0.9)" />
         </LinearGradient>
       </View>
 
@@ -286,21 +286,20 @@ const LoginOTPScreen = () => {
 export default LoginOTPScreen;
 
 const styles = StyleSheet.create({
-  roleBanner: { marginBottom: 14, borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: "rgba(51,175,193,0.2)" },
-  roleBannerInner: { flexDirection: "row", alignItems: "center", padding: 14 },
+  roleBanner: { marginBottom: 14, borderRadius: 22, overflow: "hidden" },
+  roleBannerGradient: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
   roleBannerIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.22)",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 12,
   },
   roleBannerText: { flex: 1 },
-  roleBannerLabel: { fontSize: 11, fontWeight: "600", color: theme.textMuted, textTransform: "uppercase", letterSpacing: 0.4 },
-  roleBannerValue: { fontSize: 16, fontWeight: "700", color: theme.textPrimary, marginTop: 2 },
-  roleBannerDesc: { fontSize: 12, color: theme.textMuted, marginTop: 2 },
+  roleBannerLabel: { fontSize: 11, fontWeight: "600", color: "rgba(255,255,255,0.88)", textTransform: "uppercase", letterSpacing: 0.4 },
+  roleBannerValue: { fontSize: 18, fontWeight: "800", color: "#FFFFFF", marginTop: 2 },
+  roleBannerDesc: { fontSize: 12, color: "rgba(255,255,255,0.9)", marginTop: 3 },
   progressCard: {
     flexDirection: "row",
     alignItems: "center",

@@ -3,17 +3,6 @@ import PageHeader from "../components/PageHeader";
 import LoadingState from "../components/LoadingState";
 import { api } from "../api/client";
 
-const card = { background: "#f0f7fcd7", borderRadius: 16, padding: 24, marginBottom: 24, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" };
-const table = { width: "100%", borderCollapse: "collapse" };
-const th = { textAlign: "left", padding: "10px 12px", borderBottom: "2px solid #E5E7EB", fontWeight: 600, color: "#1B2B34" };
-const td = { padding: "10px 12px", borderBottom: "1px solid #E5E7EB", color: "#1B2B34" };
-const input = { padding: "6px 10px", borderRadius: 8, border: "1px solid #E5E7EB", width: 80 };
-const inputWide = { ...input, width: "100%", maxWidth: 140 };
-const inputId = { ...input, width: 120 };
-const btn = { padding: "8px 16px", borderRadius: 8, border: "none", fontWeight: 600, cursor: "pointer" };
-const btnPrimary = { ...btn, background: "#1EA7FD", color: "#fff" };
-const btnDanger = { ...btn, background: "#FEE2E2", color: "#B91C1C", padding: "6px 12px", fontSize: 13 };
-const btnSmall = { ...btn, background: "#E0F2FE", color: "#1B2B34", padding: "6px 12px", fontSize: 13 };
 const PRODUCT_IMAGE_OPTIONS = [
   { label: "Default", value: "" },
   { label: "Water Camper", value: "asset://water-camper" },
@@ -202,7 +191,8 @@ export default function Plans() {
               min={1}
               value={plan.maxQuantityPerProduct}
               onChange={(e) => updatePlan(plan, "maxQuantityPerProduct", Number(e.target.value))}
-              style={{ ...input, width: 60 }}
+              className="input"
+              style={{ width: 60 }}
             />
             {" "}Coming soon:{" "}
             <input
@@ -239,11 +229,12 @@ export default function Plans() {
                         const v = e.target.value.trim();
                         if (v !== (pp.productId || "")) updateProduct(pp, "productId", v || "");
                       }}
-                      style={inputId}
+                      className="input"
                     />
                     <button
                       type="button"
-                      style={{ ...btnSmall, marginLeft: 6 }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ marginLeft: 6 }}
                       onClick={() => generateProductId(pp)}
                       disabled={saving === pp.id}
                     >
@@ -257,7 +248,8 @@ export default function Plans() {
                         const v = e.target.value.trim();
                         if (v && v !== pp.productKey) updateProduct(pp, "productKey", v);
                       }}
-                      style={{ ...inputWide, maxWidth: 120 }}
+                      className="input input-wide"
+                      style={{ maxWidth: 120 }}
                       placeholder="e.g. 1l-bottle"
                     />
                   </td>
@@ -268,7 +260,7 @@ export default function Plans() {
                         const v = e.target.value.trim();
                         if (v && v !== pp.productLabel) updateProduct(pp, "productLabel", v);
                       }}
-                      style={inputWide}
+                      className="input input-wide"
                     />
                   </td>
                   <td>
@@ -278,7 +270,8 @@ export default function Plans() {
                         const v = e.target.value;
                         if (v !== (pp.imageUrl || "")) updateProduct(pp, "imageUrl", v);
                       }}
-                      style={{ ...inputWide, maxWidth: 160 }}
+                      className="input input-wide"
+                      style={{ maxWidth: 160 }}
                     >
                       {PRODUCT_IMAGE_OPTIONS.map((opt) => (
                         <option key={opt.value || "default"} value={opt.value}>
@@ -348,24 +341,27 @@ export default function Plans() {
                   placeholder="Product key (e.g. 1l-bottle)"
                   value={newProduct.productKey}
                   onChange={(e) => setNewProduct((n) => ({ ...n, productKey: e.target.value }))}
-                  style={{ ...inputWide, maxWidth: 160 }}
+                  className="input input-wide"
+                  style={{ maxWidth: 160 }}
                 />
                 <input
                   placeholder="Label (e.g. 1L Bottle)"
                   value={newProduct.productLabel}
                   onChange={(e) => setNewProduct((n) => ({ ...n, productLabel: e.target.value }))}
-                  style={{ ...inputWide, maxWidth: 140 }}
+                  className="input input-wide"
+                  style={{ maxWidth: 140 }}
                 />
                 <input
                   placeholder="Product ID (optional)"
                   value={newProduct.productId}
                   onChange={(e) => setNewProduct((n) => ({ ...n, productId: e.target.value }))}
-                  style={inputId}
+                  className="input"
                 />
                 <select
                   value={newProduct.imageUrl}
                   onChange={(e) => setNewProduct((n) => ({ ...n, imageUrl: e.target.value }))}
-                  style={{ ...inputWide, maxWidth: 170 }}
+                  className="input input-wide"
+                  style={{ maxWidth: 170 }}
                 >
                   {PRODUCT_IMAGE_OPTIONS.map((opt) => (
                     <option key={opt.value || "default"} value={opt.value}>
@@ -413,7 +409,8 @@ export default function Plans() {
           ) : (
             <button
               type="button"
-              style={{ ...btnPrimary, marginTop: 16 }}
+              className="btn btn-primary"
+              style={{ marginTop: 16 }}
               onClick={() => setAddingForPlanId(plan.id)}
             >
               + Add product

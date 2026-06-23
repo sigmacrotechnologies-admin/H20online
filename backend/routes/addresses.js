@@ -12,6 +12,13 @@ function toObjectId(v) {
   return null;
 }
 
+function parseCoordinate(v) {
+  if (v == null || v === "") return undefined;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return undefined;
+  return n;
+}
+
 router.get("/", async (req, res) => {
   try {
     const list = await SavedAddress.find({ userId: req.user._id }).sort({ isDefault: -1, createdAt: -1 }).lean();
@@ -24,6 +31,8 @@ router.get("/", async (req, res) => {
       pinCode: a.pinCode || "",
       phoneNumber: a.phoneNumber || "",
       fullAddress: a.fullAddress || "",
+      latitude: a.latitude ?? null,
+      longitude: a.longitude ?? null,
       isDefault: !!a.isDefault,
     })));
   } catch (err) {
@@ -33,18 +42,24 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { houseNumber, locality, city, state, pinCode, phoneNumber, isDefault } = req.body;
+    const { houseNumber, locality, city, state, pinCode, phoneNumber, isDefault, latitude, longitude } = req.body;
     const phone = phoneNumber && String(phoneNumber).trim() ? String(phoneNumber).trim() : "";
     if (!phone) return res.status(400).json({ error: "Phone number is required" });
+    const pin = pinCode && String(pinCode).trim() ? String(pinCode).trim().replace(/\D/g, "") : "";
+    if (!pin || pin.length < 6) return res.status(400).json({ error: "Valid 6-digit PIN code is required" });
     const doc = {
       userId: req.user._id,
       houseNumber: houseNumber && String(houseNumber).trim() ? String(houseNumber).trim() : "",
       locality: locality && String(locality).trim() ? String(locality).trim() : "",
       city: city && String(city).trim() ? String(city).trim() : "",
       state: state && String(state).trim() ? String(state).trim() : "",
-      pinCode: pinCode && String(pinCode).trim() ? String(pinCode).trim() : "",
+      pinCode: pin,
       phoneNumber: phone,
     };
+    const lat = parseCoordinate(latitude);
+    const lng = parseCoordinate(longitude);
+    if (lat != null) doc.latitude = lat;
+    if (lng != null) doc.longitude = lng;
     const parts = [doc.houseNumber, doc.locality, doc.city, doc.state, doc.pinCode].filter(Boolean);
     doc.fullAddress = parts.join(", ");
     if (isDefault) {
@@ -64,6 +79,8 @@ router.post("/", async (req, res) => {
       pinCode: a.pinCode || "",
       phoneNumber: a.phoneNumber || "",
       fullAddress: a.fullAddress || "",
+      latitude: a.latitude ?? null,
+      longitude: a.longitude ?? null,
       isDefault: !!a.isDefault,
     });
   } catch (err) {
@@ -77,14 +94,29 @@ router.put("/:id", async (req, res) => {
     if (!id) return res.status(400).json({ error: "Invalid address id" });
     const addr = await SavedAddress.findOne({ _id: id, userId: req.user._id });
     if (!addr) return res.status(404).json({ error: "Address not found" });
-    const { houseNumber, locality, city, state, pinCode, phoneNumber, isDefault } = req.body;
+    const { houseNumber, locality, city, state, pinCode, phoneNumber, isDefault, latitude, longitude } = req.body;
     if (houseNumber !== undefined) addr.houseNumber = houseNumber && String(houseNumber).trim() ? String(houseNumber).trim() : "";
     if (locality !== undefined) addr.locality = locality && String(locality).trim() ? String(locality).trim() : "";
     if (city !== undefined) addr.city = city && String(city).trim() ? String(city).trim() : "";
     if (state !== undefined) addr.state = state && String(state).trim() ? String(state).trim() : "";
-    if (pinCode !== undefined) addr.pinCode = pinCode && String(pinCode).trim() ? String(pinCode).trim() : "";
+    if (pinCode !== undefined) {
+      const pin = pinCode && String(pinCode).trim() ? String(pinCode).trim().replace(/\D/g, "") : "";
+      if (!pin || pin.length < 6) return res.status(400).json({ error: "Valid 6-digit PIN code is required" });
+      addr.pinCode = pin;
+    }
     if (phoneNumber !== undefined) addr.phoneNumber = phoneNumber && String(phoneNumber).trim() ? String(phoneNumber).trim() : "";
+    if (latitude !== undefined) {
+      const lat = parseCoordinate(latitude);
+      addr.latitude = lat != null ? lat : undefined;
+    }
+    if (longitude !== undefined) {
+      const lng = parseCoordinate(longitude);
+      addr.longitude = lng != null ? lng : undefined;
+    }
     if (!addr.phoneNumber || !String(addr.phoneNumber).trim()) return res.status(400).json({ error: "Phone number is required" });
+    const finalPin = addr.pinCode && String(addr.pinCode).trim().replace(/\D/g, "");
+    if (!finalPin || finalPin.length < 6) return res.status(400).json({ error: "Valid 6-digit PIN code is required" });
+    addr.pinCode = finalPin;
     if (isDefault) {
       await SavedAddress.updateMany({ userId: req.user._id }, { isDefault: false });
       addr.isDefault = true;
@@ -102,6 +134,8 @@ router.put("/:id", async (req, res) => {
       pinCode: a.pinCode || "",
       phoneNumber: a.phoneNumber || "",
       fullAddress: a.fullAddress || "",
+      latitude: a.latitude ?? null,
+      longitude: a.longitude ?? null,
       isDefault: !!a.isDefault,
     });
   } catch (err) {

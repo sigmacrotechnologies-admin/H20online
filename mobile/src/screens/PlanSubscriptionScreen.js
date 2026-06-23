@@ -13,21 +13,25 @@ import {
   StatusBar,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import BackButton from "@/src/components/BackButton";
 import AppLogo from "@/src/components/AppLogo";
 import DropletOverlay from "@/src/components/modern/DropletOverlay";
 import { api } from "@/src/api/client";
 import { goBackOr } from "@/src/utils/navigation";
+import { useCustomerPortal } from "@/src/utils/customerPortal";
+import { useAuth } from "@/src/context/AuthContext";
 import { theme } from "@/src/theme";
 
-const PLAN_SLUGS = [
-  { slug: "basic", name: "Basic Plan", icon: "water-outline" },
-  { slug: "family", name: "Family Pack", icon: "people-outline" },
-  { slug: "active", name: "Active Plan", icon: "fitness-outline" },
-  { slug: "premium", name: "Premium Plan", icon: "diamond-outline" },
-];
+const PLAN_ICON_BY_SLUG = {
+  basic: "water-outline",
+  family: "people-outline",
+  active: "fitness-outline",
+  premium: "diamond-outline",
+  bulk: "bus-outline",
+  "society-tanker": "home-outline",
+};
 
 const FREQUENCIES = [
   { key: "daily", label: "Daily", icon: "today-outline" },
@@ -150,6 +154,18 @@ function getWeekdayNames() {
 
 const PlanSubscriptionScreen = () => {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const portal = useCustomerPortal();
+  const { user } = useAuth();
+  const isSupplier = user?.role === "supplier";
+  const categoryParam = typeof params.category === "string" ? params.category : null;
+  const planCategory =
+    categoryParam && ["individual", "bulk", "society"].includes(categoryParam)
+      ? categoryParam
+      : portal.isSociety
+        ? "society"
+        : "individual";
+  const homeRoute = isSupplier ? "/supplier-dashboard" : portal.home;
   const [plans, setPlans] = useState([]);
   const [selectedSlug, setSelectedSlug] = useState("basic");
   const [planProducts, setPlanProducts] = useState(null);
@@ -211,14 +227,17 @@ const PlanSubscriptionScreen = () => {
 
   const loadPlans = useCallback(async () => {
     try {
-      const data = await api.plans.list();
-      setPlans(data);
+      const data = await api.plans.list({ category: planCategory });
+      const list = Array.isArray(data) ? data : [];
+      setPlans(list);
+      const firstActive = list.find((p) => !p.comingSoon);
+      if (firstActive) setSelectedSlug(firstActive.slug);
     } catch (_) {
       setPlans([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [planCategory]);
 
   useEffect(() => {
     loadPlans();
@@ -241,15 +260,16 @@ const PlanSubscriptionScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedSlug && (selectedSlug === "basic" || selectedSlug === "family")) {
+    const plan = plans.find((p) => p.slug === selectedSlug);
+    if (selectedSlug && plan && !plan.comingSoon) {
       loadPlanProducts(selectedSlug);
     } else {
       setPlanProducts(null);
     }
-  }, [selectedSlug, loadPlanProducts]);
+  }, [selectedSlug, plans, loadPlanProducts]);
 
   const planInfo = plans.find((p) => p.slug === selectedSlug);
-  const isComingSoon = planInfo?.comingSoon ?? (selectedSlug === "active" || selectedSlug === "premium");
+  const isComingSoon = planInfo?.comingSoon ?? false;
   const maxQty = planInfo?.maxQuantityPerProduct ?? 5;
 
   const unitPrice = selectedProduct
@@ -368,8 +388,9 @@ const PlanSubscriptionScreen = () => {
         addressId: selectedAddressId,
         preferredTimeRangeStart: preferredTimeRangeStart.trim() || undefined,
         preferredTimeRangeEnd: preferredTimeRangeEnd.trim() || undefined,
+        planCategory,
       });
-      goBackOr("/dashboard");
+      goBackOr(homeRoute);
     } catch (err) {
       setError(err.message || "Failed to subscribe");
     } finally {
@@ -382,7 +403,7 @@ const PlanSubscriptionScreen = () => {
   };
 
   const weekdayNames = getWeekdayNames();
-  const showSubscribeForm = !isComingSoon && (selectedSlug === "basic" || selectedSlug === "family");
+  const showSubscribeForm = !isComingSoon && !!planInfo && !planInfo.comingSoon;
   const showStickyFooter = showSubscribeForm && !productsLoading && !!planProducts?.products?.length;
 
   return (
@@ -403,8 +424,16 @@ const PlanSubscriptionScreen = () => {
                 <Ionicons name="menu" size={22} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.headerTitle}>My Plan</Text>
-            <Text style={styles.headerSubtitle}>Manage subscriptions or set up a new delivery plan</Text>
+            <Text style={styles.headerTitle}>
+              {planCategory === "bulk" ? "Bulk supply plan" : planCategory === "society" ? "Society tanker plan" : "My Plan"}
+            </Text>
+            <Text style={styles.headerSubtitle}>
+              {planCategory === "bulk"
+                ? "Schedule tankers and commercial bulk deliveries"
+                : planCategory === "society"
+                  ? "Schedule recurring tanker deliveries for your society"
+                  : "Manage subscriptions or set up a new delivery plan"}
+            </Text>
           </LinearGradient>
         </View>
 
@@ -458,9 +487,10 @@ const PlanSubscriptionScreen = () => {
 
             <Text style={styles.sectionEyebrow}>Choose a plan</Text>
             <View style={styles.planTilesRow}>
-            {PLAN_SLUGS.map((p) => {
+            {plans.map((p) => {
               const isSelected = selectedSlug === p.slug;
-              const comingSoon = p.slug === "active" || p.slug === "premium";
+              const comingSoon = p.comingSoon;
+              const iconName = PLAN_ICON_BY_SLUG[p.slug] || "document-text-outline";
               return (
                 <TouchableOpacity
                   key={p.slug}
@@ -471,7 +501,7 @@ const PlanSubscriptionScreen = () => {
                   {isSelected ? (
                     <LinearGradient colors={[theme.medium, theme.accent]} style={styles.planTile}>
                       <View style={styles.planTileIconWrapActive}>
-                        <Ionicons name={p.icon} size={24} color="#FFFFFF" />
+                        <Ionicons name={iconName} size={24} color="#FFFFFF" />
                       </View>
                       <Text style={styles.planTileNameWhite} numberOfLines={2}>{p.name}</Text>
                       {comingSoon ? <Text style={styles.comingSoonBadgeWhite}>Coming soon</Text> : null}
@@ -479,7 +509,7 @@ const PlanSubscriptionScreen = () => {
                   ) : (
                     <View style={[styles.planTile, comingSoon && styles.planTileMuted]}>
                       <View style={styles.planTileIconWrap}>
-                        <Ionicons name={p.icon} size={24} color={comingSoon ? "#9CA3AF" : theme.accent} />
+                        <Ionicons name={iconName} size={24} color={comingSoon ? "#9CA3AF" : theme.accent} />
                       </View>
                       <Text style={[styles.planTileName, comingSoon && styles.planTileNameMuted]} numberOfLines={2}>{p.name}</Text>
                       {comingSoon ? <Text style={styles.comingSoonBadge}>Coming soon</Text> : null}
@@ -496,7 +526,7 @@ const PlanSubscriptionScreen = () => {
                 <Ionicons name="time-outline" size={36} color={theme.accent} />
               </View>
               <Text style={styles.comingSoonTitle}>Coming soon</Text>
-              <Text style={styles.comingSoonText}>This plan is not available yet. Choose Basic Plan or Family Pack.</Text>
+              <Text style={styles.comingSoonText}>This plan is not available yet. Choose another plan from the list above.</Text>
             </View>
           ) : null}
 
@@ -830,7 +860,7 @@ const PlanSubscriptionScreen = () => {
       </BottomSheetModal>
 
       <BottomSheetModal visible={showMenuModal} onClose={() => setShowMenuModal(false)} title="Quick links" maxHeight={320}>
-        <TouchableOpacity style={styles.sheetItem} onPress={() => { setShowMenuModal(false); router.push("/profile"); }} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.sheetItem} onPress={() => { setShowMenuModal(false); router.push(isSupplier ? "/supplier-dashboard" : portal.profile); }} activeOpacity={0.85}>
           <Ionicons name="person-outline" size={20} color={theme.textPrimary} />
           <Text style={styles.sheetItemText}>Profile</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
@@ -840,12 +870,14 @@ const PlanSubscriptionScreen = () => {
           <Text style={styles.sheetItemText}>Order History</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.sheetItem} onPress={() => { setShowMenuModal(false); router.push("/water-intake"); }} activeOpacity={0.85}>
-          <Ionicons name="water-outline" size={20} color={theme.textPrimary} />
-          <Text style={styles.sheetItemText}>Water Intake</Text>
-          <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.sheetItem} onPress={() => { setShowMenuModal(false); router.push("/dashboard"); }} activeOpacity={0.85}>
+        {!portal.isSociety ? (
+          <TouchableOpacity style={styles.sheetItem} onPress={() => { setShowMenuModal(false); router.push("/water-intake"); }} activeOpacity={0.85}>
+            <Ionicons name="water-outline" size={20} color={theme.textPrimary} />
+            <Text style={styles.sheetItemText}>Water Intake</Text>
+            <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+          </TouchableOpacity>
+        ) : null}
+        <TouchableOpacity style={styles.sheetItem} onPress={() => { setShowMenuModal(false); router.push(homeRoute); }} activeOpacity={0.85}>
           <Ionicons name="home-outline" size={20} color={theme.textPrimary} />
           <Text style={styles.sheetItemText}>Dashboard</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />

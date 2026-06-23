@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>H2O Online — Customer Dashboard Devices &amp; Leaderboard BRD</title>
+  <style>
+    @page { size: A4; margin: 14mm 12mm 16mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      color: #1e293b;
+      font-size: 9pt;
+      line-height: 1.42;
+      margin: 0;
+    }
+    .cover {
+      page-break-after: always;
+      min-height: 255mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 22mm 20mm;
+      background: linear-gradient(145deg, #ecfeff 0%, #fff 45%, #fef9c3 100%);
+    }
+    .cover-badge {
+      display: inline-block;
+      background: #0e7490;
+      color: #fff;
+      font-size: 8pt;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      width: fit-content;
+    }
+    .cover h1 {
+      font-size: 24pt;
+      color: #0c4a6e;
+      margin: 0 0 12px;
+      line-height: 1.2;
+      max-width: 500px;
+    }
+    .cover .subtitle { font-size: 11pt; color: #475569; margin: 0 0 24px; max-width: 480px; line-height: 1.5; }
+    .cover-meta {
+      border-top: 2px solid #33afc1;
+      padding-top: 16px;
+      margin-top: 8px;
+      font-size: 9pt;
+      color: #64748b;
+    }
+    .cover-meta div { margin-bottom: 4px; }
+    .cover-stats {
+      display: flex;
+      gap: 14px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+    .stat-box {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px 16px;
+      min-width: 95px;
+    }
+    .stat-box strong { display: block; font-size: 15pt; color: #0e7490; }
+    .stat-box span { font-size: 8pt; color: #64748b; }
+    h1 { font-size: 16pt; color: #0c4a6e; margin: 14pt 0 6pt; page-break-after: avoid; }
+    h2 {
+      font-size: 12pt; color: #0f172a; margin: 14pt 0 5pt;
+      border-bottom: 2px solid #7dd3fc; padding-bottom: 3px;
+      page-break-after: avoid;
+    }
+    h3 { font-size: 10.5pt; color: #1d4ed8; margin: 10pt 0 4pt; page-break-after: avoid; }
+    h4 { font-size: 9.5pt; color: #334155; margin: 8pt 0 3pt; page-break-after: avoid; }
+    p { margin: 0 0 7pt; color: #334155; }
+    p.footnote { font-style: italic; font-size: 8.5pt; color: #64748b; }
+    hr { border: none; border-top: 1px solid #cbd5e1; margin: 12pt 0; }
+    ul, ol { margin: 0 0 8pt; padding-left: 16pt; }
+    li { margin-bottom: 2pt; }
+    ul.checklist { list-style: none; padding-left: 4pt; }
+    ul.checklist li.check::before { content: "☐ "; color: #64748b; }
+    ul.checklist li.check.done::before { content: "☑ "; color: #059669; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 10pt;
+      font-size: 7.6pt;
+      page-break-inside: auto;
+    }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    th {
+      background: #0e7490;
+      color: #fff;
+      font-weight: 600;
+      text-align: left;
+      padding: 5px 6px;
+      border: 1px solid #0891b2;
+    }
+    td {
+      padding: 4px 6px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code.inline {
+      background: #f1f5f9;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 8pt;
+    }
+    pre {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 8px 10px;
+      border-radius: 4px;
+      margin: 0 0 10pt;
+      page-break-inside: avoid;
+    }
+    pre code.block { font-size: 7.2pt; white-space: pre-wrap; font-family: Consolas, monospace; }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-badge">Business Requirements</div>
+    <h1>Customer Dashboard<br>Devices &amp; Hydration Leaderboard</h1>
+    <p class="subtitle">Comprehensive BRD with functional requirements, API specifications, data models, privacy rules, acceptance criteria, and QA test scenarios.</p>
+    <div class="cover-stats">
+      <div class="stat-box"><strong>2</strong><span>Feature modules</span></div>
+      <div class="stat-box"><strong>2</strong><span>REST APIs</span></div>
+      <div class="stat-box"><strong>16</strong><span>Document sections</span></div>
+      <div class="stat-box"><strong>10</strong><span>QA scenarios</span></div>
+    </div>
+    <div class="cover-meta">
+      <div><strong>Document version:</strong> 1.0</div>
+      <div><strong>Module:</strong> Customer Mobile — Dashboard</div>
+      <div><strong>Status:</strong> Phase 1 Implemented</div>
+      <div><strong>Generated:</strong> 24 June 2026</div>
+    </div>
+  </div>
+  <div class="content"><h1>H2O Online — Customer Dashboard: Devices &amp; Hydration Leaderboard</h1>
+<p><strong>Document type:</strong> Business Requirements Document (BRD)  </p>
+<p><strong>Product module:</strong> Customer Mobile App — Dashboard  </p>
+<p><strong>Feature set:</strong> Connected Devices (Coming Soon) + Monthly Hydration Leaderboard  </p>
+<p><strong>Version:</strong> 1.0  </p>
+<p><strong>Status:</strong> Implemented (Phase 1)  </p>
+<p><strong>Audience:</strong> Product owners, business analysts, engineering, QA, stakeholders</p>
+<hr />
+<h2>1. Executive Summary</h2>
+<p>This document defines the business requirements, functional specifications, API contracts, data models, privacy rules, and acceptance criteria for two customer-dashboard capabilities within the H2O Online mobile application:</p>
+<ol><li><strong>My Devices section</strong> — Presents planned wearable and smart-home integrations (Apple Watch, Smart Bottle, TV Hub) with honest <strong>Coming soon</strong> labelling instead of misleading &quot;Connected&quot; status.</li><li><strong>Monthly Hydration Leaderboard</strong> — A gamified engagement feature that ranks customers by <strong>total water intake (liters)</strong> within a calendar month, with explicit <strong>opt-in</strong> controls for public listing and optional <strong>monthly report</strong> subscription.</li></ol>
+<p>These features support the platform's strategic goal of <strong>health engagement beyond ordering</strong> (Business Objective BO-06) while maintaining user trust and privacy through consent-based visibility.</p>
+<hr />
+<h2>2. Business Context &amp; Objectives</h2>
+<h3>2.1 Problem statement</h3>
+<table><thead><tr><th>Issue</th><th>Impact</th></tr></thead><tbody><tr><td>Device tiles showed &quot;Connected&quot; with green status indicators</td><td>Users believed integrations were live; creates support burden and trust erosion</td></tr><tr><td>No competitive/social hydration motivation</td><td>Lower daily engagement with water-intake logging</td></tr><tr><td>No user control over public hydration ranking</td><td>Privacy risk if rankings were shown without consent</td></tr></tbody></table>
+<h3>2.2 Business objectives</h3>
+<table><thead><tr><th>ID</th><th>Objective</th><th>KPI / Success measure</th></tr></thead><tbody><tr><td>BRD-DL-01</td><td>Set accurate expectations for device integrations</td><td>Zero support tickets claiming &quot;device already connected&quot; after release</td></tr><tr><td>BRD-DL-02</td><td>Increase water-intake logging frequency</td><td>+15% weekly active loggers among opted-in customers (target)</td></tr><tr><td>BRD-DL-03</td><td>Drive return visits to customer dashboard</td><td>Leaderboard screen views ≥ 20% of MAU (target)</td></tr><tr><td>BRD-DL-04</td><td>Protect user privacy by default</td><td>100% of public leaderboard entries require explicit opt-in</td></tr><tr><td>BRD-DL-05</td><td>Prepare foundation for future wearable sync</td><td>Device catalogue visible; roadmap communicated as Coming soon</td></tr></tbody></table>
+<h3>2.3 Stakeholders</h3>
+<table><thead><tr><th>Role</th><th>Interest</th></tr></thead><tbody><tr><td><strong>Customer (end user)</strong></td><td>Accurate device status; optional social ranking; control over visibility</td></tr><tr><td><strong>Product / Marketing</strong></td><td>Engagement, retention, future device partnership narrative</td></tr><tr><td><strong>Engineering</strong></td><td>Clear API contracts, scalable monthly aggregation</td></tr><tr><td><strong>Legal / Privacy</strong></td><td>Consent for public display; name masking on leaderboard</td></tr><tr><td><strong>Operations / Support</strong></td><td>Documented behaviour for FAQ and troubleshooting</td></tr></tbody></table>
+<hr />
+<h2>3. Scope</h2>
+<h3>3.1 In scope (Phase 1 — current release)</h3>
+<ul><li>Customer dashboard device carousel with <strong>Coming soon</strong> status for three device types</li><li>Leaderboard entry point on dashboard (Monthly Hydration Leaderboard card)</li><li>Dedicated <strong>Leaderboard</strong> screen (<code class="inline">/leaderboard</code>)</li><li>User preference toggles: <strong>Join leaderboard</strong>, <strong>Monthly report</strong></li><li>Backend APIs for monthly rankings and preference updates</li><li>Ranking algorithm based on summed <code class="inline">volumeMl</code> from Water Intake records for calendar month</li><li>Top 50 public entries returned; current user's rank computed when opted in</li><li>Partial name display on leaderboard (first name + last initial)</li></ul>
+<h3>3.2 Out of scope (Phase 1)</h3>
+<ul><li>Actual Apple Watch / HealthKit / Google Fit / smart bottle / TV hub pairing</li><li>Push notifications or email delivery for monthly reports (preference stored only)</li><li>Historical month picker UI (API supports <code class="inline">year</code>/<code class="inline">month</code> query params; UI defaults to current month)</li><li>Admin portal management of leaderboard</li><li>Rewards/points tied to leaderboard rank (reward points on dashboard remain separate/display-only)</li><li>Society, corporate, or team-based leaderboards</li></ul>
+<h3>3.3 Future phases (roadmap)</h3>
+<table><thead><tr><th>Phase</th><th>Capability</th></tr></thead><tbody><tr><td>Phase 2</td><td>Email/push monthly hydration report for users with <code class="inline">leaderboardMonthlyReport: true</code></td></tr><tr><td>Phase 3</td><td>Apple Watch / wearables OAuth and automatic intake sync</td></tr><tr><td>Phase 4</td><td>Smart bottle BLE pairing and real-time sync</td></tr><tr><td>Phase 5</td><td>TV Hub dashboard widget for household hydration summary</td></tr><tr><td>Phase 6</td><td>Month selector, badges, streak bonuses, friend invites</td></tr></tbody></table>
+<hr />
+<h2>4. User Personas &amp; Journeys</h2>
+<h3>4.1 Primary persona: Health-conscious customer</h3>
+<p><strong>Profile:</strong> Logs water intake 3–5 times per week; uses dashboard for hydration summary and orders.</p>
+<p class="footnote">*Journey A — View devices*</p>
+<ol><li>Opens Customer Dashboard</li><li>Scrolls to <strong>My devices</strong> section</li><li>Sees Apple Watch, Smart Bottle, TV Hub with <strong>Coming soon</strong> badge</li><li>Understands integrations are planned, not active</li></ol>
+<p class="footnote">*Journey B — Join leaderboard*</p>
+<ol><li>Taps <strong>Monthly Hydration Leaderboard</strong> card on dashboard</li><li>Opens Leaderboard screen</li><li>Enables <strong>Join leaderboard</strong> toggle</li><li>Views personal rank and monthly liters after logging intake</li><li>Optionally enables <strong>Monthly report</strong> for future summaries</li></ol>
+<p class="footnote">*Journey C — Privacy-first customer*</p>
+<ol><li>Opens Leaderboard screen to view top performers</li><li>Leaves <strong>Join leaderboard</strong> off</li><li>Sees informational banner: not listed in rankings</li><li>Can still browse public rankings of opted-in users</li></ol>
+<hr />
+<h2>5. Functional Requirements — My Devices</h2>
+<h3>5.1 Device catalogue</h3>
+<table><thead><tr><th>Device ID</th><th>Display name</th><th>Icon</th><th>Status (Phase 1)</th></tr></thead><tbody><tr><td>1</td><td>Apple Watch</td><td>watch-outline</td><td>Coming soon</td></tr><tr><td>2</td><td>Smart Bottle</td><td>water-outline</td><td>Coming soon</td></tr><tr><td>3</td><td>TV Hub</td><td>tv-outline</td><td>Coming soon</td></tr></tbody></table>
+<h3>5.2 UI requirements</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>DEV-UI-01</td><td>Section eyebrow: <strong>Connected</strong>; section header: <strong>My devices</strong></td><td>Must</td></tr><tr><td>DEV-UI-02</td><td>Horizontal scroll carousel of device cards</td><td>Must</td></tr><tr><td>DEV-UI-03</td><td>Each card shows device icon (gradient circle), name, and status text <strong>Coming soon</strong></td><td>Must</td></tr><tr><td>DEV-UI-04</td><td>Amber <strong>Soon</strong> badge replaces green connected dot</td><td>Must</td></tr><tr><td>DEV-UI-05</td><td>Status text uses muted colour (not success green)</td><td>Must</td></tr><tr><td>DEV-UI-06</td><td>Device cards are non-interactive in Phase 1 (no false connect flow)</td><td>Should</td></tr></tbody></table>
+<h3>5.3 Business rules</h3>
+<table><thead><tr><th>Rule ID</th><th>Rule</th></tr></thead><tbody><tr><td>DEV-BR-01</td><td>No device may display &quot;Connected&quot; until backend pairing exists</td></tr><tr><td>DEV-BR-02</td><td>Copy must not imply data is syncing from wearables</td></tr><tr><td>DEV-BR-03</td><td>Create Profile &quot;Connect device&quot; toggle remains separate onboarding preference for future use</td></tr></tbody></table>
+<h3>5.4 Implementation reference</h3>
+<table><thead><tr><th>Layer</th><th>File</th></tr></thead><tbody><tr><td>Mobile UI</td><td><code class="inline">mobile/src/screens/DashboardScreen.js</code></td></tr><tr><td>Route</td><td><code class="inline">mobile/app/dashboard.tsx</code></td></tr></tbody></table>
+<hr />
+<h2>6. Functional Requirements — Monthly Hydration Leaderboard</h2>
+<h3>6.1 Dashboard entry point</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>LB-UI-01</td><td>Dashboard card titled <strong>Monthly Hydration Leaderboard</strong></td><td>Must</td></tr><tr><td>LB-UI-02</td><td>Subtitle: ranked by water intake; tap to view and manage</td><td>Must</td></tr><tr><td>LB-UI-03</td><td>Trophy icon and chevron; navigates to <code class="inline">/leaderboard</code></td><td>Must</td></tr><tr><td>LB-UI-04</td><td>Replaces prior placeholder &quot;Summer Hydration Challenge&quot; copy</td><td>Must</td></tr></tbody></table>
+<h3>6.2 Leaderboard screen</h3>
+<table><thead><tr><th>Req ID</th><th>Requirement</th><th>Priority</th></tr></thead><tbody><tr><td>LB-UI-10</td><td>Header: <strong>Hydration leaderboard</strong> with subtitle explaining monthly water-intake ranking</td><td>Must</td></tr><tr><td>LB-UI-11</td><td><strong>Your preferences</strong> card with two switches</td><td>Must</td></tr><tr><td>LB-UI-12</td><td>Toggle 1: <strong>Join leaderboard</strong> — include my water intake in monthly rankings</td><td>Must</td></tr><tr><td>LB-UI-13</td><td>Toggle 2: <strong>Monthly report</strong> — receive monthly summary of hydration rank</td><td>Must</td></tr><tr><td>LB-UI-14</td><td>When opted out: banner explaining opt-in needed to appear in rankings</td><td>Must</td></tr><tr><td>LB-UI-15</td><td>When opted in: stats card showing rank (#N or —) and total liters for period</td><td>Must</td></tr><tr><td>LB-UI-16</td><td>Rankings list: rank badge, avatar/initials, masked name, liters</td><td>Must</td></tr><tr><td>LB-UI-17</td><td>Current user row highlighted; append <strong>(You)</strong> to name</td><td>Must</td></tr><tr><td>LB-UI-18</td><td>Top 3 ranks use trophy/medal styling</td><td>Should</td></tr><tr><td>LB-UI-19</td><td>Pull-to-refresh reloads leaderboard data</td><td>Must</td></tr><tr><td>LB-UI-20</td><td>Empty state when no opted-in users have intake data</td><td>Must</td></tr><tr><td>LB-UI-21</td><td>Unauthenticated users redirected to login on toggle interaction</td><td>Should</td></tr></tbody></table>
+<h3>6.3 Preference business rules</h3>
+<table><thead><tr><th>Rule ID</th><th>Rule</th></tr></thead><tbody><tr><td>LB-BR-01</td><td><code class="inline">leaderboardOptIn</code> defaults to <strong>false</strong> for all users</td></tr><tr><td>LB-BR-02</td><td><code class="inline">leaderboardMonthlyReport</code> defaults to <strong>false</strong> for all users</td></tr><tr><td>LB-BR-03</td><td>Only users with <code class="inline">role: customer</code> AND <code class="inline">leaderboardOptIn: true</code> appear in public rankings</td></tr><tr><td>LB-BR-04</td><td>Opting out removes user from subsequent ranking queries; historical rank not retained in UI</td></tr><tr><td>LB-BR-05</td><td>Monthly report toggle is independent of opt-in (user may want report without public listing — stored for Phase 2)</td></tr><tr><td>LB-BR-06</td><td>Ranking metric is <strong>total milliliters</strong> logged in period, displayed as <strong>liters</strong> (1 decimal)</td></tr></tbody></table>
+<h3>6.4 Ranking algorithm</h3>
+<p><strong>Period:</strong> Calendar month (default: current month in server local date logic via ISO date strings).</p>
+<p class="footnote">*Steps:*</p>
+<ol><li>Select all customers where <code class="inline">leaderboardOptIn === true</code></li><li>Query <code class="inline">WaterIntake</code> documents where <code class="inline">date</code> is between <code class="inline">YYYY-MM-01</code> and last day of month (inclusive)</li><li>For each document, sum <code class="inline">entries[].volumeMl</code></li><li>Aggregate by <code class="inline">userId</code>; sort descending by total ml</li><li>Assign rank 1..N (ties: same total → order by aggregation sort; no fractional ranks)</li><li>Return top <strong>50</strong> entries to client</li><li>Compute requesting user's rank even if outside top 50 (when opted in)</li></ol>
+<p><strong>Display name masking:</strong> <code class="inline">&quot;Rohit Kumar&quot;</code> → <code class="inline">&quot;Rohit K.&quot;</code>; single name unchanged.</p>
+<p><strong>Tie-breaking:</strong> Users with equal liters receive consecutive ranks based on sort order (standard competition ranking not required in Phase 1).</p>
+<h3>6.5 User stories</h3>
+<table><thead><tr><th>Story ID</th><th>As a…</th><th>I want to…</th><th>So that…</th></tr></thead><tbody><tr><td>US-LB-01</td><td>Customer</td><td>See devices marked Coming soon</td><td>I am not misled about integrations</td></tr><tr><td>US-LB-02</td><td>Customer</td><td>Open a leaderboard from my dashboard</td><td>I can compare my hydration with others</td></tr><tr><td>US-LB-03</td><td>Customer</td><td>Opt in to the leaderboard</td><td>My logged intake counts toward my rank</td></tr><tr><td>US-LB-04</td><td>Customer</td><td>Opt out of the leaderboard</td><td>My data is not shown publicly</td></tr><tr><td>US-LB-05</td><td>Customer</td><td>See my monthly rank and liters</td><td>I know how I am performing</td></tr><tr><td>US-LB-06</td><td>Customer</td><td>Enable monthly report</td><td>I can receive summaries when that feature launches</td></tr><tr><td>US-LB-07</td><td>Customer</td><td>View top hydrators this month</td><td>I stay motivated to log water</td></tr><tr><td>US-LB-08</td><td>Privacy-conscious user</td><td>Browse leaderboard without joining</td><td>I can explore without exposing my data</td></tr></tbody></table>
+<hr />
+<h2>7. API Specification</h2>
+<p><strong>Base URL:</strong> <code class="inline">{API_HOST}/api</code>  </p>
+<p><strong>Authentication:</strong> Bearer JWT on all endpoints below (same as existing <code class="inline">auth</code> middleware).  </p>
+<p><strong>Content-Type:</strong> <code class="inline">application/json</code></p>
+<h3>7.1 GET /leaderboard</h3>
+<p>Retrieves monthly leaderboard rankings, user preferences, and current user's stats.</p>
+<p class="footnote">*Query parameters*</p>
+<table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td>year</td><td>integer</td><td>No</td><td>Calendar year (default: current). Valid range: 2020–2100</td></tr><tr><td>month</td><td>integer</td><td>No</td><td>Calendar month 1–12 (default: current)</td></tr></tbody></table>
+<p class="footnote">*Example request*</p>
+<pre><code class="block">GET /api/leaderboard
+Authorization: Bearer &lt;token&gt;</code></pre>
+<pre><code class="block">GET /api/leaderboard?year=2026&amp;month=6
+Authorization: Bearer &lt;token&gt;</code></pre>
+<p><strong>Success response:</strong> <code class="inline">200 OK</code></p>
+<pre><code class="block">{
+  &quot;period&quot;: {
+    &quot;from&quot;: &quot;2026-06-01&quot;,
+    &quot;to&quot;: &quot;2026-06-30&quot;,
+    &quot;label&quot;: &quot;June 2026&quot;
+  },
+  &quot;rankings&quot;: [
+    {
+      &quot;rank&quot;: 1,
+      &quot;userId&quot;: &quot;665a1b2c3d4e5f6789012345&quot;,
+      &quot;name&quot;: &quot;Rohit K.&quot;,
+      &quot;avatarUrl&quot;: &quot;https://...&quot;,
+      &quot;totalLiters&quot;: 42.5,
+      &quot;isCurrentUser&quot;: false
+    }
+  ],
+  &quot;preferences&quot;: {
+    &quot;optIn&quot;: true,
+    &quot;monthlyReport&quot;: false
+  },
+  &quot;me&quot;: {
+    &quot;rank&quot;: 12,
+    &quot;totalLiters&quot;: 18.3,
+    &quot;optedIn&quot;: true
+  }
+}</code></pre>
+<p class="footnote">*Response field definitions*</p>
+<table><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>period.from</td><td>string</td><td>ISO date start of month (YYYY-MM-DD)</td></tr><tr><td>period.to</td><td>string</td><td>ISO date end of month</td></tr><tr><td>period.label</td><td>string</td><td>Human-readable month label</td></tr><tr><td>rankings</td><td>array</td><td>Up to 50 entries, sorted by rank ascending</td></tr><tr><td>rankings[].rank</td><td>integer</td><td>1-based position</td></tr><tr><td>rankings[].userId</td><td>string</td><td>MongoDB user id</td></tr><tr><td>rankings[].name</td><td>string</td><td>Masked display name</td></tr><tr><td>rankings[].avatarUrl</td><td>string</td><td>Profile image URL or empty string</td></tr><tr><td>rankings[].totalLiters</td><td>number</td><td>Rounded to 1 decimal place</td></tr><tr><td>rankings[].isCurrentUser</td><td>boolean</td><td>True if row is authenticated user</td></tr><tr><td>preferences.optIn</td><td>boolean</td><td>User's leaderboardOptIn setting</td></tr><tr><td>preferences.monthlyReport</td><td>boolean</td><td>User's leaderboardMonthlyReport setting</td></tr><tr><td>me.rank</td><td>integer \</td><td>null</td><td>Null if user not opted in</td></tr><tr><td>me.totalLiters</td><td>number</td><td>User's monthly total (0 if none)</td></tr><tr><td>me.optedIn</td><td>boolean</td><td>Same as preferences.optIn</td></tr></tbody></table>
+<p class="footnote">*Error responses*</p>
+<table><thead><tr><th>Status</th><th>Body</th><th>Condition</th></tr></thead><tbody><tr><td>401</td><td><code class="inline">{ &quot;error&quot;: &quot;...&quot; }</code></td><td>Missing or invalid token</td></tr><tr><td>500</td><td><code class="inline">{ &quot;error&quot;: &quot;...&quot; }</code></td><td>Server/database error</td></tr></tbody></table>
+<hr />
+<h3>7.2 PUT /leaderboard/preferences</h3>
+<p>Updates the authenticated user's leaderboard preferences.</p>
+<p class="footnote">*Request body*</p>
+<table><thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody><tr><td>optIn</td><td>boolean</td><td>No</td><td>Set leaderboard opt-in status</td></tr><tr><td>monthlyReport</td><td>boolean</td><td>No</td><td>Set monthly report preference</td></tr></tbody></table>
+<p>At least one field should be sent. Omitted fields are unchanged.</p>
+<p class="footnote">*Example request*</p>
+<pre><code class="block">PUT /api/leaderboard/preferences
+Authorization: Bearer &lt;token&gt;
+Content-Type: application/json
+
+{
+  &quot;optIn&quot;: true,
+  &quot;monthlyReport&quot;: true
+}</code></pre>
+<p><strong>Success response:</strong> <code class="inline">200 OK</code></p>
+<pre><code class="block">{
+  &quot;optIn&quot;: true,
+  &quot;monthlyReport&quot;: true
+}</code></pre>
+<p class="footnote">*Error responses*</p>
+<table><thead><tr><th>Status</th><th>Body</th><th>Condition</th></tr></thead><tbody><tr><td>401</td><td>Unauthorized</td><td>Invalid session</td></tr><tr><td>404</td><td><code class="inline">{ &quot;error&quot;: &quot;User not found&quot; }</code></td><td>User deleted</td></tr><tr><td>500</td><td>Server error</td><td>Save failure</td></tr></tbody></table>
+<hr />
+<h3>7.3 Related APIs — Water Intake (ranking data source)</h3>
+<p>Leaderboard rankings depend on water intake logged via existing endpoints.</p>
+<h4>GET /water-intake/summary</h4>
+<p>Used by dashboard for 7-day chart; leaderboard uses same underlying <code class="inline">WaterIntake</code> collection with monthly aggregation.</p>
+<table><thead><tr><th>Parameter</th><th>Description</th></tr></thead><tbody><tr><td>from</td><td>Start date YYYY-MM-DD</td></tr><tr><td>to</td><td>End date YYYY-MM-DD</td></tr></tbody></table>
+<h4>POST /water-intake</h4>
+<p>Creates intake entry (feeds leaderboard when within month).</p>
+<p><strong>Body:</strong> <code class="inline">{ &quot;date&quot;, &quot;type&quot;, &quot;quantity&quot;, &quot;volumeMl&quot; }</code>  </p>
+<p><strong>type enum:</strong> <code class="inline">glass</code>, <code class="inline">jar</code>, <code class="inline">bottle</code>, <code class="inline">total</code></p>
+<h4>GET /users/me</h4>
+<p>Returns user profile including <code class="inline">leaderboardOptIn</code> and <code class="inline">leaderboardMonthlyReport</code> when present on User document.</p>
+<hr />
+<h3>7.4 Mobile API client mapping</h3>
+<table><thead><tr><th>Client method</th><th>HTTP</th></tr></thead><tbody><tr><td><code class="inline">api.leaderboard.get(year?, month?)</code></td><td>GET /api/leaderboard</td></tr><tr><td><code class="inline">api.leaderboard.updatePreferences(body)</code></td><td>PUT /api/leaderboard/preferences</td></tr><tr><td><code class="inline">api.waterIntake.add(body)</code></td><td>POST /api/water-intake</td></tr><tr><td><code class="inline">api.waterIntake.summary(from, to)</code></td><td>GET /api/water-intake/summary</td></tr><tr><td><code class="inline">api.users.me()</code></td><td>GET /api/users/me</td></tr></tbody></table>
+<p><strong>Client file:</strong> <code class="inline">mobile/src/api/client.js</code></p>
+<hr />
+<h2>8. Data Model</h2>
+<h3>8.1 User schema extensions</h3>
+<p><strong>Collection:</strong> <code class="inline">users</code>  </p>
+<p><strong>Model file:</strong> <code class="inline">backend/models/User.js</code></p>
+<table><thead><tr><th>Field</th><th>Type</th><th>Default</th><th>Description</th></tr></thead><tbody><tr><td>leaderboardOptIn</td><td>Boolean</td><td>false</td><td>User consents to public monthly ranking</td></tr><tr><td>leaderboardMonthlyReport</td><td>Boolean</td><td>false</td><td>User wants monthly rank summary (delivery Phase 2)</td></tr></tbody></table>
+<h3>8.2 WaterIntake (existing)</h3>
+<p><strong>Collection:</strong> <code class="inline">waterintakes</code>  </p>
+<p><strong>Model file:</strong> <code class="inline">backend/models/WaterIntake.js</code></p>
+<table><thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>userId</td><td>ObjectId</td><td>Reference to User</td></tr><tr><td>date</td><td>String</td><td>YYYY-MM-DD</td></tr><tr><td>entries</td><td>Array</td><td><code class="inline">{ type, quantity, volumeMl, createdAt }</code></td></tr></tbody></table>
+<p><strong>Index:</strong> <code class="inline">{ userId: 1, date: 1 }</code> unique</p>
+<p><strong>Leaderboard aggregation:</strong> Sum all <code class="inline">entries.volumeMl</code> per userId where date in <code class="inline">[monthStart, monthEnd]</code>.</p>
+<hr />
+<h2>9. Privacy, Security &amp; Compliance</h2>
+<table><thead><tr><th>Topic</th><th>Requirement</th></tr></thead><tbody><tr><td>Opt-in default</td><td>Public listing <strong>off</strong> by default (GDPR/consent-aligned design)</td></tr><tr><td>Name display</td><td>Partial masking on public leaderboard</td></tr><tr><td>Email/phone</td><td>Never exposed on leaderboard API</td></tr><tr><td>Role filter</td><td>Only <code class="inline">customer</code> role eligible for rankings</td></tr><tr><td>Authentication</td><td>All leaderboard endpoints require valid JWT</td></tr><tr><td>Data minimization</td><td>Rankings API returns only necessary display fields</td></tr><tr><td>Monthly report</td><td>Preference stored; no PII sent until delivery channel implemented</td></tr></tbody></table>
+<hr />
+<h2>10. Non-Functional Requirements</h2>
+<table><thead><tr><th>NFR ID</th><th>Category</th><th>Requirement</th></tr></thead><tbody><tr><td>NFR-01</td><td>Performance</td><td>GET /leaderboard p95 &lt; 800ms for ≤10k opted-in users</td></tr><tr><td>NFR-02</td><td>Scalability</td><td>Aggregation pipeline indexed on userId + date</td></tr><tr><td>NFR-03</td><td>Availability</td><td>Same as core API (no separate service)</td></tr><tr><td>NFR-04</td><td>Accessibility</td><td>Toggle labels and hints readable; sufficient touch targets</td></tr><tr><td>NFR-05</td><td>Localization</td><td>English only Phase 1; labels externalized for future i18n</td></tr></tbody></table>
+<hr />
+<h2>11. Acceptance Criteria</h2>
+<h3>11.1 Devices</h3>
+<ul class="checklist"><li class="check ">All three device cards show <strong>Coming soon</strong> text</li><li class="check ">No green &quot;Connected&quot; indicator visible</li><li class="check ">Amber <strong>Soon</strong> badge displayed on each card</li></ul>
+<h3>11.2 Leaderboard — Dashboard</h3>
+<ul class="checklist"><li class="check ">Leaderboard card navigates to Leaderboard screen</li><li class="check ">Card copy references monthly water intake ranking</li></ul>
+<h3>11.3 Leaderboard — Preferences</h3>
+<ul class="checklist"><li class="check ">Join leaderboard toggle persists via API</li><li class="check ">Monthly report toggle persists via API</li><li class="check ">Opted-out user has <code class="inline">me.rank: null</code> in API response</li><li class="check ">Opted-in user sees rank after logging intake</li></ul>
+<h3>11.4 Leaderboard — Rankings</h3>
+<ul class="checklist"><li class="check ">Only opted-in customers appear in rankings array</li><li class="check ">Sort order is descending by total liters</li><li class="check ">Maximum 50 entries returned</li><li class="check ">Current user row marked with <code class="inline">isCurrentUser: true</code></li><li class="check ">Names masked per displayName rules</li></ul>
+<h3>11.5 Integration</h3>
+<ul class="checklist"><li class="check ">New intake logged via POST /water-intake reflects in same-month rank after refresh</li><li class="check ">Backend route mounted at <code class="inline">/api/leaderboard</code> in server.js</li></ul>
+<hr />
+<h2>12. Test Scenarios (QA)</h2>
+<table><thead><tr><th>TC ID</th><th>Scenario</th><th>Expected result</th></tr></thead><tbody><tr><td>TC-01</td><td>New user opens dashboard devices</td><td>All show Coming soon</td></tr><tr><td>TC-02</td><td>User opens leaderboard, toggles opt-in ON</td><td>API returns optIn true; user can appear after logging</td></tr><tr><td>TC-03</td><td>User toggles opt-in OFF</td><td>Removed from rankings on next fetch</td></tr><tr><td>TC-04</td><td>Two users, different intake totals</td><td>Higher liters = better (lower) rank number</td></tr><tr><td>TC-05</td><td>User opted in, zero intake</td><td>Rank computed; totalLiters 0</td></tr><tr><td>TC-06</td><td>No opted-in users</td><td>Empty rankings; empty state UI</td></tr><tr><td>TC-07</td><td>Invalid token on GET /leaderboard</td><td>401</td></tr><tr><td>TC-08</td><td>Pull to refresh on leaderboard</td><td>Data reloads</td></tr><tr><td>TC-09</td><td>Query previous month via API</td><td>Correct period.from/to returned</td></tr><tr><td>TC-10</td><td>monthlyReport ON, optIn OFF</td><td>Both preferences saved independently</td></tr></tbody></table>
+<hr />
+<h2>13. Technical Architecture</h2>
+<pre><code class="block">┌─────────────────────┐     HTTPS/JWT      ┌──────────────────────┐
+│  Mobile App         │ ◄────────────────► │  Express Backend     │
+│  DashboardScreen    │                    │  /api/leaderboard    │
+│  LeaderboardScreen  │                    │  /api/water-intake   │
+└─────────────────────┘                    └──────────┬───────────┘
+                                                      │
+                                           ┌──────────▼───────────┐
+                                           │  MongoDB             │
+                                           │  users               │
+                                           │  waterintakes        │
+                                           └──────────────────────┘</code></pre>
+<p><strong>Backend route file:</strong> <code class="inline">backend/routes/leaderboard.js</code>  </p>
+<p><strong>Server mount:</strong> <code class="inline">app.use(&quot;/api/leaderboard&quot;, require(&quot;./routes/leaderboard&quot;))</code></p>
+<p class="footnote">*Mobile screens:*</p>
+<ul><li><code class="inline">mobile/src/screens/DashboardScreen.js</code></li><li><code class="inline">mobile/src/screens/LeaderboardScreen.js</code></li><li><code class="inline">mobile/app/leaderboard.tsx</code></li></ul>
+<hr />
+<h2>14. Dependencies &amp; Assumptions</h2>
+<table><thead><tr><th>Item</th><th>Assumption</th></tr></thead><tbody><tr><td>Water intake logging</td><td>Users log via existing Water Intake screen</td></tr><tr><td>Auth</td><td>Customer logged in with JWT</td></tr><tr><td>Date storage</td><td>Intake dates stored as YYYY-MM-DD strings (UTC slice)</td></tr><tr><td>Monthly report</td><td>Phase 1 stores preference only; no notification job</td></tr><tr><td>Device integrations</td><td>Phase 1 is UI-only Coming soon state</td></tr></tbody></table>
+<hr />
+<h2>15. Glossary</h2>
+<table><thead><tr><th>Term</th><th>Definition</th></tr></thead><tbody><tr><td><strong>Opt-in</strong></td><td>User explicitly enables leaderboard participation</td></tr><tr><td><strong>Monthly report</strong></td><td>Future notification summarizing user's rank and intake</td></tr><tr><td><strong>Total liters</strong></td><td>Sum of logged volumeMl ÷ 1000, rounded to 1 decimal</td></tr><tr><td><strong>Coming soon</strong></td><td>Feature announced but not yet available for use</td></tr><tr><td><strong>Masked name</strong></td><td>First name plus last initial for privacy</td></tr></tbody></table>
+<hr />
+<h2>16. Document Control</h2>
+<table><thead><tr><th>Version</th><th>Date</th><th>Author</th><th>Changes</th></tr></thead><tbody><tr><td>1.0</td><td>June 2026</td><td>H2O Product Engineering</td><td>Initial BRD for Devices + Leaderboard Phase 1</td></tr></tbody></table>
+<hr />
+<p class="footnote">End of document — H2O Online Customer Dashboard Devices &amp; Hydration Leaderboard BRD v1.0</p></div>
+</body>
+</html>
