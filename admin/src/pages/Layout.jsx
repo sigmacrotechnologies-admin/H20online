@@ -20,6 +20,7 @@ const NAV_GROUPS = [
       { to: "/societies", label: "Society management", icon: "🏘️" },
       { to: "/stores", label: "Store management", icon: "🏬" },
       { to: "/wallet-management", label: "Wallet management", icon: "💳" },
+      { to: "/wallet-redeem", label: "Supplier redeem", icon: "🏦" },
       { to: "/tax-settings", label: "Tax & payments", icon: "🧾" },
       { to: "/serviceable-areas", label: "Serviceable areas", icon: "📍" },
     ],

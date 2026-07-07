@@ -1,10 +1,14 @@
+const DeliveryPartner = require("../models/DeliveryPartner");
 const Wallet = require("../models/Wallet");
 const { getOrCreateWallet, getOrCreatePlatformWallet } = require("../routes/wallet");
 const {
   loadSupplierMapForOrders,
   computeOrderSettlement,
-  DELIVERY_SHARE_PERCENT,
 } = require("./financials");
+const {
+  getSettlementDefaults,
+  getAssignedDeliveryPartnerId,
+} = require("./settlementSettings");
 
 async function orderPayoutAlreadyDone(orderId) {
   const sid = String(orderId);
@@ -27,7 +31,8 @@ async function orderPayoutAlreadyDone(orderId) {
 }
 
 /**
- * On delivery: credit supplier(s) and rider wallets. Debit platform wallet only for wallet-paid orders.
+ * On delivery: credit supplier(s) and rider wallets using admin-configured commission/share %.
+ * Debit platform wallet only for wallet-paid orders.
  */
 async function runPayoutOnDelivered(order, deliveryPartnerUserId) {
   if (!order || order.status !== "delivered") return;
@@ -35,8 +40,19 @@ async function runPayoutOnDelivered(order, deliveryPartnerUserId) {
   const orderId = order._id.toString();
   if (await orderPayoutAlreadyDone(orderId)) return;
 
-  const supplierMap = await loadSupplierMapForOrders([order]);
-  const settlement = computeOrderSettlement(order, supplierMap);
+  const [supplierMap, settlementDefaults] = await Promise.all([
+    loadSupplierMapForOrders([order]),
+    getSettlementDefaults(),
+  ]);
+
+  const dpId = getAssignedDeliveryPartnerId(order);
+  const deliveryPartner = dpId ? await DeliveryPartner.findById(dpId).lean() : null;
+
+  const settlement = computeOrderSettlement(order, supplierMap, {
+    deliveryPartner,
+    ...settlementDefaults,
+  });
+
   const debitPlatform = order.paymentMethod === "wallet";
 
   const platformWallet = await getOrCreatePlatformWallet();
@@ -83,4 +99,4 @@ async function runPayoutOnDelivered(order, deliveryPartnerUserId) {
   }
 }
 
-module.exports = { runPayoutOnDelivered, DELIVERY_SHARE_PERCENT, orderPayoutAlreadyDone };
+module.exports = { runPayoutOnDelivered, orderPayoutAlreadyDone };

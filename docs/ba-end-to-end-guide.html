@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>H2O Online — Business Analyst End-to-End Guide</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    @page { size: A4; margin: 12mm 10mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      color: #1e293b;
+      font-size: 8.5pt;
+      line-height: 1.4;
+      margin: 0;
+    }
+    .cover {
+      page-break-after: always;
+      min-height: 255mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 18mm 16mm;
+      background: linear-gradient(145deg, #ede9fe 0%, #fff 40%, #e0f2fe 100%);
+    }
+    .cover-badge {
+      display: inline-block;
+      background: #5b21b6;
+      color: #fff;
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 4px;
+      margin-bottom: 14px;
+      width: fit-content;
+    }
+    .cover h1 {
+      font-size: 22pt;
+      color: #4c1d95;
+      margin: 0 0 10px;
+      line-height: 1.15;
+      max-width: 520px;
+    }
+    .cover .subtitle {
+      font-size: 10pt;
+      color: #475569;
+      margin: 0 0 20px;
+      max-width: 500px;
+      line-height: 1.5;
+    }
+    .cover-highlights {
+      margin: 12px 0 16px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.9);
+      border-left: 4px solid #7c3aed;
+      border-radius: 4px;
+      max-width: 520px;
+      font-size: 8pt;
+      color: #334155;
+    }
+    .cover-highlights ul { margin: 6px 0 0; padding-left: 16pt; }
+    .cover-highlights li { margin-bottom: 3pt; }
+    .cover-stats {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .stat-box {
+      background: #fff;
+      border: 1px solid #ddd6fe;
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-width: 88px;
+    }
+    .stat-box strong { display: block; font-size: 13pt; color: #5b21b6; }
+    .stat-box span { font-size: 7pt; color: #64748b; }
+    .cover-toc {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      max-width: 520px;
+    }
+    .cover-toc h2 {
+      font-size: 10pt;
+      color: #4c1d95;
+      margin: 0 0 8px;
+      border: none;
+      padding: 0;
+    }
+    .cover-toc ol {
+      margin: 0;
+      padding-left: 18pt;
+      font-size: 7.5pt;
+      color: #334155;
+      columns: 2;
+      column-gap: 16px;
+    }
+    .cover-toc li { margin-bottom: 2pt; break-inside: avoid; }
+    .cover-meta {
+      border-top: 2px solid #a78bfa;
+      padding-top: 12px;
+      margin-top: 14px;
+      font-size: 8pt;
+      color: #64748b;
+    }
+    .cover-meta div { margin-bottom: 3px; }
+    h1 {
+      font-size: 15pt;
+      color: #4c1d95;
+      margin: 12pt 0 5pt;
+      page-break-after: avoid;
+    }
+    h2 {
+      font-size: 11pt;
+      color: #0f172a;
+      margin: 12pt 0 4pt;
+      border-bottom: 2px solid #c4b5fd;
+      padding-bottom: 2px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 9.5pt;
+      color: #1d4ed8;
+      margin: 9pt 0 3pt;
+      page-break-after: avoid;
+    }
+    h4 {
+      font-size: 8.5pt;
+      color: #334155;
+      margin: 7pt 0 2pt;
+      page-break-after: avoid;
+    }
+    p { margin: 0 0 6pt; color: #334155; }
+    hr { border: none; border-top: 1px solid #cbd5e1; margin: 10pt 0; }
+    ul, ol { margin: 0 0 7pt; padding-left: 15pt; }
+    li { margin-bottom: 2pt; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 8pt;
+      font-size: 7pt;
+      page-break-inside: auto;
+    }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    th {
+      background: #5b21b6;
+      color: #fff;
+      font-weight: 600;
+      text-align: left;
+      padding: 4px 5px;
+      border: 1px solid #7c3aed;
+    }
+    td {
+      padding: 3px 5px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code.inline {
+      background: #f1f5f9;
+      padding: 1px 3px;
+      border-radius: 3px;
+      font-size: 7.5pt;
+    }
+    pre {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin: 0 0 8pt;
+      page-break-inside: avoid;
+    }
+    pre code.block {
+      font-size: 6.8pt;
+      white-space: pre-wrap;
+      font-family: Consolas, monospace;
+    }
+    .diagram-wrap {
+      margin: 0 0 12pt;
+      page-break-inside: avoid;
+      background: #fafafa;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 6px 4px;
+      overflow: hidden;
+    }
+    .diagram-label {
+      font-size: 6.5pt;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 4px 4px;
+    }
+    pre.mermaid {
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      text-align: center;
+      overflow: visible;
+    }
+    pre.mermaid svg {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-badge">Business Analyst Playbook</div>
+    <h1>H2O Online<br>BA End-to-End Guide</h1>
+    <p class="subtitle">
+      Complete Business Analyst reference for the H2O Online water delivery platform — from business need
+      and requirement gathering through analysis, BRD/FRD documentation, process mapping, validation,
+      development &amp; testing support, UAT, deployment, and post go-live. Includes data validation methodology,
+      RTM, interview preparation, and stakeholder communication guides.
+    </p>
+    <div class="cover-highlights">
+      <strong>12-phase BA lifecycle:</strong>
+      <ul>
+        <li>Business Need → Gathering → Analysis → Process Mapping → Solution Design</li>
+        <li>Documentation (BRD, FRD, RTM) → Validation → Dev &amp; Test Support</li>
+        <li>UAT → Deployment → Post Go-Live + 4-layer data validation</li>
+      </ul>
+    </div>
+    <div class="cover-stats">
+      <div class="stat-box"><strong>12</strong><span>BA Phases</span></div>
+      <div class="stat-box"><strong>7</strong><span>Process Diagrams</span></div>
+      <div class="stat-box"><strong>7</strong><span>Parts (A–G)</span></div>
+      <div class="stat-box"><strong>4</strong><span>Data Layers</span></div>
+    </div>
+    <div class="cover-toc">
+      <h2>Contents</h2>
+      <ol>
+        <li>Part A — Interview &amp; Stakeholder Prep</li>
+        <li>Part B — BA Lifecycle Overview</li>
+        <li>Part C — Phase-by-Phase Playbook (12 phases)</li>
+        <li>Part D — Data Validation &amp; Analytics</li>
+        <li>Part E — BA Interview Preparation</li>
+        <li>Part F — Master Checklists</li>
+        <li>Part G — Glossary</li>
+      </ol>
+    </div>
+    <div class="cover-meta">
+      <div><strong>Version:</strong> 1.0</div>
+      <div><strong>Audience:</strong> Business Analysts, PO, QA Leads</div>
+      <div><strong>Project:</strong> H2O Online Platform</div>
+      <div><strong>Generated:</strong> 30 June 2026</div>
+    </div>
+  </div>
+  <div class="content"><h1>H2O Online — Business Analyst End-to-End Guide</h1>
+<p><strong>Document type:</strong> BA Playbook · Interview Preparation · Process &amp; Methodology Guide  </p>
+<p><strong>Version:</strong> 1.0  </p>
+<p><strong>Audience:</strong> Business Analysts, Product Owners, QA Leads, Delivery Managers  </p>
+<p><strong>Project:</strong> H2O Online — Multi-sided Water Delivery Platform</p>
+<hr />
+<h2>How to Use This Guide</h2>
+<p>This document is the <strong>single reference for a Business Analyst</strong> working on H2O Online. Use it to:</p>
+<ol><li><strong>Explain the project</strong> to stakeholders in interviews or kickoff meetings  </li><li><strong>Follow the end-to-end BA lifecycle</strong> from business need through post go-live  </li><li><strong>Know which artifacts to create</strong> (BRD, FRD, process maps, RTM, UAT pack)  </li><li><strong>Run validation</strong> — functional, data, statistical, and analytics layers  </li><li><strong>Support testing and UAT</strong> with traceable acceptance criteria  </li></ol>
+<p><strong>Related project documents:</strong></p>
+<table><thead><tr><th>Document</th><th>BA use</th></tr></thead><tbody><tr><td><code class="inline">docs/requirement-capture.md</code></td><td>Master FRD-style requirement catalogue</td></tr><tr><td><code class="inline">docs/BUSINESS-USE-CASE-PUNE.md</code></td><td>City launch &amp; operations context</td></tr><tr><td><code class="inline">docs/SYSTEM-ARCHITECTURE.md</code></td><td>Technical flows for solution alignment</td></tr><tr><td><code class="inline">docs/customer-dashboard-devices-leaderboard-brd.md</code></td><td>Sample feature-level BRD</td></tr></tbody></table>
+<hr />
+<h2>Part A — Explaining the Project (Interview &amp; Stakeholder Prep)</h2>
+<h3>A.1 The 30-Second Pitch</h3>
+<p>&gt; <strong>H2O Online</strong> is a multi-sided water delivery platform. Customers order water jars and subscriptions on a mobile app. Verified <strong>suppliers</strong> fulfil orders and assign <strong>riders</strong>. An <strong>admin portal</strong> runs the business — partner verification, service zones by PIN code, stock, wallets, and financials. The platform earns through <strong>supplier commission</strong> (~20%) and manages <strong>rider payouts</strong> (~10% of order value). Beyond delivery, it includes <strong>wallet payments</strong>, <strong>Groq AI hydration insights</strong>, and <strong>Google Maps</strong> for ETA and serviceability.</p>
+<h3>A.2 The 2-Minute Stakeholder Explanation</h3>
+<table><thead><tr><th>Question stakeholders ask</th><th>BA answer (H2O Online)</th></tr></thead><tbody><tr><td><strong>What problem does it solve?</strong></td><td>Fragmented phone/WhatsApp water ordering — no tracking, no subscriptions, no verified supply chain</td></tr><tr><td><strong>Who uses it?</strong></td><td>Customers, water suppliers, delivery riders, society/corporate buyers (partial), admin ops team</td></tr><tr><td><strong>How does money flow?</strong></td><td>Customer pays (wallet/Razorpay/COD) → on delivery, platform splits to supplier wallet + rider wallet minus commission</td></tr><tr><td><strong>What makes it different?</strong></td><td>Verification gate, PIN-based serviceability, stock at order time, subscription billing, AI engagement</td></tr><tr><td><strong>What's live vs planned?</strong></td><td>Customer/supplier/rider/admin flows live; corporate demo UI; coupons/OTP/live map tracking partial</td></tr><tr><td><strong>What would a BA own?</strong></td><td>Requirements from stakeholders, process maps, BRD/FRD, acceptance criteria, UAT, data validation rules</td></tr></tbody></table>
+<h3>A.3 Five Things a BA Must Internalise</h3>
+<ol><li><strong>Multi-sided marketplace</strong> — requirements must be written <strong>per actor</strong> (customer, supplier, rider, admin)  </li><li><strong>Order is the core transaction</strong> — stock deduct, serviceability, payout on deliver  </li><li><strong>Admin is the control tower</strong> — verification, zones, financials, support  </li><li><strong>Not everything in the UI is implemented</strong> — BA must maintain <strong>As-Is vs To-Be</strong> gap list  </li><li><strong>Data integrity matters</strong> — wallet balances, stock counts, commission math must reconcile  </li></ol>
+<hr />
+<h2>Part B — BA Lifecycle Overview</h2>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 1</div><pre class="mermaid">flowchart TD
+  BN[&quot;1. Business Need&quot;] --&gt; RG[&quot;2. Requirement Gathering&quot;]
+  RG --&gt; RA[&quot;3. Requirement Analysis&quot;]
+  RA --&gt; BPM[&quot;4. Business Process Mapping&quot;]
+  BPM --&gt; SD[&quot;5. Solution Design&quot;]
+  SD --&gt; DOC[&quot;6. Documentation&quot;]
+  DOC --&gt; VS[&quot;7. Validation &amp; Sign-off&quot;]
+  VS --&gt; DS[&quot;8. Development Support&quot;]
+  DS --&gt; TS[&quot;9. Testing Support&quot;]
+  TS --&gt; UAT[&quot;10. UAT&quot;]
+  UAT --&gt; DEP[&quot;11. Deployment&quot;]
+  DEP --&gt; PGL[&quot;12. Post Go-Live Support&quot;]
+
+  style BN fill:#dbeafe
+  style DOC fill:#d1fae5
+  style UAT fill:#fef3c7
+  style PGL fill:#fce7f3</pre></div>
+<h3>B.1 BA Lifecycle — Phase Summary</h3>
+<table><thead><tr><th>Phase</th><th>BA primary outputs</th><th>H2O Online focus</th></tr></thead><tbody><tr><td>1. Business Need</td><td>Problem statement, business case, objectives</td><td>BO-01 to BO-07 from requirement capture</td></tr><tr><td>2. Requirement Gathering</td><td>Interview notes, workshop outputs, stakeholder register</td><td>5 personas + admin roles</td></tr><tr><td>3. Requirement Analysis</td><td>Prioritised backlog, MoSCoW, gap analysis</td><td>Live vs partial features</td></tr><tr><td>4. Business Process Mapping</td><td>As-Is / To-Be BPMN, swimlanes</td><td>Order, subscription, onboarding flows</td></tr><tr><td>5. Solution Design</td><td>BRD sections, business rules, wireframe briefs</td><td>Mobile + admin + API alignment</td></tr><tr><td>6. Documentation</td><td>BRD, FRD, user stories, RTM</td><td>FR-xxx IDs, BR-xxx rules</td></tr><tr><td>7. Validation &amp; Sign-off</td><td>Review pack, signed BRD/FRD</td><td>PO + Sponsor sign-off</td></tr><tr><td>8. Development Support</td><td>Clarifications, change requests</td><td>API ↔ screen traceability</td></tr><tr><td>9. Testing Support</td><td>Test scenarios, expected results</td><td>Per FR ID</td></tr><tr><td>10. UAT</td><td>UAT scripts, defect log, sign-off</td><td>Role-based UAT packs</td></tr><tr><td>11. Deployment</td><td>Release notes, training, go-live checklist</td><td>AWS prod, Pune launch</td></tr><tr><td>12. Post Go-Live</td><td>Hypercare log, enhancement backlog</td><td>KPI monitoring, data reconciliation</td></tr></tbody></table>
+<hr />
+<h2>Part C — Phase-by-Phase BA Playbook</h2>
+<h3>Phase 1 — Business Need</h3>
+<p><strong>Objective:</strong> Confirm *why* the project exists and what success looks like.</p>
+<h4>BA activities</h4>
+<table><thead><tr><th>Activity</th><th>Deliverable</th><th>H2O Online example</th></tr></thead><tbody><tr><td>Identify business problem</td><td>Problem statement</td><td>Offline water ordering lacks tracking, subscriptions, trust</td></tr><tr><td>Define business objectives</td><td>Objective table (BO-xx)</td><td>BO-01 order journey, BO-02 subscriptions, BO-03 partner scale</td></tr><tr><td>Identify stakeholders</td><td>Stakeholder register</td><td>Product owner, ops head, suppliers, riders, customers, dev lead</td></tr><tr><td>Assess current state</td><td>As-Is summary</td><td>Phone orders, cash, no central admin</td></tr><tr><td>Define success metrics</td><td>KPI list</td><td>Orders/week, fulfilment %, subscription conversion</td></tr><tr><td>Scope boundaries</td><td>In / out of scope</td><td>Corporate demo = out; customer order = in</td></tr></tbody></table>
+<h4>Stakeholder register template</h4>
+<table><thead><tr><th>Stakeholder</th><th>Role</th><th>Interest</th><th>Influence</th><th>BA engagement</th></tr></thead><tbody><tr><td>Product Owner</td><td>Sponsor</td><td>ROI, roadmap</td><td>High</td><td>Weekly backlog review</td></tr><tr><td>City Ops Manager</td><td>Admin user</td><td>Pune launch</td><td>High</td><td>Process workshops</td></tr><tr><td>Supplier rep</td><td>Supply side</td><td>Orders, payouts</td><td>Medium</td><td>Journey walkthrough</td></tr><tr><td>Delivery lead</td><td>Fulfilment</td><td>Rider assignment</td><td>Medium</td><td>SLA definition</td></tr><tr><td>Customer support</td><td>Operations</td><td>Tickets</td><td>Medium</td><td>Support workflow FRs</td></tr><tr><td>Tech Lead</td><td>Delivery</td><td>Feasibility</td><td>High</td><td>FR review, API mapping</td></tr><tr><td>QA Lead</td><td>Quality</td><td>Test coverage</td><td>Medium</td><td>RTM, UAT plan</td></tr></tbody></table>
+<h4>Business objectives (reference — from project)</h4>
+<table><thead><tr><th>ID</th><th>Objective</th><th>BA traceability</th></tr></thead><tbody><tr><td>BO-01</td><td>On-demand + scheduled ordering</td><td>FR-CUS-10 to FR-CUS-29, order workflow</td></tr><tr><td>BO-02</td><td>Subscription recurring revenue</td><td>FR-CUS-37 to FR-CUS-44, Workflow B</td></tr><tr><td>BO-03</td><td>Verified partner onboarding</td><td>FR-SUP-12, FR-DEL-13, FR-ADM-06 to 11</td></tr><tr><td>BO-04</td><td>Transparent partner economics</td><td>FR-SUP-09/10, FR-DEL-09, BR-05</td></tr><tr><td>BO-05</td><td>Central admin operations</td><td>FR-ADM-01 to FR-ADM-27</td></tr><tr><td>BO-06</td><td>Engagement beyond ordering</td><td>FR-CUS-45 to 49, AI features</td></tr><tr><td>BO-07</td><td>Trust via verification + support</td><td>FR-CUS-50 to 52, BR-01</td></tr></tbody></table>
+<hr />
+<h3>Phase 2 — Requirement Gathering</h3>
+<p><strong>Objective:</strong> Elicit needs from all actors without solution bias.</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 2</div><pre class="mermaid">flowchart LR
+  subgraph Techniques[&quot;Elicitation Techniques&quot;]
+    T1[&quot;Stakeholder interviews&quot;]
+    T2[&quot;Process observation&quot;]
+    T3[&quot;Workshops / JAD&quot;]
+    T4[&quot;Document analysis&quot;]
+    T5[&quot;Prototyping walkthrough&quot;]
+  end
+
+  subgraph Sources[&quot;H2O Online Sources&quot;]
+    S1[&quot;Existing mobile app screens&quot;]
+    S2[&quot;Admin portal pages&quot;]
+    S3[&quot;API routes / models&quot;]
+    S4[&quot;Ops team SOPs&quot;]
+    S5[&quot;Customer support tickets&quot;]
+  end
+
+  Techniques --&gt; ReqNotes[&quot;Raw requirement notes&quot;]
+  Sources --&gt; ReqNotes
+  ReqNotes --&gt; Backlog[&quot;Initial requirement log&quot;]</pre></div>
+<h4>Requirement gathering plan by actor</h4>
+<table><thead><tr><th>Actor</th><th>Key questions</th><th>Sessions</th><th>Output</th></tr></thead><tbody><tr><td><strong>Customer</strong></td><td>How do you choose supplier? Address pain? Payment preference?</td><td>2 interviews + app walkthrough</td><td>Customer journey FRs</td></tr><tr><td><strong>Supplier</strong></td><td>Accept/reject rules? Stock update frequency? Rider model?</td><td>2 interviews</td><td>Supplier FRs + BRs</td></tr><tr><td><strong>Rider</strong></td><td>Online hours? Pickup proof? Earnings visibility?</td><td>1 interview</td><td>Delivery FRs</td></tr><tr><td><strong>Admin</strong></td><td>Verification checklist? Financial access? Zone setup?</td><td>2 workshops</td><td>Admin FRs + RBAC matrix</td></tr><tr><td><strong>Product Owner</strong></td><td>Priority? Launch city? Revenue model?</td><td>Ongoing</td><td>Prioritised backlog</td></tr></tbody></table>
+<h4>Requirement gathering checklist</h4>
+<ul><li>[ ] Stakeholder register approved  </li><li>[ ] Interview guide per persona completed  </li><li>[ ] As-Is process documented (phone order flow)  </li><li>[ ] Demo of mobile app (customer, supplier, rider paths)  </li><li>[ ] Demo of admin portal (all nav groups)  </li><li>[ ] Review <code class="inline">requirement-capture.md</code> for baseline  </li><li>[ ] Gap list: UI-only vs backend-implemented  </li><li>[ ] Non-functional needs captured (SLA, security, privacy)  </li><li>[ ] Assumptions and constraints log started  </li></ul>
+<h4>Sample interview questions — Customer</h4>
+<ol><li>Walk me through your last water order outside the app.  </li><li>What information do you need while waiting for delivery?  </li><li>Would you prepay via wallet? What would make you trust it?  </li><li>How important are subscriptions vs one-time orders?  </li><li>What would make you abandon checkout? (address, stock, payment)  </li></ol>
+<h4>Sample interview questions — Admin Ops</h4>
+<ol><li>How do you decide if a supplier is approved?  </li><li>How do you define which PIN codes are serviceable?  </li><li>What do you do when a supplier rejects an order?  </li><li>How do you reconcile rider and supplier payouts weekly?  </li><li>Which reports do you need on day 1 of Pune launch?  </li></ol>
+<hr />
+<h3>Phase 3 — Requirement Analysis</h3>
+<p><strong>Objective:</strong> Structure, prioritise, and validate requirements for consistency and feasibility.</p>
+<h4>Analysis techniques on this project</h4>
+<table><thead><tr><th>Technique</th><th>Application</th></tr></thead><tbody><tr><td><strong>MoSCoW</strong></td><td>Must = order + pay + deliver; Should = AI insights; Could = coupons</td></tr><tr><td><strong>Gap analysis</strong></td><td>Compare UI (coupon field) vs API (not implemented)</td></tr><tr><td><strong>Dependency mapping</strong></td><td>Serviceability before checkout; verify before supplier dashboard</td></tr><tr><td><strong>Conflict resolution</strong></td><td>Sub-admin wants financials vs BR-06 RBAC</td></tr><tr><td><strong>Feasibility review</strong></td><td>Tech lead confirms Razorpay verify flow vs direct order</td></tr><tr><td><strong>Impact analysis</strong></td><td>Change to commission % affects supplier financials + admin reports</td></tr></tbody></table>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 3</div><pre class="mermaid">flowchart TD
+  Raw[&quot;Raw requirements&quot;] --&gt; Dedup[&quot;De-duplicate &amp; consolidate&quot;]
+  Dedup --&gt; Classify[&quot;Classify: Functional / NFR / Business Rule&quot;]
+  Classify --&gt; Prioritize[&quot;MoSCoW prioritization&quot;]
+  Prioritize --&gt; Model[&quot;Data &amp; process feasibility&quot;]
+  Model --&gt; Baseline[&quot;Baselined requirement set&quot;]
+  Baseline --&gt; RTM[&quot;Feed into RTM&quot;]</pre></div>
+<h4>Requirement types and ID scheme</h4>
+<table><thead><tr><th>Type</th><th>Prefix</th><th>Example</th><th>Document</th></tr></thead><tbody><tr><td>Business objective</td><td>BO-xx</td><td>BO-02 subscriptions</td><td>BRD §2</td></tr><tr><td>Business rule</td><td>BR-xx</td><td>BR-01 verify before transact</td><td>BRD §Business Rules</td></tr><tr><td>Functional requirement</td><td>FR-xxx-yy</td><td>FR-CUS-18 select address</td><td>FRD</td></tr><tr><td>Non-functional</td><td>NFR-xx</td><td>NFR-05 real-time tracking</td><td>BRD §NFR</td></tr><tr><td>User story</td><td>US-xxx</td><td>As a customer I want…</td><td>Backlog / sprint</td></tr><tr><td>Acceptance criterion</td><td>AC-xxx</td><td>Given… When… Then…</td><td>FRD / UAT</td></tr><tr><td>Backlog item</td><td>BL-xx</td><td>BL-04 coupon engine</td><td>Future scope</td></tr></tbody></table>
+<h4>Gap analysis template (H2O Online — examples)</h4>
+<table><thead><tr><th>Feature (UI)</th><th>Backend/API</th><th>Gap</th><th>BA recommendation</th></tr></thead><tbody><tr><td>Coupon at checkout</td><td>Not implemented</td><td>High</td><td>BL-04; remove from Must FR or mark Could</td></tr><tr><td>OTP login</td><td>Mock flow</td><td>High</td><td>BL-05; document as non-prod</td></tr><tr><td>Live map on track screen</td><td>Partial / placeholder</td><td>Medium</td><td>BL-06; UAT uses status timeline only</td></tr><tr><td>Loyalty points display</td><td>Display only</td><td>Low</td><td>Document as cosmetic until BL-03</td></tr><tr><td>Razorpay pay</td><td>Implemented verify flow</td><td>None</td><td>FR-CUS-23 updated to include Razorpay path</td></tr><tr><td>Stock check</td><td>Implemented on order</td><td>None</td><td>Include in UAT stock scenarios</td></tr></tbody></table>
+<hr />
+<h3>Phase 4 — Business Process Mapping</h3>
+<p><strong>Objective:</strong> Visualise how work flows across people, systems, and data.</p>
+<h4>Processes the BA must map (minimum set)</h4>
+<table><thead><tr><th>Process ID</th><th>Name</th><th>Actors</th><th>Priority</th></tr></thead><tbody><tr><td>BP-01</td><td>Customer one-time order</td><td>Customer, Platform, Supplier, Rider</td><td>Critical</td></tr><tr><td>BP-02</td><td>Subscription lifecycle</td><td>Customer, Admin, Rider</td><td>Critical</td></tr><tr><td>BP-03</td><td>Supplier onboarding</td><td>Supplier, Admin</td><td>Critical</td></tr><tr><td>BP-04</td><td>Rider onboarding &amp; fulfilment</td><td>Rider, Supplier, Admin</td><td>Critical</td></tr><tr><td>BP-05</td><td>Store approval</td><td>Supplier, Admin</td><td>High</td></tr><tr><td>BP-06</td><td>Serviceability &amp; address</td><td>Customer, Admin, Google Maps</td><td>High</td></tr><tr><td>BP-07</td><td>Payment &amp; wallet settlement</td><td>Customer, Platform, Supplier, Rider</td><td>Critical</td></tr><tr><td>BP-08</td><td>Customer support ticket</td><td>Customer, Admin</td><td>Medium</td></tr><tr><td>BP-09</td><td>Admin daily operations</td><td>Admin, Sub-admin</td><td>High</td></tr></tbody></table>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 4</div><pre class="mermaid">flowchart TB
+  subgraph BP01[&quot;BP-01 Customer Order — Swimlanes&quot;]
+    direction TB
+    C1[&quot;Customer: Browse → Cart → Checkout&quot;]
+    P1[&quot;Platform: Serviceability · Stock · Payment · Create order&quot;]
+    S1[&quot;Supplier: Accept · Assign rider · ETA&quot;]
+    R1[&quot;Rider: Pickup · GPS · Deliver&quot;]
+    P2[&quot;Platform: Payout wallets&quot;]
+    C2[&quot;Customer: Track · Review&quot;]
+  end
+  C1 --&gt; P1 --&gt; S1 --&gt; R1 --&gt; P2 --&gt; C2</pre></div>
+<h4>As-Is vs To-Be template</h4>
+<table><thead><tr><th>Step</th><th>As-Is (offline Pune vendor)</th><th>To-Be (H2O Online)</th><th>System touchpoint</th></tr></thead><tbody><tr><td>Order</td><td>Phone call / WhatsApp</td><td>App checkout</td><td>POST /api/orders</td></tr><tr><td>Address</td><td>Verbal</td><td>Saved address + PIN + map</td><td>/api/addresses</td></tr><tr><td>Payment</td><td>Cash on delivery</td><td>Wallet / Razorpay / COD</td><td>payments + wallet</td></tr><tr><td>Assign delivery</td><td>Vendor's own staff</td><td>Supplier assigns rider in app</td><td>supplier orders API</td></tr><tr><td>Track</td><td>Call vendor</td><td>Order tracking API</td><td>/api/orders/:id/tracking</td></tr><tr><td>Complaint</td><td>Phone</td><td>Support ticket</td><td>/api/customer-support</td></tr></tbody></table>
+<hr />
+<h3>Phase 5 — Solution Design (BA Contribution)</h3>
+<p><strong>Objective:</strong> Translate business needs into solution boundaries the dev team can build.</p>
+<p><strong>Note:</strong> Solution *architecture* is owned by Tech Lead; BA contributes <strong>business solution design</strong>.</p>
+<table><thead><tr><th>BA deliverable</th><th>Content</th></tr></thead><tbody><tr><td>Solution scope diagram</td><td>Mobile + Admin + API + MongoDB + 3rd parties</td></tr><tr><td>Business rules catalogue</td><td>BR-01 to BR-10</td></tr><tr><td>Entity glossary</td><td>User, Order, Supplier, Store, ServiceableArea, Wallet</td></tr><tr><td>Integration list</td><td>Groq, Google Maps, Razorpay, MongoDB Atlas</td></tr><tr><td>Role-permission matrix</td><td>Admin RBAC</td></tr><tr><td>Wireframe / screen inventory</td><td>Reference <code class="inline">docs/screens-catalog.json</code></td></tr><tr><td>API-to-requirement map</td><td>Which FR maps to which endpoint</td></tr></tbody></table>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 5</div><pre class="mermaid">flowchart LR
+  BRD[&quot;BRD&lt;br/&gt;Why &amp; What&quot;] --&gt; FRD[&quot;FRD&lt;br/&gt;Detailed FRs + AC&quot;]
+  FRD --&gt; Stories[&quot;User Stories&quot;]
+  FRD --&gt; RTM[&quot;Requirements Traceability Matrix&quot;]
+  Stories --&gt; Sprints[&quot;Dev sprints&quot;]
+  RTM --&gt; Test[&quot;Test cases &amp; UAT&quot;]</pre></div>
+<hr />
+<h3>Phase 6 — Documentation</h3>
+<p><strong>Objective:</strong> Produce controlled, versioned artifacts stakeholders can sign off.</p>
+<h4>Document hierarchy</h4>
+<table><thead><tr><th>Document</th><th>Purpose</th><th>Owner</th><th>Audience</th></tr></thead><tbody><tr><td><strong>BRD</strong> (Business Requirements Document)</td><td>Business need, objectives, scope, processes, rules, NFRs</td><td>BA</td><td>Sponsor, PO, Ops</td></tr><tr><td><strong>FRD</strong> (Functional Requirements Document)</td><td>Detailed FR-IDs, acceptance criteria, screen behaviour</td><td>BA</td><td>Dev, QA, PO</td></tr><tr><td><strong>RTM</strong> (Requirements Traceability Matrix)</td><td>FR → Design → Test → UAT link</td><td>BA</td><td>QA, PM</td></tr><tr><td><strong>Process maps</strong></td><td>BPMN / swimlanes</td><td>BA</td><td>All stakeholders</td></tr><tr><td><strong>Data dictionary</strong></td><td>Field definitions for orders, wallet, stock</td><td>BA + Tech</td><td>Dev, analytics</td></tr><tr><td><strong>UAT pack</strong></td><td>Scripts per role</td><td>BA + QA</td><td>Business users</td></tr><tr><td><strong>Release notes</strong></td><td>What's in this release</td><td>BA + Dev</td><td>Ops, support</td></tr></tbody></table>
+<h4>BRD — Standard sections (H2O Online template)</h4>
+<ol><li><strong>Executive summary</strong> — 1 page business narrative  </li><li><strong>Business objectives</strong> — BO-01 to BO-07 with KPIs  </li><li><strong>Stakeholders &amp; personas</strong> — customer, supplier, rider, admin  </li><li><strong>Scope</strong> — in scope / out of scope / assumptions  </li><li><strong>Business process overview</strong> — BP-01 to BP-09 summaries  </li><li><strong>Business rules</strong> — BR-01 to BR-10  </li><li><strong>Business capabilities</strong> — wallet, commission, AI, support  </li><li><strong>Non-functional requirements</strong> — NFR-01 to NFR-10  </li><li><strong>Financial / commercial rules</strong> — commission 20%, rider 10%  </li><li><strong>Risks &amp; dependencies</strong> — Razorpay, Maps API, verification SLA  </li><li><strong>Success criteria &amp; sign-off</strong> — measurable outcomes  </li></ol>
+<p><strong>Existing BRD example:</strong> <code class="inline">docs/customer-dashboard-devices-leaderboard-brd.md</code></p>
+<h4>FRD — Standard sections (H2O Online template)</h4>
+<ol><li><strong>Introduction &amp; references</strong> — link to BRD  </li><li><strong>Functional requirements by module</strong>  </li></ol>
+<ul><li>   - FR-AUTH-xx Authentication  </li><li>   - FR-CUS-xx Customer  </li><li>   - FR-SUP-xx Supplier  </li><li>   - FR-DEL-xx Delivery partner  </li><li>   - FR-ADM-xx Admin  </li></ul>
+<ol><li><strong>Acceptance criteria</strong> per FR (Given/When/Then)  </li><li><strong>UI screen mapping</strong> — screen name → FR IDs  </li><li><strong>API mapping</strong> — endpoint → FR IDs  </li><li><strong>Error &amp; edge cases</strong> — stock-out, unserviceable PIN, reject order  </li><li><strong>Open issues &amp; TBD log</strong>  </li></ol>
+<p><strong>Master FR catalogue:</strong> <code class="inline">docs/requirement-capture.md</code> (use as FRD baseline)</p>
+<h4>User story format (for backlog)</h4>
+<pre><code class="block">As a [supplier in Pune]
+I want to [accept an incoming order and assign a rider]
+So that [the customer receives delivery within SLA]
+
+Acceptance criteria:
+- AC-1: Given pending order, when supplier taps Accept, then status = accepted
+- AC-2: Given accepted order, when rider selected, then deliveryPartnerId saved
+- AC-3: Given no riders online, then UI shows warning (partnerAvailability)
+
+Linked: FR-SUP-04, FR-SUP-06, BP-01</code></pre>
+<h4>Requirements Traceability Matrix (RTM) — sample rows</h4>
+<table><thead><tr><th>FR ID</th><th>BRD objective</th><th>Process</th><th>API / Component</th><th>Test case</th><th>UAT script</th></tr></thead><tbody><tr><td>FR-CUS-18</td><td>BO-01</td><td>BP-01</td><td>CheckoutScreen, /api/addresses</td><td>TC-ORD-012</td><td>UAT-C-05</td></tr><tr><td>FR-CUS-18</td><td>BO-01</td><td>BP-06</td><td>/api/serviceability/check</td><td>TC-ORD-013</td><td>UAT-C-06</td></tr><tr><td>FR-SUP-04</td><td>BO-01</td><td>BP-01</td><td>PATCH …/orders/:id/accept</td><td>TC-SUP-003</td><td>UAT-S-02</td></tr><tr><td>FR-DEL-03</td><td>BO-01</td><td>BP-04</td><td>PATCH …/picked-up</td><td>TC-RID-002</td><td>UAT-R-02</td></tr><tr><td>FR-ADM-06</td><td>BO-03</td><td>BP-03</td><td>Admin Suppliers verify</td><td>TC-ADM-004</td><td>UAT-A-03</td></tr><tr><td>FR-ADM-20</td><td>BO-05</td><td>BP-07</td><td>Wallet management</td><td>TC-ADM-010</td><td>UAT-A-08</td></tr></tbody></table>
+<hr />
+<h3>Phase 7 — Validation &amp; Sign-off</h3>
+<p><strong>Objective:</strong> Confirm requirements are complete, correct, and agreed before build/test at scale.</p>
+<table><thead><tr><th>Review type</th><th>Participants</th><th>BA role</th><th>Exit criteria</th></tr></thead><tbody><tr><td><strong>Business review</strong></td><td>PO, Ops, Sponsor</td><td>Present BRD</td><td>Objectives &amp; scope signed</td></tr><tr><td><strong>Functional review</strong></td><td>PO, Dev, QA</td><td>Present FRD + RTM</td><td>No open Must gaps</td></tr><tr><td><strong>Technical review</strong></td><td>Tech Lead, Dev</td><td>Clarify API mapping</td><td>Feasibility confirmed</td></tr><tr><td><strong>Compliance review</strong></td><td>Legal / PO</td><td>Privacy, GST, FSSAI notes</td><td>NFR sign-off</td></tr></tbody></table>
+<h4>Sign-off checklist</h4>
+<ul><li>[ ] All Must-have FRs have acceptance criteria  </li><li>[ ] Business rules validated with Ops (commission, verification)  </li><li>[ ] Out-of-scope items explicitly listed (coupons, OTP)  </li><li>[ ] RTM covers all Must FRs  </li><li>[ ] Assumptions documented and accepted  </li><li>[ ] Sign-off sheet completed (see <code class="inline">requirement-capture.md</code> §18)  </li></ul>
+<hr />
+<h3>Phase 8 — Development Support</h3>
+<p><strong>Objective:</strong> Answer clarifications and manage controlled change during build.</p>
+<table><thead><tr><th>Activity</th><th>BA action</th><th>Tool / artifact</th></tr></thead><tbody><tr><td>Clarification requests</td><td>Respond within SLA; update FR if needed</td><td>CR log</td></tr><tr><td>Sprint refinement</td><td>Explain user story context</td><td>Backlog</td></tr><tr><td>API contract review</td><td>Map request/response to FR</td><td>Postman / OpenAPI notes</td></tr><tr><td>Change request</td><td>Impact: FR, RTM, test, UAT</td><td>Change impact matrix</td></tr><tr><td>Demo attendance</td><td>Verify against acceptance criteria</td><td>Sprint demo checklist</td></tr></tbody></table>
+<h4>Change impact matrix template</h4>
+<table><thead><tr><th>Change</th><th>Affected FRs</th><th>Processes</th><th>Test impact</th><th>UAT impact</th><th>Approval</th></tr></thead><tbody><tr><td>Add PIN radius 15km</td><td>FR-ADM serviceable areas</td><td>BP-06</td><td>TC-SVC-*</td><td>UAT-A-12</td><td>PO</td></tr></tbody></table>
+<hr />
+<h3>Phase 9 — Testing Support</h3>
+<p><strong>Objective:</strong> Ensure QA can trace tests to requirements and business rules.</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 6</div><pre class="mermaid">flowchart LR
+  FRD[&quot;FRD + BR&quot;] --&gt; TC[&quot;Test cases&quot;]
+  TC --&gt; SIT[&quot;System Integration Test&quot;]
+  TC --&gt; REG[&quot;Regression suite&quot;]
+  FRD --&gt; UAT[&quot;UAT scripts&quot;]
+  Data[&quot;Data validation rules&quot;] --&gt; SIT
+  Data --&gt; RECON[&quot;Reconciliation reports&quot;]</pre></div>
+<h4>Test scenario categories (H2O Online)</h4>
+<table><thead><tr><th>Category</th><th>Examples</th><th>Linked rules</th></tr></thead><tbody><tr><td><strong>Happy path</strong></td><td>End-to-end order delivered</td><td>BP-01</td></tr><tr><td><strong>Negative</strong></td><td>Stock-out, invalid PIN, wrong password</td><td>BR + validations</td></tr><tr><td><strong>RBAC</strong></td><td>Sub-admin blocked from financials</td><td>BR-06, FR-ADM-23</td></tr><tr><td><strong>Integration</strong></td><td>Razorpay verify → order create</td><td>Payment flow</td></tr><tr><td><strong>Boundary</strong></td><td>stockQty = 0, radius edge PIN</td><td>Serviceability</td></tr><tr><td><strong>Concurrency</strong></td><td>Two orders last jar</td><td>Stock deduct</td></tr><tr><td><strong>Financial</strong></td><td>Payout math on deliver</td><td>BR-05, 10% rider</td></tr></tbody></table>
+<h4>BA test support deliverables</h4>
+<ol><li><strong>Test scenario document</strong> — business scenarios in plain language  </li><li><strong>Expected result per FR</strong> — from acceptance criteria  </li><li><strong>Test data spec</strong> — users, suppliers, PINs, products, stock levels  </li><li><strong>Defect triage rules</strong> — Must FR failure = blocker  </li></ol>
+<hr />
+<h3>Phase 10 — UAT (User Acceptance Testing)</h3>
+<p><strong>Objective:</strong> Business users confirm the system meets agreed requirements before go-live.</p>
+<h4>UAT methodology for H2O Online</h4>
+<table><thead><tr><th>Step</th><th>Activity</th><th>Owner</th></tr></thead><tbody><tr><td>1</td><td>Define UAT scope (Must FRs only for pilot)</td><td>BA + PO</td></tr><tr><td>2</td><td>Create role-based UAT packs</td><td>BA</td></tr><tr><td>3</td><td>Prepare UAT environment + test data</td><td>QA + Ops</td></tr><tr><td>4</td><td>Train UAT participants (30 min per role)</td><td>BA</td></tr><tr><td>5</td><td>Execute UAT scripts; log defects</td><td>Business users</td></tr><tr><td>6</td><td>BA triages defects: bug vs change vs training</td><td>BA</td></tr><tr><td>7</td><td>Re-test fixes</td><td>Business users</td></tr><tr><td>8</td><td>UAT sign-off memo</td><td>PO + Ops</td></tr></tbody></table>
+<h4>UAT packs by role</h4>
+<table><thead><tr><th>Pack</th><th>Tester</th><th>Critical scripts</th></tr></thead><tbody><tr><td><strong>UAT-C</strong> Customer</td><td>Ops team member</td><td>Register, order, pay, track, support ticket</td></tr><tr><td><strong>UAT-S</strong> Supplier</td><td>Pilot vendor</td><td>Onboarding, accept order, assign rider, stock update</td></tr><tr><td><strong>UAT-R</strong> Rider</td><td>Pilot rider</td><td>Go online, pickup, deliver, view earnings</td></tr><tr><td><strong>UAT-A</strong> Admin</td><td>City manager</td><td>Verify supplier, serviceable PIN, orders dashboard, wallet adjust</td></tr></tbody></table>
+<h4>Sample UAT script — UAT-C-05 (Address &amp; serviceability)</h4>
+<table><thead><tr><th>Step</th><th>Action</th><th>Expected result</th><th>FR ref</th><th>Pass/Fail</th></tr></thead><tbody><tr><td>1</td><td>Login as customer</td><td>Dashboard loads</td><td>FR-AUTH-06</td><td></td></tr><tr><td>2</td><td>Add address Kothrud PIN 411038 via map</td><td>Address saved</td><td>FR-CUS-30/31</td><td></td></tr><tr><td>3</td><td>Add product to cart → checkout</td><td>Address pre-selected</td><td>FR-CUS-18</td><td></td></tr><tr><td>4</td><td>Proceed with serviceable PIN</td><td>Checkout allowed</td><td>FR-CUS-18, BP-06</td><td></td></tr><tr><td>5</td><td>Change PIN to invalid 000000</td><td>Serviceability error shown</td><td>BP-06</td><td></td></tr><tr><td>6</td><td>Complete order with wallet</td><td>Order confirmed</td><td>FR-CUS-23/24</td><td></td></tr></tbody></table>
+<h4>UAT entry / exit criteria</h4>
+<p><strong>Entry:</strong> FRD signed off; SIT complete; critical defects = 0; UAT data loaded  </p>
+<p><strong>Exit:</strong> 100% Must UAT scripts pass; PO sign-off; known issues documented with workaround  </p>
+<hr />
+<h3>Phase 11 — Deployment</h3>
+<p><strong>Objective:</strong> BA ensures business readiness for production go-live.</p>
+<table><thead><tr><th>BA deliverable</th><th>Content</th></tr></thead><tbody><tr><td><strong>Go-live checklist</strong></td><td>Admin users created, suppliers verified, PINs configured</td></tr><tr><td><strong>Release notes</strong></td><td>Features enabled; known limitations (coupons off)</td></tr><tr><td><strong>Training materials</strong></td><td>Admin 2hr workshop; supplier quick guide</td></tr><tr><td><strong>Support playbook</strong></td><td>Escalation paths, SLAs</td></tr><tr><td><strong>Rollback criteria</strong></td><td>Payment failures &gt; X%; API down &gt; Y min</td></tr></tbody></table>
+<p><strong>Reference:</strong> <code class="inline">docs/DEPLOYMENT-GUIDE.md</code>, <code class="inline">docs/BUSINESS-USE-CASE-PUNE.md</code></p>
+<hr />
+<h3>Phase 12 — Post Go-Live Support</h3>
+<p><strong>Objective:</strong> Hypercare, measure KPIs, feed enhancements back to backlog.</p>
+<table><thead><tr><th>Activity</th><th>Frequency</th><th>BA output</th></tr></thead><tbody><tr><td>Hypercare standup</td><td>Daily (week 1)</td><td>Issue log</td></tr><tr><td>KPI review</td><td>Weekly</td><td>Orders, fulfilment %, stock-out rate</td></tr><tr><td>Data reconciliation</td><td>Weekly</td><td>Wallet vs order report</td></tr><tr><td>Retrospective</td><td>End week 2</td><td>Enhancement backlog</td></tr><tr><td>FR gap review</td><td>Monthly</td><td>Update gap analysis</td></tr></tbody></table>
+<hr />
+<h2>Part D — Data Validation &amp; Analytics Methodology</h2>
+<p>BA owns <strong>business data rules</strong>; validation spans multiple layers aligned to H2O Online architecture.</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 7</div><pre class="mermaid">flowchart TB
+  subgraph L1[&quot;Layer 1 — Source / Input&quot;]
+    A1[&quot;Mobile app forms&quot;]
+    A2[&quot;Admin portal entries&quot;]
+    A3[&quot;Razorpay webhooks&quot;]
+    A4[&quot;Google Maps responses&quot;]
+  end
+
+  subgraph L2[&quot;Layer 2 — API / Staging Validation&quot;]
+    B1[&quot;Request schema validation&quot;]
+    B2[&quot;Business rule enforcement&lt;br/&gt;stock · PIN · RBAC&quot;]
+    B3[&quot;Integration smoke tests&quot;]
+  end
+
+  subgraph L3[&quot;Layer 3 — Application DB (MongoDB Atlas)&quot;]
+    C1[&quot;Entity integrity&lt;br/&gt;User · Order · Product · Wallet&quot;]
+    C2[&quot;Referential consistency&lt;br/&gt;supplierId · storeId · userId&quot;]
+    C3[&quot;State machine correctness&lt;br/&gt;order status transitions&quot;]
+  end
+
+  subgraph L4[&quot;Layer 4 — Reconciliation / Analytics&quot;]
+    D1[&quot;Financial reconciliation&quot;]
+    D2[&quot;Operational KPIs&quot;]
+    D3[&quot;Statistical quality checks&quot;]
+  end
+
+  L1 --&gt; L2 --&gt; L3 --&gt; L4</pre></div>
+<h3>D.1 Layer 1 — Source data validation</h3>
+<table><thead><tr><th>Data element</th><th>Business rule</th><th>Validation check</th></tr></thead><tbody><tr><td>PIN code</td><td>6 digits, serviceable</td><td>Regex + serviceability API</td></tr><tr><td>Email</td><td>Unique per user</td><td>Register/login</td></tr><tr><td>stockQty</td><td>Non-negative integer</td><td>Product create/update</td></tr><tr><td>Order total</td><td>subtotal + tax = total</td><td>Billing validation</td></tr><tr><td>Commission %</td><td>0–100</td><td>Admin supplier settings</td></tr><tr><td>lat/lng</td><td>Required for store</td><td>Store creation</td></tr></tbody></table>
+<h3>D.2 Layer 2 — API / staging validation</h3>
+<p><strong>Staging environment:</strong> Mirror of prod schema on separate MongoDB database; same API code (<code class="inline">NODE_ENV=staging</code>).</p>
+<table><thead><tr><th>Test type</th><th>Script / method</th><th>BA sign-off focus</th></tr></thead><tbody><tr><td>Smoke test</td><td><code class="inline">backend/scripts/integration-smoke-test.js</code></td><td>Health, auth, serviceability</td></tr><tr><td>Negative API tests</td><td>Invalid PIN, insufficient stock</td><td>Error messages match FR</td></tr><tr><td>Payment staging</td><td>Razorpay test keys</td><td>Verify → order created once</td></tr><tr><td>RBAC API tests</td><td>Sub-admin → financials = 403</td><td>BR-06</td></tr></tbody></table>
+<h3>D.3 Layer 3 — Application database validation</h3>
+<table><thead><tr><th>Entity</th><th>Key fields to validate</th><th>SQL-like check (Mongo aggregation concept)</th></tr></thead><tbody><tr><td><strong>Order</strong></td><td>status transitions legal</td><td>No delivered → in_progress</td></tr><tr><td><strong>Order</strong></td><td>supplierResponses match items</td><td>One response per supplierId in items</td></tr><tr><td><strong>Product</strong></td><td>stockQty ≥ 0</td><td>Count where stockQty &lt; 0 = 0</td></tr><tr><td><strong>Product</strong></td><td>inStock ↔ stockQty</td><td>inStock false when qty = 0</td></tr><tr><td><strong>Wallet</strong></td><td>balance = sum(transactions)</td><td>Reconciliation query</td></tr><tr><td><strong>Wallet</strong></td><td>payout once per order</td><td>No duplicate supplier_payout ref</td></tr><tr><td><strong>ServiceableArea</strong></td><td>PIN + supplierId unique</td><td>No duplicate active zones</td></tr><tr><td><strong>User</strong></td><td>role matches linked entity</td><td>supplier role → Supplier doc exists</td></tr></tbody></table>
+<h4>Order state validation rules</h4>
+<table><thead><tr><th>From</th><th>To</th><th>Allowed?</th></tr></thead><tbody><tr><td>in_progress</td><td>delivered</td><td>Yes (via rider deliver)</td></tr><tr><td>in_progress</td><td>cancelled</td><td>Yes (customer/supplier)</td></tr><tr><td>delivered</td><td>in_progress</td><td><strong>No — data defect</strong></td></tr><tr><td>pending supplier</td><td>accepted</td><td>Yes</td></tr><tr><td>accepted</td><td>picked_up</td><td>Yes</td></tr><tr><td>picked_up</td><td>delivered</td><td>Yes</td></tr></tbody></table>
+<h3>D.4 Layer 4 — Reconciliation &amp; analytics validation</h3>
+<h4>Financial reconciliation (weekly BA report)</h4>
+<pre><code class="block">Platform revenue (week) = 
+  Sum(order.total × commission%) for delivered orders
+  + platform retention after rider 10%
+
+Supplier wallet credits = 
+  Sum(transactions where ref starts with supplier_payout_)
+
+Rider wallet credits = 
+  Sum(transactions where ref starts with delivery_)
+
+Check: supplier_payout + rider_payout + platform_cut ≈ order totals (delivered)</code></pre>
+<table><thead><tr><th>Metric</th><th>Formula</th><th>Alert threshold</th></tr></thead><tbody><tr><td>Stock-out rate</td><td>Orders failed stock / total attempts</td><td>&gt; 3%</td></tr><tr><td>Fulfilment rate</td><td>Delivered / (Delivered + Cancelled)</td><td>&lt; 95%</td></tr><tr><td>Avg delivery time</td><td>deliveredAt − createdAt</td><td>&gt; 45 min Pune pilot</td></tr><tr><td>Unserviceable rate</td><td>Failed serviceability checks / check calls</td><td>Spike &gt; 10% day-over-day</td></tr><tr><td>Wallet drift</td><td>wallet.balance − computed sum(transactions)</td><td>≠ 0</td></tr><tr><td>Duplicate payout</td><td>Count payout refs per orderId</td><td>&gt; 1</td></tr></tbody></table>
+<h4>Statistical validation checks</h4>
+<table><thead><tr><th>Check</th><th>Method</th><th>Purpose</th></tr></thead><tbody><tr><td><strong>Order volume anomaly</strong></td><td>7-day moving avg ± 2σ</td><td>Detect outage or marketing spike</td></tr><tr><td><strong>PIN distribution</strong></td><td>Orders by pinCode histogram</td><td>Validate zone rollout</td></tr><tr><td><strong>Cancellation correlation</strong></td><td>Cancel rate by supplier, hour</td><td>Ops improvement</td></tr><tr><td><strong>Stock depletion rate</strong></td><td>Δ stockQty vs orders by product</td><td>Forecast restock</td></tr><tr><td><strong>Subscription churn</strong></td><td>Cancelled subs / active subs</td><td>BO-02 health</td></tr><tr><td><strong>A/B payment mix</strong></td><td>wallet vs razorpay vs cod %</td><td>Payment strategy</td></tr></tbody></table>
+<h4>Analytics perspectives BA should define</h4>
+<table><thead><tr><th>Perspective</th><th>Questions</th><th>Data source</th></tr></thead><tbody><tr><td><strong>Customer</strong></td><td>Repeat rate? Avg order value?</td><td>Orders by userId</td></tr><tr><td><strong>Supplier</strong></td><td>Accept time? Reject rate?</td><td>supplierResponses</td></tr><tr><td><strong>Rider</strong></td><td>Deliveries/day? Online hours?</td><td>DeliveryPartner + orders</td></tr><tr><td><strong>Geographic</strong></td><td>Hot PINs? Unserviceable gaps?</td><td>Orders + ServiceableArea</td></tr><tr><td><strong>Financial</strong></td><td>GMV, take rate, payout lag</td><td>Orders + Wallets + Admin financials</td></tr><tr><td><strong>Quality</strong></td><td>Review scores, ticket volume</td><td>Reviews + Support tickets</td></tr></tbody></table>
+<h3>D.5 Data validation sign-off template</h3>
+<table><thead><tr><th>Layer</th><th>Validator</th><th>Date</th><th>Status</th><th>Notes</th></tr></thead><tbody><tr><td>L1 Source rules</td><td>BA</td><td></td><td></td><td></td></tr><tr><td>L2 API staging</td><td>QA</td><td></td><td></td><td></td></tr><tr><td>L3 DB integrity</td><td>QA + Dev</td><td></td><td></td><td></td></tr><tr><td>L4 Reconciliation</td><td>BA + Finance</td><td></td><td></td><td></td></tr><tr><td>Analytics KPIs</td><td>BA + Ops</td><td></td><td></td><td></td></tr></tbody></table>
+<hr />
+<h2>Part E — BA Interview Preparation</h2>
+<h3>E.1 &quot;Walk me through this project as a BA&quot;</h3>
+<p><strong>Structured answer (STAR-style overview):</strong></p>
+<ol><li><strong>Situation:</strong> Fragmented water delivery market; need digital platform for Pune-scale ops  </li><li><strong>Task:</strong> Define requirements across 4 actors + admin; ensure traceability to test/UAT  </li><li><strong>Action:</strong> Elicited from stakeholders; mapped BP-01 order flow; wrote FR-CUS/SUP/DEL/ADM catalogue; RTM to UAT; data validation on wallet/stock  </li><li><strong>Result:</strong> Live platform with order → verify → deliver → payout; admin controls zones and partners  </li></ol>
+<h3>E.2 Common interview questions &amp; answers</h3>
+<table><thead><tr><th>Question</th><th>Strong BA answer (H2O Online)</th></tr></thead><tbody><tr><td>Who were your stakeholders?</td><td>PO, Pune ops (admin), suppliers, riders, customers, tech lead, QA</td></tr><tr><td>Hardest requirement conflict?</td><td>Sub-admin wanted financials vs BR-06 — resolved via RBAC matrix sign-off</td></tr><tr><td>How did you prioritize?</td><td>MoSCoW: order path Must; coupons Could (not built)</td></tr><tr><td>How do you handle scope creep?</td><td>Change impact matrix; PO approves; RTM updated</td></tr><tr><td>What artifacts did you produce?</td><td>BRD objectives, FRD with FR-IDs, process maps, RTM, UAT packs</td></tr><tr><td>How did you validate data?</td><td>4 layers: input rules, API staging, MongoDB integrity, wallet reconciliation</td></tr><tr><td>Example business rule?</td><td>BR-01: supplier cannot transact until admin verifies documents</td></tr><tr><td>How does UAT differ from SIT?</td><td>SIT = QA technical; UAT = business users confirm FR acceptance criteria</td></tr><tr><td>How do you trace requirements?</td><td>RTM: FR → API → test case → UAT script</td></tr><tr><td>What metrics matter post launch?</td><td>Fulfilment rate, stock-out %, subscription conversion, wallet drift</td></tr></tbody></table>
+<h3>E.3 Whiteboard process — be ready to draw</h3>
+<ol><li>Customer order flow (5 swimlanes)  </li><li>Supplier onboarding → admin verify  </li><li>Money flow: pay → deliver → commission split  </li><li>BA lifecycle from business need to go-live  </li></ol>
+<hr />
+<h2>Part F — Master Checklists</h2>
+<h3>F.1 New BA onboarding (Week 1)</h3>
+<ul><li>[ ] Read this guide end-to-end  </li><li>[ ] Read <code class="inline">requirement-capture.md</code>  </li><li>[ ] Walk through mobile app: customer, supplier, rider  </li><li>[ ] Walk through admin portal all modules  </li><li>[ ] Read <code class="inline">SYSTEM-ARCHITECTURE.md</code> §5–7 (auth, address, order)  </li><li>[ ] Run <code class="inline">integration-smoke-test.js</code> against staging  </li><li>[ ] Build stakeholder register for your release  </li><li>[ ] Draft RTM skeleton  </li></ul>
+<h3>F.2 Pre-UAT checklist</h3>
+<ul><li>[ ] All Must FRs have UAT scripts  </li><li>[ ] Test users: 2 customers, 2 suppliers, 3 riders, 3 admin roles  </li><li>[ ] Test PINs configured in serviceable areas  </li><li>[ ] Products with known stockQty  </li><li>[ ] Razorpay test mode documented  </li><li>[ ] Known gaps communicated (coupons, OTP)  </li></ul>
+<h3>F.3 Go-live checklist (BA)</h3>
+<ul><li>[ ] BRD/FRD signed  </li><li>[ ] UAT sign-off memo archived  </li><li>[ ] L3 + L4 data validation passed  </li><li>[ ] Training completed for admin ops  </li><li>[ ] Support playbook handed to support team  </li><li>[ ] KPI dashboard defined for week 1 hypercare  </li></ul>
+<hr />
+<h2>Part G — Glossary (BA Quick Reference)</h2>
+<table><thead><tr><th>Term</th><th>BA definition</th></tr></thead><tbody><tr><td><strong>Serviceability</strong></td><td>Business rule: customer PIN within supplier zone before order allowed</td></tr><tr><td><strong>supplierResponses</strong></td><td>Per-supplier leg of order: pending → accepted/rejected → delivery stages</td></tr><tr><td><strong>Commission</strong></td><td>Platform fee % on supplier gross (default 20%)</td></tr><tr><td><strong>Delivery share</strong></td><td>Rider portion of order total (10%)</td></tr><tr><td><strong>RTM</strong></td><td>Requirements Traceability Matrix</td></tr><tr><td><strong>BRD</strong></td><td>Why and what at business level</td></tr><tr><td><strong>FRD</strong></td><td>Detailed functional behaviour with IDs</td></tr><tr><td><strong>Hypercare</strong></td><td>Intensive support period after go-live</td></tr><tr><td><strong>Gap analysis</strong></td><td>UI capability vs backend implementation diff</td></tr></tbody></table>
+<hr />
+<h2>Document Sign-Off</h2>
+<table><thead><tr><th>Role</th><th>Name</th><th>Date</th><th>Signature</th></tr></thead><tbody><tr><td>Head of Business Analysis</td><td></td><td></td><td></td></tr><tr><td>Product Owner</td><td></td><td></td><td></td></tr><tr><td>QA Lead</td><td></td><td></td><td></td></tr><tr><td>Project Sponsor</td><td></td><td></td><td></td></tr></tbody></table>
+<hr />
+<p>*This BA guide is aligned with H2O Online as implemented: mobile (<code class="inline">mobile/</code>), admin (<code class="inline">admin/</code>), backend API (<code class="inline">backend/</code>), and project documentation in <code class="inline">docs/</code>.*</p></div>
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "default",
+      securityLevel: "loose",
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: "basis" },
+      sequence: { useMaxWidth: true, wrap: true },
+      er: { useMaxWidth: true },
+    });
+    (async function () {
+      const nodes = document.querySelectorAll("pre.mermaid");
+      for (let i = 0; i < nodes.length; i++) {
+        const el = nodes[i];
+        const src = el.textContent;
+        try {
+          const id = "mmd-" + i;
+          const { svg } = await mermaid.render(id, src);
+          el.outerHTML = '<div class="mermaid-rendered">' + svg + "</div>";
+        } catch (err) {
+          el.outerHTML =
+            '<pre class="mermaid-error">Diagram render error: ' +
+            (err.message || err) +
+            "</pre>";
+        }
+      }
+      document.body.setAttribute("data-mermaid-ready", "true");
+    })();
+  </script>
+</body>
+</html>

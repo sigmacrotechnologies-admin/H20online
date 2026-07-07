@@ -36,8 +36,12 @@ export function useAddressMapPicker({
         if (result) {
           onAddressResolved?.(parseAddressFromGeocode(result));
         }
-      } catch {
-        // geocoding is best-effort; manual fields still work
+      } catch (err) {
+        Alert.alert(
+          "Could not read address from map",
+          (err.message || "Geocoding failed") +
+            "\n\nYou can still save — fill locality, city, state, PIN and phone below manually."
+        );
       } finally {
         setGeocoding(false);
       }

@@ -19,6 +19,7 @@ const REQUIRED = [
   "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY",
   "EXPO_PUBLIC_RAZORPAY_KEY_ID",
 ];
+const OPTIONAL = ["EXPO_PUBLIC_NATIVE_MAPS", "EXPO_PUBLIC_SKIP_SERVICEABILITY"];
 
 function readDotEnv(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -47,6 +48,9 @@ function writeDotEnv(filePath, vars) {
   for (const key of REQUIRED) {
     lines.push(`${key}=${vars[key] || ""}`);
   }
+  for (const key of OPTIONAL) {
+    if (vars[key] !== undefined) lines.push(`${key}=${vars[key]}`);
+  }
   lines.push("");
   fs.writeFileSync(filePath, lines.join("\n"), "utf8");
 }
@@ -70,13 +74,11 @@ function syncApiUrlJson(apiUrl) {
   }
 }
 
-function patchEasProfiles(eas, apiUrl) {
+function patchEasProfiles(eas, envVars) {
   const profiles = ["preview", "production"];
   for (const name of profiles) {
     if (!eas.build[name]) continue;
-    eas.build[name].env = {
-      EXPO_PUBLIC_API_URL: apiUrl,
-    };
+    eas.build[name].env = { ...envVars };
     eas.build[name].android = eas.build[name].android || {};
     eas.build[name].android.buildType = "apk";
     if (name === "production") {
@@ -103,6 +105,8 @@ function main() {
     EXPO_PUBLIC_API_URL: apiUrl,
     EXPO_PUBLIC_GOOGLE_MAPS_API_KEY: localEnv.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || "",
     EXPO_PUBLIC_RAZORPAY_KEY_ID: localEnv.EXPO_PUBLIC_RAZORPAY_KEY_ID || "",
+    EXPO_PUBLIC_NATIVE_MAPS: "false",
+    EXPO_PUBLIC_SKIP_SERVICEABILITY: localEnv.EXPO_PUBLIC_SKIP_SERVICEABILITY || "false",
   };
 
   const missing = REQUIRED.filter((k) => !envVars[k]);
@@ -117,7 +121,7 @@ function main() {
   writeDotEnv(envProdPath, envVars);
 
   const eas = JSON.parse(fs.readFileSync(easPath, "utf8"));
-  patchEasProfiles(eas, apiUrl);
+  patchEasProfiles(eas, envVars);
   fs.writeFileSync(easPath, JSON.stringify(eas, null, 2) + "\n", "utf8");
 
   console.log("APK build env ready:");
@@ -126,9 +130,10 @@ function main() {
     "  EXPO_PUBLIC_GOOGLE_MAPS_API_KEY =",
     envVars.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY.slice(0, 8) + "..."
   );
-  console.log("  EXPO_PUBLIC_RAZORPAY_KEY_ID     =", envVars.EXPO_PUBLIC_RAZORPAY_KEY_ID);
+  console.log("  EXPO_PUBLIC_NATIVE_MAPS         =", envVars.EXPO_PUBLIC_NATIVE_MAPS);
+  console.log("  EXPO_PUBLIC_SKIP_SERVICEABILITY =", envVars.EXPO_PUBLIC_SKIP_SERVICEABILITY);
   console.log("\nWrote mobile/.env.production (uploaded to EAS; not committed to git).");
-  console.log("Updated eas.json API URL only.");
+  console.log("Updated eas.json production/preview env.");
   console.log("Next: eas build --platform android --profile production\n");
 }
 

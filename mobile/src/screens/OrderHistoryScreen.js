@@ -23,7 +23,7 @@ import OrderDetailsModal from "@/src/components/OrderDetailsModal";
 import { useCart } from "@/src/context/CartContext";
 import { useAuth } from "@/src/context/AuthContext";
 import { useCustomerPortal } from "@/src/utils/customerPortal";
-import { getOrderId, getOrderIdShort } from "@/src/utils/orderId";
+import { getOrderId, getOrderIdShort, getPaymentMethodLabel } from "@/src/utils/orderId";
 import { theme } from "@/src/theme";
 
 const FILTERS = [
@@ -159,7 +159,7 @@ const OrderHistoryScreen = () => {
           </View>
           <View style={styles.orderMetaItem}>
             <Ionicons name="wallet-outline" size={14} color={theme.textMuted} />
-            <Text style={styles.orderMetaText}>{item.paymentMethod || "Card"}</Text>
+            <Text style={styles.orderMetaText}>{getPaymentMethodLabel(item)}</Text>
           </View>
           <Text style={styles.orderTotal}>₹{Number(item.total || 0).toLocaleString("en-IN")}</Text>
         </View>

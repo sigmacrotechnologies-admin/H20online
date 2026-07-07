@@ -12,6 +12,7 @@ import {
   Image,
   Platform,
   StatusBar,
+  Alert,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -29,6 +30,17 @@ import StoreTravelBadge from "@/src/components/StoreTravelBadge";
 import { useStoreTravelInfo } from "@/src/hooks/useStoreTravel";
 import { useBilling } from "@/src/hooks/useBilling";
 import { addressToCheckoutFields, normalizePin } from "@/src/utils/checkoutAddress";
+
+/** Only skip when explicitly disabled (e.g. emergency APK build). Default: check PIN vs serviceable areas. */
+const skipServiceabilityCheck = process.env.EXPO_PUBLIC_SKIP_SERVICEABILITY === "true";
+
+function isServiceabilityConnectivityError(err) {
+  const msg = String(err?.message || "");
+  return (
+    err?.name === "AbortError" ||
+    /timed out|Cannot reach server|Network request failed|Failed to fetch/i.test(msg)
+  );
+}
 
 function SectionCard({ icon, title, subtitle, children }) {
   return (
@@ -284,7 +296,7 @@ const CheckoutScreen = () => {
       return;
     }
 
-    if (supplierIdsForService.length > 0) {
+    if (supplierIdsForService.length > 0 && !skipServiceabilityCheck) {
       setCheckingService(true);
       try {
         const result = await api.serviceability.check({
@@ -297,7 +309,19 @@ const CheckoutScreen = () => {
         });
         if (!result.serviceable) {
           const blocked = (result.unserviceableSupplierIds || [])
-            .map((id) => result.suppliers?.[id]?.supplierName || result.suppliers?.[id]?.message)
+            .map((id) => {
+              const info = result.suppliers?.[id];
+              if (!info) return null;
+              const name = info.supplierName || "Supplier";
+              if (info.reason === "no_serviceable_areas") {
+                return `${name} (no delivery zones configured in admin)`;
+              }
+              if (info.matchReason === "pin" || info.reason === "out_of_range") {
+                const pinHint = info.nearestPinCode ? ` nearest zone PIN ${info.nearestPinCode}` : "";
+                return `${name}${pinHint}`;
+              }
+              return info.message || name;
+            })
             .filter(Boolean);
           alert(
             blocked.length
@@ -307,8 +331,23 @@ const CheckoutScreen = () => {
           return;
         }
       } catch (err) {
-        alert(err.message || "Could not verify delivery availability. Please try again.");
-        return;
+        if (isServiceabilityConnectivityError(err)) {
+          const proceed = await new Promise((resolve) => {
+            Alert.alert(
+              "Delivery check unavailable",
+              "Could not reach the server to verify your delivery area. Continue to payment anyway?",
+              [
+                { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+                { text: "Continue", onPress: () => resolve(true) },
+              ],
+              { cancelable: true, onDismiss: () => resolve(false) }
+            );
+          });
+          if (!proceed) return;
+        } else {
+          alert(err.message || "Could not verify delivery availability. Please try again.");
+          return;
+        }
       } finally {
         setCheckingService(false);
       }

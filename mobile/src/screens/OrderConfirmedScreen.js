@@ -21,7 +21,7 @@ import LiveTrackingMap from "@/src/components/LiveTrackingMap";
 import { useCart } from "@/src/context/CartContext";
 import { useCustomerPortal } from "@/src/utils/customerPortal";
 import { api } from "@/src/api/client";
-import { getOrderIdShort, getOrderMongoId, matchOrderId } from "@/src/utils/orderId";
+import { getOrderIdShort, getOrderMongoId, matchOrderId, getPaymentMethodLabel, formatPaidAt } from "@/src/utils/orderId";
 import { primaryTravelLeg } from "@/src/utils/deliveryEta";
 import { resolveOrderEta } from "@/src/utils/orderEta";
 import { useLiveOrderTracking } from "@/src/hooks/useLiveOrderTracking";
@@ -366,8 +366,14 @@ const OrderConfirmedScreen = () => {
                       <Text style={styles.summaryTotalLabel}>Total paid</Text>
                       <Text style={styles.summaryTotal}>₹{order.total}</Text>
                     </View>
-                    {order.paymentMethod ? (
-                      <Text style={styles.summaryMeta}>Payment: {String(order.paymentMethod).toUpperCase()}</Text>
+                    {order.paymentMethod || order.payment ? (
+                      <Text style={styles.summaryMeta}>Payment: {getPaymentMethodLabel(order)}</Text>
+                    ) : null}
+                    {formatPaidAt(order) ? (
+                      <Text style={styles.summaryMeta}>Paid at: {formatPaidAt(order)}</Text>
+                    ) : null}
+                    {order.payment?.razorpay?.paymentId ? (
+                      <Text style={styles.summaryMeta}>Ref: {order.payment.razorpay.paymentId}</Text>
                     ) : null}
                     {order.address ? (
                       <Text style={styles.summaryMeta} numberOfLines={2}>Deliver to: {order.address}</Text>

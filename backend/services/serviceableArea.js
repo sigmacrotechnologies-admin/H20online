@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const ServiceableArea = require("../models/ServiceableArea");
 const Supplier = require("../models/Supplier");
 const { haversineMeters } = require("../utils/geo");
@@ -17,7 +18,7 @@ async function geocodeAddress(pinCode, city, state) {
   try {
     const url =
       `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query)}&region=in&key=${key}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
     const data = await res.json();
     const loc = data?.results?.[0]?.geometry?.location;
     if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lng)) {
@@ -80,14 +81,26 @@ async function resolveCustomerPoint({ pinCode, latitude, longitude, city, state 
   };
 }
 
+function validSupplierIds(supplierIds) {
+  return [...new Set((supplierIds || []).map(String).filter((id) => mongoose.Types.ObjectId.isValid(id)))];
+}
+
+function supplierNeedsRadiusCheck(customerPin, areas) {
+  const custPin = normalizePin(customerPin);
+  return (areas || []).some((area) => {
+    if (normalizePin(area.pinCode) === custPin) return false;
+    return Number.isFinite(area.latitude) && Number.isFinite(area.longitude);
+  });
+}
+
 async function checkServiceability({ pinCode, latitude, longitude, city, state, supplierIds }) {
-  const ids = [...new Set((supplierIds || []).filter((id) => id))].map(String);
-  const customer = await resolveCustomerPoint({ pinCode, latitude, longitude, city, state });
-  if (!customer.ok) {
+  const ids = validSupplierIds(supplierIds);
+  const pin = normalizePin(pinCode);
+  if (!pin || pin.length < 6) {
     return {
       serviceable: false,
-      error: customer.error,
-      pinCode: normalizePin(pinCode),
+      error: "Valid 6-digit PIN code is required",
+      pinCode: pin,
       suppliers: {},
       unserviceableSupplierIds: ids,
     };
@@ -96,9 +109,9 @@ async function checkServiceability({ pinCode, latitude, longitude, city, state, 
   if (!ids.length) {
     return {
       serviceable: true,
-      pinCode: customer.pinCode,
-      customerLatitude: customer.latitude,
-      customerLongitude: customer.longitude,
+      pinCode: pin,
+      customerLatitude: null,
+      customerLongitude: null,
       suppliers: {},
       unserviceableSupplierIds: [],
     };
@@ -115,6 +128,27 @@ async function checkServiceability({ pinCode, latitude, longitude, city, state, 
     if (!areasBySupplier.has(sid)) areasBySupplier.set(sid, []);
     areasBySupplier.get(sid).push(a);
   }
+
+  let lat = Number(latitude);
+  let lng = Number(longitude);
+  const needsGeocode =
+    (!Number.isFinite(lat) || !Number.isFinite(lng)) &&
+    ids.some((sid) => supplierNeedsRadiusCheck(pin, areasBySupplier.get(sid) || []));
+
+  if (needsGeocode) {
+    const geo = await geocodeAddress(pin, city, state);
+    if (geo) {
+      lat = geo.latitude;
+      lng = geo.longitude;
+    }
+  }
+
+  const customer = {
+    ok: true,
+    pinCode: pin,
+    latitude: Number.isFinite(lat) ? lat : null,
+    longitude: Number.isFinite(lng) ? lng : null,
+  };
 
   const supplierDocs = await Supplier.find({ _id: { $in: ids } })
     .select("name")

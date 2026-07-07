@@ -250,7 +250,10 @@ export default function Suppliers() {
         <div className="modal-overlay" onClick={() => setCommissionModal(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3 className="card-title">Platform commission: {commissionModal.name}</h3>
-            <p className="card-subtitle">Percentage of order value kept as platform fee. Supplier receives (100 − commission)%.</p>
+            <p className="card-subtitle">
+              Platform fee % on this supplier&apos;s item subtotal. Supplier receives (100 − commission)% on each delivered order.
+              Set a global default under Tax &amp; payment settings.
+            </p>
             <input
               type="number"
               min={0}

@@ -55,22 +55,20 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/credit", async (req, res) => {
-  try {
-    const amount = Number(req.body.amount);
-    if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });
-    const w = await getOrCreateWallet(req.user._id);
-    w.balance += amount;
-    w.transactions = w.transactions || [];
-    w.transactions.push({ amount, type: "credit", ref: "add" });
-    await w.save();
-    res.json({ balance: w.balance });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+  res.status(403).json({
+    error:
+      "Direct wallet credit is not allowed. Top up via Razorpay using POST /api/payments/razorpay/wallet-topup/create-order, or ask admin to adjust your wallet.",
+  });
 });
 
 router.post("/debit", async (req, res) => {
   try {
+    const role = req.user?.role || "customer";
+    if (!["deliveryPartner"].includes(role)) {
+      return res.status(403).json({
+        error: "Direct wallet debit is not allowed for this account. Use admin-approved redeem flows where applicable.",
+      });
+    }
     const amount = Number(req.body.amount);
     const ref = req.body.ref ? String(req.body.ref) : "withdraw";
     if (!amount || amount <= 0) return res.status(400).json({ error: "Invalid amount" });

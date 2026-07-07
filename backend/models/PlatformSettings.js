@@ -16,6 +16,10 @@ const platformSettingsSchema = new mongoose.Schema(
     serviceTaxPercent: { type: Number, default: 0, min: 0, max: 100 },
     additionalTaxes: { type: [additionalTaxSchema], default: [] },
     razorpayEnabled: { type: Boolean, default: true },
+    /** Platform default: % kept from supplier item gross (supplier gets 100 − this) */
+    defaultCommissionPercent: { type: Number, default: 20, min: 0, max: 100 },
+    /** Platform default: % of order total paid to delivery partner */
+    defaultDeliverySharePercent: { type: Number, default: 10, min: 0, max: 100 },
   },
   { timestamps: true }
 );

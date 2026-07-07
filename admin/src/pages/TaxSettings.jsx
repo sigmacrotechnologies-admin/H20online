@@ -12,6 +12,8 @@ export default function TaxSettings() {
     gstPercent: 18,
     serviceTaxPercent: 0,
     razorpayEnabled: true,
+    defaultCommissionPercent: 20,
+    defaultDeliverySharePercent: 10,
     additionalTaxes: [],
   });
 
@@ -24,6 +26,8 @@ export default function TaxSettings() {
           gstPercent: data.gstPercent ?? 18,
           serviceTaxPercent: data.serviceTaxPercent ?? 0,
           razorpayEnabled: data.razorpayEnabled ?? true,
+          defaultCommissionPercent: data.defaultCommissionPercent ?? 20,
+          defaultDeliverySharePercent: data.defaultDeliverySharePercent ?? 10,
           additionalTaxes: data.additionalTaxes || [],
         });
         setMeta({
@@ -49,9 +53,11 @@ export default function TaxSettings() {
         gstPercent: updated.gstPercent ?? form.gstPercent,
         serviceTaxPercent: updated.serviceTaxPercent ?? form.serviceTaxPercent,
         razorpayEnabled: updated.razorpayEnabled ?? form.razorpayEnabled,
+        defaultCommissionPercent: updated.defaultCommissionPercent ?? form.defaultCommissionPercent,
+        defaultDeliverySharePercent: updated.defaultDeliverySharePercent ?? form.defaultDeliverySharePercent,
         additionalTaxes: updated.additionalTaxes || [],
       });
-      setMessage("Tax settings saved. New orders will use these rates.");
+      setMessage("Settings saved. New orders and settlements will use these rates.");
     } catch (err) {
       setMessage(err.message || "Save failed");
     } finally {
@@ -154,6 +160,40 @@ export default function TaxSettings() {
           </div>
         ))}
         <button type="button" className="btn btn-secondary btn-sm" onClick={addTax}>+ Add tax line</button>
+      </div>
+
+      <div className="card">
+        <h3 className="card-title">Settlement defaults (%)</h3>
+        <p className="card-subtitle">
+          Default platform fee for suppliers and delivery share for riders. Override per supplier or rider on their admin pages.
+          Applied when an order is delivered and wallets are credited.
+        </p>
+        <div className="filters-bar">
+          <label className="form-group" style={{ marginBottom: 0 }}>
+            <span className="form-label">Default supplier commission (platform fee)</span>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              className="input"
+              style={{ width: 100 }}
+              value={form.defaultCommissionPercent}
+              onChange={(e) => setForm((p) => ({ ...p, defaultCommissionPercent: Number(e.target.value) }))}
+            />
+          </label>
+          <label className="form-group" style={{ marginBottom: 0 }}>
+            <span className="form-label">Default rider delivery share</span>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              className="input"
+              style={{ width: 100 }}
+              value={form.defaultDeliverySharePercent}
+              onChange={(e) => setForm((p) => ({ ...p, defaultDeliverySharePercent: Number(e.target.value) }))}
+            />
+          </label>
+        </div>
       </div>
 
       <div className="card">

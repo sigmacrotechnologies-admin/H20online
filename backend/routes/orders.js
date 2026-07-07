@@ -7,6 +7,7 @@ const DeliveryPartner = require("../models/DeliveryPartner");
 const { auth } = require("../middleware/auth");
 const { etaFromTravelInfo } = require("../utils/deliveryEta");
 const { createCustomerOrder } = require("../services/customerOrderService");
+const { formatPaymentBlock, isHumanOrderId } = require("../services/orderPayment");
 
 const router = express.Router();
 router.use(auth);
@@ -19,7 +20,7 @@ async function findUserOrder(userId, idParam) {
     if (byId) return byId;
   }
   const key = String(idParam);
-  if (key.startsWith("ORD_")) {
+  if (isHumanOrderId(key)) {
     return await Order.findOne({ orderId: key, userId }).lean();
   }
   return null;
@@ -85,6 +86,9 @@ router.get("/", async (req, res) => {
         items: o.items,
         total: o.total,
         paymentMethod: o.paymentMethod,
+        paymentStatus: o.paymentStatus || "",
+        paidAt: o.paidAt || null,
+        payment: formatPaymentBlock(o),
         status: o.status,
         orderType: o.orderType || "instant",
         scheduledAt: o.scheduledAt || null,
@@ -96,7 +100,6 @@ router.get("/", async (req, res) => {
         customerLatitude: o.customerLatitude ?? null,
         customerLongitude: o.customerLongitude ?? null,
         travelInfo: o.travelInfo || [],
-        paymentMethod: o.paymentMethod || "",
         ...orderEtaFields(o),
       };
     });
@@ -209,6 +212,11 @@ router.get("/:id", async (req, res) => {
       customerLongitude: o.customerLongitude ?? null,
       travelInfo: o.travelInfo || [],
       paymentMethod: o.paymentMethod || "",
+      paymentStatus: o.paymentStatus || "",
+      paidAt: o.paidAt || null,
+      payment: formatPaymentBlock(o),
+      orderChannel: o.orderChannel || "customer",
+      orderPlatform: o.orderPlatform || "mobile",
       ...orderEtaFields(o),
     });
   } catch (err) {

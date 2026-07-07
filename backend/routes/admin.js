@@ -19,6 +19,12 @@ const { getOrCreateWallet } = require("./wallet");
 const { getTaxSettings, updateTaxSettings } = require("../services/taxSettings");
 const { isRazorpayConfigured, getPublicKeyId } = require("../services/razorpay");
 const { getAdminFinancials } = require("../services/financials");
+const { formatPaymentBlock } = require("../services/orderPayment");
+const {
+  listRedeemRequestsAdmin,
+  approveRedeemRequest,
+  rejectRedeemRequest,
+} = require("../services/walletRedeem");
 const ServiceableArea = require("../models/ServiceableArea");
 const {
   normalizePin,
@@ -272,6 +278,11 @@ router.get("/orders", async (req, res) => {
         total: o.total,
         status: o.status,
         paymentMethod: o.paymentMethod,
+        paymentStatus: o.paymentStatus || "",
+        paidAt: o.paidAt || null,
+        payment: formatPaymentBlock(o),
+        orderChannel: o.orderChannel || "customer",
+        orderPlatform: o.orderPlatform || "mobile",
         address: o.address,
         supplierResponses: o.supplierResponses || [],
         createdAt: o.createdAt,
@@ -306,8 +317,18 @@ router.get("/orders/:id", async (req, res) => {
       userPhone: o.userId?.phone,
       items: o.items,
       total: o.total,
+      subtotal: o.subtotal ?? o.total,
+      taxLines: o.taxLines || [],
+      taxTotal: o.taxTotal ?? 0,
       status: o.status,
       paymentMethod: o.paymentMethod,
+      paymentStatus: o.paymentStatus || "",
+      paidAt: o.paidAt || null,
+      payment: formatPaymentBlock(o),
+      orderChannel: o.orderChannel || "customer",
+      orderPlatform: o.orderPlatform || "mobile",
+      razorpayOrderId: o.razorpayOrderId || "",
+      razorpayPaymentId: o.razorpayPaymentId || "",
       address: o.address,
       receiverName: o.receiverName,
       receiverPhone: o.receiverPhone,
@@ -1185,6 +1206,43 @@ router.post("/wallet-management/:userId/adjust", async (req, res) => {
   }
 });
 
+// ---------- Supplier wallet redeem requests ----------
+router.get("/wallet-redeem-requests", async (req, res) => {
+  try {
+    const { status, page, limit, search } = req.query;
+    const data = await listRedeemRequestsAdmin({ status, page, limit, search });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch("/wallet-redeem-requests/:id/approve", async (req, res) => {
+  try {
+    const id = toObjectId(req.params.id);
+    if (!id) return res.status(400).json({ error: "Invalid request id" });
+    const { adminNote } = req.body || {};
+    const result = await approveRedeemRequest(id, req.user, adminNote);
+    res.json(result);
+  } catch (err) {
+    const status = err.statusCode || 500;
+    res.status(status).json({ error: err.message });
+  }
+});
+
+router.patch("/wallet-redeem-requests/:id/reject", async (req, res) => {
+  try {
+    const id = toObjectId(req.params.id);
+    if (!id) return res.status(400).json({ error: "Invalid request id" });
+    const { adminNote } = req.body || {};
+    const result = await rejectRedeemRequest(id, req.user, adminNote);
+    res.json(result);
+  } catch (err) {
+    const status = err.statusCode || 500;
+    res.status(status).json({ error: err.message });
+  }
+});
+
 // ---------- Financials (master or admin only) ----------
 router.get("/financials", requireCanSeeFinancials, async (req, res) => {
   try {
@@ -1218,6 +1276,32 @@ router.get("/delivery-partners", async (req, res) => {
       DeliveryPartner.countDocuments(filter),
     ]);
     res.json({ deliveryPartners: list.map((d) => ({ ...d, id: d._id.toString(), _id: d._id.toString() })), total, page: Number(page) || 1, limit: limitNum });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch("/delivery-partners/:id", async (req, res) => {
+  try {
+    const id = toObjectId(req.params.id);
+    if (!id) return res.status(400).json({ error: "Invalid delivery partner id" });
+    const dp = await DeliveryPartner.findById(id);
+    if (!dp) return res.status(404).json({ error: "Delivery partner not found" });
+    const { deliverySharePercentage } = req.body;
+    if (deliverySharePercentage !== undefined) {
+      if (deliverySharePercentage === null || deliverySharePercentage === "") {
+        dp.deliverySharePercentage = null;
+      } else {
+        const pct = Number(deliverySharePercentage);
+        if (isNaN(pct) || pct < 0 || pct > 100) {
+          return res.status(400).json({ error: "Delivery share percentage must be between 0 and 100" });
+        }
+        dp.deliverySharePercentage = pct;
+      }
+    }
+    await dp.save();
+    const d = dp.toObject();
+    res.json({ ...d, id: d._id.toString(), _id: d._id.toString() });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

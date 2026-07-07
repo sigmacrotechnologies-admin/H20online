@@ -16,30 +16,12 @@ export function WalletProvider({ children }) {
     api.wallet.get().then((data) => setBalance(data.balance ?? 0)).catch(() => setBalance(0));
   }, [isAuthenticated]);
 
-  const addAmount = async (amount) => {
-    const n = Number(amount);
-    if (isNaN(n) || n <= 0) return;
-    if (isAuthenticated) {
-      try {
-        const data = await api.wallet.credit(n);
-        setBalance(data.balance);
-      } catch (_) {}
-      return;
-    }
-    setBalance((b) => b + n);
+  const addAmount = async () => {
+    throw new Error("Use Razorpay wallet top-up from the wallet screen.");
   };
 
-  const deductAmount = async (amount) => {
-    const n = Number(amount);
-    if (isNaN(n) || n <= 0) return;
-    if (isAuthenticated) {
-      try {
-        const data = await api.wallet.debit(n);
-        setBalance(data.balance);
-      } catch (_) {}
-      return;
-    }
-    setBalance((b) => Math.max(0, b - n));
+  const deductAmount = async () => {
+    throw new Error("Direct wallet debit is not available. Contact admin if you need a balance adjustment.");
   };
 
   return (

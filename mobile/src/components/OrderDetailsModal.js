@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Modal, TextInput, ActivityIndicator, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "@/src/context/CartContext";
-import { getOrderId, getOrderIdShort } from "@/src/utils/orderId";
+import { getOrderId, getOrderIdShort, getPaymentMethodLabel, formatPaidAt } from "@/src/utils/orderId";
 import { theme } from "@/src/theme";
 import { api } from "@/src/api/client";
 
@@ -147,6 +147,28 @@ export default function OrderDetailsModal({ visible, onClose, order }) {
             <Text style={styles.debugText}>Debug presses: {debugPressCount}</Text>
             <Text style={styles.orderId}>Order ID: {orderIdDisplay || getOrderIdShort(order)}</Text>
             <Text style={styles.date}>{new Date(order.date).toLocaleString()}</Text>
+            <Text style={styles.sectionLabel}>Payment</Text>
+            <View style={styles.paymentBlock}>
+              <Text style={styles.paymentRow}>
+                Method: {getPaymentMethodLabel(order)}
+                {order.payment?.status ? ` · ${order.payment.status}` : ""}
+              </Text>
+              {order.payment?.orderSource ? (
+                <Text style={styles.paymentMeta}>Source: {order.payment.orderSource}</Text>
+              ) : null}
+              {formatPaidAt(order) ? (
+                <Text style={styles.paymentMeta}>Paid at: {formatPaidAt(order)}</Text>
+              ) : null}
+              {order.payment?.razorpay?.paymentId ? (
+                <Text style={styles.paymentMeta}>Payment ref: {order.payment.razorpay.paymentId}</Text>
+              ) : null}
+              {order.payment?.razorpay?.methodLabel ? (
+                <Text style={styles.paymentMeta}>
+                  Gateway: {order.payment.razorpay.methodLabel}
+                  {order.payment.razorpay.methodDetail ? ` · ${order.payment.razorpay.methodDetail}` : ""}
+                </Text>
+              ) : null}
+            </View>
             <Text style={styles.sectionLabel}>Items</Text>
             {(order.items || []).map((item, idx) => {
               const pid = getPid(item);
@@ -258,6 +280,16 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 14, fontWeight: "600", color: theme.primary },
   orderId: { fontSize: 15, fontWeight: "600", color: "#1B2B34" },
   date: { fontSize: 13, color: "#6B7C85", marginTop: 4, marginBottom: 16 },
+  paymentBlock: {
+    backgroundColor: "#f0f7fc",
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(214,234,242,0.95)",
+  },
+  paymentRow: { fontSize: 14, fontWeight: "600", color: "#1B2B34" },
+  paymentMeta: { fontSize: 12, color: "#6B7C85", marginTop: 4 },
   sectionLabel: { fontSize: 14, fontWeight: "600", color: "#6B7C85", marginBottom: 8 },
   itemWrap: { marginBottom: 12 },
   itemHeaderRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },

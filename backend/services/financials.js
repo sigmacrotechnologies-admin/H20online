@@ -1,10 +1,21 @@
 const Order = require("../models/Order");
 const Supplier = require("../models/Supplier");
+const DeliveryPartner = require("../models/DeliveryPartner");
 const Wallet = require("../models/Wallet");
 const { isRazorpayConfigured, isRazorpayTestMode } = require("./razorpay");
+const {
+  FALLBACK_COMMISSION,
+  FALLBACK_DELIVERY_SHARE,
+  getSettlementDefaults,
+  resolveSupplierCommissionPercent,
+  resolveDeliverySharePercent,
+  getAssignedDeliveryPartnerId,
+} = require("./settlementSettings");
 
-const DELIVERY_SHARE_PERCENT = 10;
-const DEFAULT_COMMISSION_PERCENT = 20;
+/** @deprecated use getSettlementDefaults().defaultDeliverySharePercent */
+const DELIVERY_SHARE_PERCENT = FALLBACK_DELIVERY_SHARE;
+/** @deprecated use getSettlementDefaults().defaultCommissionPercent */
+const DEFAULT_COMMISSION_PERCENT = FALLBACK_COMMISSION;
 
 function roundRupee(n) {
   return Math.round(Number(n) || 0);
@@ -26,9 +37,24 @@ function isOrderRazorpayTest(o) {
   return isRazorpayTestMode();
 }
 
-function computeOrderSettlement(order, supplierMap) {
+/**
+ * Compute order settlement splits.
+ * @param {object} order
+ * @param {Map} supplierMap - supplierId → supplier doc
+ * @param {object} [options]
+ * @param {object|null} [options.deliveryPartner] - assigned rider (for custom deliverySharePercentage)
+ * @param {number} [options.defaultCommissionPercent]
+ * @param {number} [options.defaultDeliverySharePercent]
+ */
+function computeOrderSettlement(order, supplierMap, options = {}) {
+  const defaults = {
+    defaultCommissionPercent: options.defaultCommissionPercent ?? FALLBACK_COMMISSION,
+    defaultDeliverySharePercent: options.defaultDeliverySharePercent ?? FALLBACK_DELIVERY_SHARE,
+  };
+
   const orderTotal = Number(order.total) || 0;
-  const deliveryShare = roundRupee(orderTotal * (DELIVERY_SHARE_PERCENT / 100));
+  const deliverySharePercent = resolveDeliverySharePercent(options.deliveryPartner, defaults);
+  const deliveryShare = roundRupee(orderTotal * (deliverySharePercent / 100));
 
   const supplierIds = [...new Set((order.items || []).map((i) => i.supplierId).filter(Boolean))];
   const suppliers = [];
@@ -38,7 +64,7 @@ function computeOrderSettlement(order, supplierMap) {
   for (const sid of supplierIds) {
     const gross = supplierItemsSubtotal(order, sid);
     const supplier = supplierMap.get(String(sid));
-    const commission = Math.min(100, Math.max(0, Number(supplier?.commissionPercentage) || DEFAULT_COMMISSION_PERCENT));
+    const commission = resolveSupplierCommissionPercent(supplier, defaults);
     const platformCut = roundRupee(gross * (commission / 100));
     const payout = roundRupee(gross * (1 - commission / 100));
     supplierPayoutTotal += payout;
@@ -64,13 +90,24 @@ function computeOrderSettlement(order, supplierMap) {
     status: order.status || "",
     delivered: order.status === "delivered",
     deliveryShare,
-    deliverySharePercent: DELIVERY_SHARE_PERCENT,
+    deliverySharePercent,
+    deliveryPartnerId: options.deliveryPartner?._id
+      ? String(options.deliveryPartner._id)
+      : getAssignedDeliveryPartnerId(order)
+        ? String(getAssignedDeliveryPartnerId(order))
+        : null,
     supplierPayoutTotal,
     platformCutFromSuppliers,
     platformRetention,
     suppliers,
     createdAt: order.createdAt,
     isRazorpayTest: isRazorpayPaidOrder(order) ? isOrderRazorpayTest(order) : false,
+    razorpayOrderId: order.razorpayOrderId || "",
+    razorpayPaymentId: order.razorpayPaymentId || "",
+    paidAt: order.paidAt || null,
+    orderSource: order.orderChannel === "society" ? "Society portal" : "Customer app",
+    orderPlatform: order.orderPlatform || "mobile",
+    razorpayPaymentMethodLabel: order.razorpayPaymentMethodLabel || "",
   };
 }
 
@@ -84,6 +121,19 @@ async function loadSupplierMapForOrders(orders) {
   const suppliers = await Supplier.find({ _id: { $in: [...ids] } }).lean();
   const map = new Map();
   for (const s of suppliers) map.set(String(s._id), s);
+  return map;
+}
+
+async function loadDeliveryPartnerMapForOrders(orders) {
+  const ids = new Set();
+  for (const o of orders) {
+    const dpId = getAssignedDeliveryPartnerId(o);
+    if (dpId) ids.add(String(dpId));
+  }
+  if (ids.size === 0) return new Map();
+  const partners = await DeliveryPartner.find({ _id: { $in: [...ids] } }).lean();
+  const map = new Map();
+  for (const dp of partners) map.set(String(dp._id), dp);
   return map;
 }
 
@@ -122,7 +172,11 @@ function sumUserWalletPayouts(wallets) {
 
 async function getAdminFinancials() {
   const orders = await Order.find({ status: { $ne: "cancelled" } }).lean();
-  const supplierMap = await loadSupplierMapForOrders(orders);
+  const [supplierMap, deliveryPartnerMap, settlementDefaults] = await Promise.all([
+    loadSupplierMapForOrders(orders),
+    loadDeliveryPartnerMapForOrders(orders),
+    getSettlementDefaults(),
+  ]);
 
   let totalOrderRevenue = 0;
   let walletOrderRevenue = 0;
@@ -140,8 +194,14 @@ async function getAdminFinancials() {
 
   const byDay = {};
 
+  const settlementOptions = (order) => {
+    const dpId = getAssignedDeliveryPartnerId(order);
+    const deliveryPartner = dpId ? deliveryPartnerMap.get(String(dpId)) : null;
+    return { deliveryPartner, ...settlementDefaults };
+  };
+
   for (const o of orders) {
-    const settlement = computeOrderSettlement(o, supplierMap);
+    const settlement = computeOrderSettlement(o, supplierMap, settlementOptions(o));
     const dateStr = o.createdAt ? new Date(o.createdAt).toISOString().slice(0, 10) : "";
     if (!byDay[dateStr]) {
       byDay[dateStr] = {
@@ -191,7 +251,7 @@ async function getAdminFinancials() {
   const recentSettlements = deliveredOrders
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 40)
-    .map((o) => computeOrderSettlement(o, supplierMap));
+    .map((o) => computeOrderSettlement(o, supplierMap, settlementOptions(o)));
 
   const razorpayOrders = await Order.find({
     paymentMethod: "razorpay",
@@ -208,13 +268,20 @@ async function getAdminFinancials() {
     orderId: o.orderId || o._id.toString(),
     id: o._id.toString(),
     total: o.total,
-    date: o.createdAt,
+    date: o.paidAt || o.createdAt,
     razorpayPaymentId: o.razorpayPaymentId,
     razorpayOrderId: o.razorpayOrderId,
+    paymentMethodLabel: o.razorpayPaymentMethodLabel || o.razorpayPaymentMethod || "",
+    paymentMethodDetail: o.razorpayPaymentMethodDetail || o.razorpayVpa || o.razorpayBank || "",
+    paymentStatus: o.razorpayPaymentStatus || o.paymentStatus || "",
     isTest: isOrderRazorpayTest(o),
     status: o.status,
     customerName: o.userId?.name || "",
     customerEmail: o.userId?.email || "",
+    orderSource:
+      (o.orderChannel === "society" ? "Society portal" : "Customer app") +
+      " · " +
+      (o.orderPlatform === "web" ? "Web" : "Mobile"),
   }));
 
   const platformWallet = await Wallet.findOne({ ownerType: "platform" }).lean();
@@ -262,9 +329,11 @@ async function getAdminFinancials() {
 
   return {
     rates: {
-      deliverySharePercent: DELIVERY_SHARE_PERCENT,
-      defaultCommissionPercent: DEFAULT_COMMISSION_PERCENT,
-      note: "Supplier fee uses each supplier's commission %. Rider share is 10% of order total (incl. tax).",
+      defaultCommissionPercent: settlementDefaults.defaultCommissionPercent,
+      deliverySharePercent: settlementDefaults.defaultDeliverySharePercent,
+      defaultDeliverySharePercent: settlementDefaults.defaultDeliverySharePercent,
+      note:
+        "Supplier platform fee uses each supplier's commission % (or default). Rider share uses each rider's deliverySharePercentage (or default). Per-order settlements use the assigned rider's rate.",
     },
     totalOrderRevenue,
     totalRevenue: totalOrderRevenue,
@@ -308,12 +377,13 @@ async function getAdminFinancials() {
 
 async function getSupplierFinancials(supplier) {
   const supplierId = supplier._id;
+  const settlementDefaults = await getSettlementDefaults();
   const orders = await Order.find({
     "items.supplierId": supplierId,
     status: { $ne: "cancelled" },
   }).lean();
 
-  const commission = Math.min(100, Math.max(0, Number(supplier.commissionPercentage) || DEFAULT_COMMISSION_PERCENT));
+  const commission = resolveSupplierCommissionPercent(supplier, settlementDefaults);
   let totalRevenue = 0;
   let platformDeduction = 0;
   let netEarnings = 0;
@@ -350,6 +420,10 @@ async function getSupplierFinancials(supplier) {
 }
 
 async function getDeliveryPartnerFinancials(dpId, userId) {
+  const dp = await DeliveryPartner.findById(dpId).lean();
+  const settlementDefaults = await getSettlementDefaults();
+  const sharePercent = resolveDeliverySharePercent(dp, settlementDefaults);
+
   const orders = await Order.find({
     "supplierResponses.deliveryPartnerId": dpId,
     status: "delivered",
@@ -357,7 +431,7 @@ async function getDeliveryPartnerFinancials(dpId, userId) {
 
   let deliveryShareEstimated = 0;
   for (const o of orders) {
-    deliveryShareEstimated += roundRupee((Number(o.total) || 0) * (DELIVERY_SHARE_PERCENT / 100));
+    deliveryShareEstimated += roundRupee((Number(o.total) || 0) * (sharePercent / 100));
   }
 
   const wallet = await Wallet.findOne({ userId }).lean();
@@ -383,7 +457,8 @@ async function getDeliveryPartnerFinancials(dpId, userId) {
     deliveryShare: walletEarnings,
     walletEarnings,
     walletBalance: wallet?.balance || 0,
-    deliverySharePercent: DELIVERY_SHARE_PERCENT,
+    deliverySharePercent: sharePercent,
+    usesCustomShare: dp?.deliverySharePercentage != null,
     currency: "INR",
     recentTransactions: recentTransactions.slice(0, 30),
   };
@@ -396,6 +471,7 @@ module.exports = {
   supplierItemsSubtotal,
   computeOrderSettlement,
   loadSupplierMapForOrders,
+  loadDeliveryPartnerMapForOrders,
   classifyPlatformTransaction,
   classifyUserCreditTransaction,
   getAdminFinancials,
@@ -403,4 +479,7 @@ module.exports = {
   getDeliveryPartnerFinancials,
   isRazorpayPaidOrder,
   isOrderRazorpayTest,
+  getSettlementDefaults,
+  resolveSupplierCommissionPercent,
+  resolveDeliverySharePercent,
 };

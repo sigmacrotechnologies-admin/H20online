@@ -12,19 +12,27 @@ export function getAuthToken() {
 
 const REQUEST_TIMEOUT_MS = 25000;
 const AI_REQUEST_TIMEOUT_MS = 60000;
+const SERVICEABILITY_TIMEOUT_MS = 45000;
+
+function timeoutHint() {
+  if (typeof __DEV__ !== "undefined" && __DEV__) {
+    return "Backend running? Same Wi‑Fi? In mobile/.env set EXPO_PUBLIC_API_URL=http://YOUR_PC_IP:5000 (ipconfig for IP). Then: npx expo start -c";
+  }
+  return `Could not reach ${API_BASE}. Check mobile data/Wi‑Fi, or ask admin to confirm the API URL and AWS security group (port 5000).`;
+}
 
 export async function request(path, options = {}) {
+  const { timeoutMs, ...fetchOptions } = options;
   const url = path.startsWith("http") ? path : `${API_BASE}${path}`;
-  const headers = { "Content-Type": "application/json", ...options.headers };
+  const headers = { "Content-Type": "application/json", ...fetchOptions.headers };
   if (authToken) headers.Authorization = `Bearer ${authToken}`;
   const isAiRequest = path.includes("/api/ai/");
   const controller = new AbortController();
-  const timeoutId = setTimeout(
-    () => controller.abort(),
-    isAiRequest ? AI_REQUEST_TIMEOUT_MS : REQUEST_TIMEOUT_MS
-  );
+  const timeout =
+    timeoutMs ?? (isAiRequest ? AI_REQUEST_TIMEOUT_MS : REQUEST_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
   try {
-    const res = await fetch(url, { ...options, headers, signal: controller.signal });
+    const res = await fetch(url, { ...fetchOptions, headers, signal: controller.signal });
     clearTimeout(timeoutId);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -38,14 +46,10 @@ export async function request(path, options = {}) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === "AbortError") {
-      const hint =
-        "Backend running? Same Wi‑Fi? In mobile/.env set EXPO_PUBLIC_API_URL=http://YOUR_PC_IP:5000 (ipconfig for IP). Then: npx expo start -c";
-      throw new Error("Request timed out. " + hint);
+      throw new Error("Request timed out. " + timeoutHint());
     }
     if (err.message && (err.message.includes("Network request failed") || err.message.includes("Failed to fetch"))) {
-      throw new Error(
-        "Cannot reach server at " + API_BASE + ". See mobile/CONNECTION_HELP.md for simple steps."
-      );
+      throw new Error("Cannot reach server at " + API_BASE + ". " + timeoutHint());
     }
     throw err;
   }
@@ -80,6 +84,10 @@ export const api = {
     assignRider: (orderId, body) => request("/api/supplier/orders/" + orderId + "/assign-rider", { method: "PATCH", body: JSON.stringify(body) }),
     cancelOrder: (orderId) => request("/api/supplier/orders/" + orderId + "/cancel", { method: "PATCH" }),
     financials: () => request("/api/supplier/financials"),
+    walletRedeemPrefill: () => request("/api/supplier/wallet/redeem-prefill"),
+    walletRedeemRequests: () => request("/api/supplier/wallet/redeem-requests"),
+    createWalletRedeemRequest: (body) =>
+      request("/api/supplier/wallet/redeem-requests", { method: "POST", body: JSON.stringify(body) }),
     products: () => request("/api/supplier/products"),
     deliveryPartners: {
       list: (params) => {
@@ -159,7 +167,6 @@ export const api = {
   },
   wallet: {
     get: () => request("/api/wallet"),
-    credit: (amount) => request("/api/wallet/credit", { method: "POST", body: JSON.stringify({ amount }) }),
     debit: (amount) => request("/api/wallet/debit", { method: "POST", body: JSON.stringify({ amount }) }),
   },
   users: {
@@ -173,7 +180,12 @@ export const api = {
     delete: (id) => request("/api/addresses/" + id, { method: "DELETE" }),
   },
   serviceability: {
-    check: (body) => request("/api/serviceability/check", { method: "POST", body: JSON.stringify(body) }),
+    check: (body) =>
+      request("/api/serviceability/check", {
+        method: "POST",
+        body: JSON.stringify(body),
+        timeoutMs: SERVICEABILITY_TIMEOUT_MS,
+      }),
   },
   maps: {
     travel: (body) => request("/api/maps/travel", { method: "POST", body: JSON.stringify(body) }),
@@ -228,6 +240,10 @@ export const api = {
       request("/api/payments/razorpay/create-order", { method: "POST", body: JSON.stringify(body) }),
     razorpayVerify: (body) =>
       request("/api/payments/razorpay/verify-payment", { method: "POST", body: JSON.stringify(body) }),
+    razorpayWalletTopupCreate: (body) =>
+      request("/api/payments/razorpay/wallet-topup/create-order", { method: "POST", body: JSON.stringify(body) }),
+    razorpayWalletTopupVerify: (body) =>
+      request("/api/payments/razorpay/wallet-topup/verify", { method: "POST", body: JSON.stringify(body) }),
   },
   ai: {
     waterInsight: () => request("/api/ai/water-insight"),

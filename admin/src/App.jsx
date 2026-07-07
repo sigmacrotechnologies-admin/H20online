@@ -15,6 +15,7 @@ import SupplierSupport from "./pages/SupplierSupport";
 import DeliveryPartnerSupport from "./pages/DeliveryPartnerSupport";
 import CustomerSupport from "./pages/CustomerSupport";
 import WalletManagement from "./pages/WalletManagement";
+import WalletRedeemRequests from "./pages/WalletRedeemRequests";
 import Societies from "./pages/Societies";
 import Stores from "./pages/Stores";
 import Products from "./pages/Products";
@@ -65,6 +66,7 @@ function AppRoutes() {
         <Route path="stores" element={<Stores />} />
         <Route path="products" element={<Products />} />
         <Route path="wallet-management" element={<WalletManagement />} />
+        <Route path="wallet-redeem" element={<WalletRedeemRequests />} />
         <Route path="tax-settings" element={<TaxSettings />} />
         <Route path="serviceable-areas" element={<ServiceableAreas />} />
         <Route path="financials" element={<FinancialsRoute />} />

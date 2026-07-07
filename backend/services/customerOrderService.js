@@ -9,6 +9,7 @@ const { etaFromTravelInfo } = require("../utils/deliveryEta");
 const { getTaxSettings, validateOrderBilling, roundRupee } = require("./taxSettings");
 const { checkServiceability, normalizePin } = require("./serviceableArea");
 const { isRazorpayTestMode } = require("./razorpay");
+const { formatPaymentBlock } = require("./orderPayment");
 
 function toObjectId(v) {
   if (v == null || v === "") return null;
@@ -17,7 +18,7 @@ function toObjectId(v) {
 }
 
 function formatOrderResponse(order, paymentMethod, etaBand) {
-  const out = order.toObject();
+  const out = order.toObject ? order.toObject() : order;
   return {
     id: out._id.toString(),
     orderId: out.orderId || out._id.toString(),
@@ -35,6 +36,11 @@ function formatOrderResponse(order, paymentMethod, etaBand) {
     customerLongitude: out.customerLongitude ?? null,
     travelInfo: out.travelInfo || [],
     paymentMethod: out.paymentMethod || paymentMethod,
+    paymentStatus: out.paymentStatus || "",
+    orderChannel: out.orderChannel || "customer",
+    orderPlatform: out.orderPlatform || "mobile",
+    paidAt: out.paidAt || null,
+    payment: formatPaymentBlock(out),
     estimatedDeliveryText: out.estimatedDeliveryText || etaBand?.text || "",
     estimatedDeliveryMinMinutes: out.estimatedDeliveryMinMinutes ?? etaBand?.min ?? 0,
     estimatedDeliveryMaxMinutes: out.estimatedDeliveryMaxMinutes ?? etaBand?.max ?? 0,
@@ -158,6 +164,7 @@ async function createCustomerOrder(user, body, options = {}) {
   const scheduledAt = body.scheduledAt ? new Date(body.scheduledAt) : null;
   const orderType = scheduledAt ? "scheduled" : "instant";
   const orderChannel = body.orderChannel === "society" ? "society" : "customer";
+  const orderPlatform = body.orderPlatform === "web" ? "web" : "mobile";
   const customerLatitude =
     body.customerLatitude != null && Number.isFinite(Number(body.customerLatitude))
       ? Number(body.customerLatitude)
@@ -210,6 +217,12 @@ async function createCustomerOrder(user, body, options = {}) {
     paymentMethod === "cod" ? "pending" : paymentMethod === "razorpay" ? "paid" : paymentMethod === "wallet" ? "paid" : "paid";
   const razorpayTestMode =
     paymentMethod === "razorpay" && (body.razorpayTestMode === true || isRazorpayTestMode());
+  const paidAt =
+    body.paidAt != null
+      ? new Date(body.paidAt)
+      : paymentStatus === "paid"
+        ? new Date()
+        : null;
 
   let order;
   try {
@@ -225,6 +238,18 @@ async function createCustomerOrder(user, body, options = {}) {
       razorpayOrderId: body.razorpayOrderId || options.razorpayOrderId || null,
       razorpayPaymentId: body.razorpayPaymentId || options.razorpayPaymentId || null,
       razorpayTestMode,
+      razorpayPaymentMethod: body.razorpayPaymentMethod || options.razorpayPaymentMethod || "",
+      razorpayPaymentMethodLabel: body.razorpayPaymentMethodLabel || options.razorpayPaymentMethodLabel || "",
+      razorpayPaymentMethodDetail: body.razorpayPaymentMethodDetail || options.razorpayPaymentMethodDetail || "",
+      razorpayBank: body.razorpayBank || options.razorpayBank || "",
+      razorpayVpa: body.razorpayVpa || options.razorpayVpa || "",
+      razorpayPaymentStatus: body.razorpayPaymentStatus || options.razorpayPaymentStatus || "",
+      razorpayEmail: body.razorpayEmail || options.razorpayEmail || "",
+      razorpayContact: body.razorpayContact || options.razorpayContact || "",
+      razorpayFee: body.razorpayFee ?? options.razorpayFee ?? null,
+      razorpayTax: body.razorpayTax ?? options.razorpayTax ?? null,
+      paidAt,
+      orderPlatform,
       address: body.address || "",
       orderType,
       receiverName: body.receiverName || null,

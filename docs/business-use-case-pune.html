@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>H2O Online — Business Use Case: Pune</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    @page { size: A4; margin: 12mm 10mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      color: #1e293b;
+      font-size: 8.5pt;
+      line-height: 1.4;
+      margin: 0;
+    }
+    .cover {
+      page-break-after: always;
+      min-height: 255mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 18mm 16mm;
+      background: linear-gradient(145deg, #ecfdf5 0%, #fff 40%, #fef3c7 100%);
+    }
+    .cover-badge {
+      display: inline-block;
+      background: #047857;
+      color: #fff;
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 4px;
+      margin-bottom: 14px;
+      width: fit-content;
+    }
+    .cover h1 {
+      font-size: 22pt;
+      color: #064e3b;
+      margin: 0 0 10px;
+      line-height: 1.15;
+      max-width: 520px;
+    }
+    .cover .subtitle {
+      font-size: 10pt;
+      color: #475569;
+      margin: 0 0 20px;
+      max-width: 500px;
+      line-height: 1.5;
+    }
+    .cover-highlights {
+      margin: 12px 0 16px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.9);
+      border-left: 4px solid #059669;
+      border-radius: 4px;
+      max-width: 520px;
+      font-size: 8pt;
+      color: #334155;
+    }
+    .cover-highlights ul { margin: 6px 0 0; padding-left: 16pt; }
+    .cover-highlights li { margin-bottom: 3pt; }
+    .cover-stats {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .stat-box {
+      background: #fff;
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-width: 88px;
+    }
+    .stat-box strong { display: block; font-size: 13pt; color: #047857; }
+    .stat-box span { font-size: 7pt; color: #64748b; }
+    .cover-toc {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      max-width: 520px;
+    }
+    .cover-toc h2 {
+      font-size: 10pt;
+      color: #064e3b;
+      margin: 0 0 8px;
+      border: none;
+      padding: 0;
+    }
+    .cover-toc ol {
+      margin: 0;
+      padding-left: 18pt;
+      font-size: 7.5pt;
+      color: #334155;
+      columns: 2;
+      column-gap: 16px;
+    }
+    .cover-toc li { margin-bottom: 2pt; break-inside: avoid; }
+    .cover-meta {
+      border-top: 2px solid #34d399;
+      padding-top: 12px;
+      margin-top: 14px;
+      font-size: 8pt;
+      color: #64748b;
+    }
+    .cover-meta div { margin-bottom: 3px; }
+    h1 {
+      font-size: 15pt;
+      color: #064e3b;
+      margin: 12pt 0 5pt;
+      page-break-after: avoid;
+    }
+    h2 {
+      font-size: 11pt;
+      color: #0f172a;
+      margin: 12pt 0 4pt;
+      border-bottom: 2px solid #6ee7b7;
+      padding-bottom: 2px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 9.5pt;
+      color: #1d4ed8;
+      margin: 9pt 0 3pt;
+      page-break-after: avoid;
+    }
+    h4 {
+      font-size: 8.5pt;
+      color: #334155;
+      margin: 7pt 0 2pt;
+      page-break-after: avoid;
+    }
+    p { margin: 0 0 6pt; color: #334155; }
+    hr { border: none; border-top: 1px solid #cbd5e1; margin: 10pt 0; }
+    ul, ol { margin: 0 0 7pt; padding-left: 15pt; }
+    li { margin-bottom: 2pt; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 8pt;
+      font-size: 7pt;
+      page-break-inside: auto;
+    }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    th {
+      background: #047857;
+      color: #fff;
+      font-weight: 600;
+      text-align: left;
+      padding: 4px 5px;
+      border: 1px solid #059669;
+    }
+    td {
+      padding: 3px 5px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code.inline {
+      background: #f1f5f9;
+      padding: 1px 3px;
+      border-radius: 3px;
+      font-size: 7.5pt;
+    }
+    pre {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin: 0 0 8pt;
+      page-break-inside: avoid;
+    }
+    pre code.block {
+      font-size: 6.8pt;
+      white-space: pre-wrap;
+      font-family: Consolas, monospace;
+    }
+    .diagram-wrap {
+      margin: 0 0 12pt;
+      page-break-inside: avoid;
+      background: #fafafa;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 6px 4px;
+      overflow: hidden;
+    }
+    .diagram-label {
+      font-size: 6.5pt;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 4px 4px;
+    }
+    pre.mermaid {
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      text-align: center;
+      overflow: visible;
+    }
+    pre.mermaid svg {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-badge">Business Operations Guide</div>
+    <h1>H2O Online<br>Pune City Launch &amp; Business Use Case</h1>
+    <p class="subtitle">
+      How to launch, manage, and scale a water delivery business in Pune, Maharashtra using the H2O Online platform —
+      covering demand &amp; supply management, stock &amp; inventory, order workflows, admin operations,
+      financial model, risks, and a 90-day rollout plan.
+    </p>
+    <div class="cover-highlights">
+      <strong>Covers:</strong>
+      <ul>
+        <li>Phased Pune rollout (Kothrud → Baner → Wakad / Hinjewadi)</li>
+        <li>Stock, demand &amp; supply balancing workflows</li>
+        <li>Supplier onboarding, rider fleet &amp; store management</li>
+        <li>15 risks with mitigation controls</li>
+        <li>Daily admin ops routine &amp; KPI targets</li>
+      </ul>
+    </div>
+    <div class="cover-stats">
+      <div class="stat-box"><strong>18</strong><span>Sections</span></div>
+      <div class="stat-box"><strong>12</strong><span>Workflow Diagrams</span></div>
+      <div class="stat-box"><strong>90</strong><span>Day Roadmap</span></div>
+      <div class="stat-box"><strong>15</strong><span>Risk Items</span></div>
+    </div>
+    <div class="cover-toc">
+      <h2>Contents</h2>
+      <ol>
+        <li>Executive Summary</li>
+        <li>Pune Market Context</li>
+        <li>Business Model &amp; Unit Economics</li>
+        <li>Platform as Operations Engine</li>
+        <li>Pune Launch Strategy</li>
+        <li>Demand Management</li>
+        <li>Supply Management</li>
+        <li>Stock &amp; Inventory</li>
+        <li>Order Fulfilment Workflow</li>
+        <li>Admin Roles &amp; Daily Routine</li>
+        <li>Subscriptions &amp; Revenue</li>
+        <li>Financial Management</li>
+        <li>Risks &amp; Challenges</li>
+        <li>Mitigation &amp; Controls</li>
+        <li>90-Day Launch Roadmap</li>
+        <li>Complete Business Workflow</li>
+        <li>Success Criteria</li>
+        <li>Related Documentation</li>
+      </ol>
+    </div>
+    <div class="cover-meta">
+      <div><strong>Version:</strong> 1.0</div>
+      <div><strong>City focus:</strong> Pune, Maharashtra, India</div>
+      <div><strong>Platform:</strong> H2O Online Mobile + Admin Portal</div>
+      <div><strong>Generated:</strong> 29 June 2026</div>
+    </div>
+  </div>
+  <div class="content"><h1>H2O Online — Business Use Case: Pune City Launch &amp; Operations</h1>
+<p><strong>Document type:</strong> Business Operations &amp; Go-to-Market Guide  </p>
+<p><strong>Version:</strong> 1.0  </p>
+<p><strong>City focus:</strong> Pune, Maharashtra, India  </p>
+<p><strong>Platform:</strong> H2O Online (Mobile App + Admin Portal + Backend API)  </p>
+<p><strong>Production stack:</strong> AWS EC2 · MongoDB Atlas · Groq AI · Google Maps · Razorpay</p>
+<hr />
+<h2>1. Executive Summary</h2>
+<p>H2O Online is a <strong>multi-sided water delivery platform</strong> that connects households, societies, and businesses in Pune with verified water suppliers and delivery riders. The platform is not only a customer app — it is an <strong>operations engine</strong> for running a city-scale water delivery business: onboarding vendors, defining service zones by PIN code, tracking stock at store level, matching demand to supply, fulfilling orders end-to-end, and settling payments with commission-based economics.</p>
+<p><strong>Pune opportunity:</strong> Pune Metropolitan Region has 7M+ residents, rapid growth in IT corridors (Hinjewadi, Baner, Wakad), high apartment density, and recurring demand for <strong>20L jar water</strong>, <strong>bulk cans</strong>, and <strong>tanker supply</strong> in areas with irregular municipal supply. Existing delivery is fragmented (local vendors, phone orders, WhatsApp). H2O Online digitises discovery, ordering, tracking, subscriptions, and partner payouts in one system.</p>
+<p><strong>Business proposition for a Pune operator:</strong></p>
+<table><thead><tr><th>Stakeholder</th><th>Value</th></tr></thead><tbody><tr><td><strong>Platform owner / franchise</strong></td><td>Commission on GMV, subscription retention, data on demand hotspots</td></tr><tr><td><strong>Water supplier</strong></td><td>New digital customers, order queue, rider fleet tools, wallet settlements</td></tr><tr><td><strong>Delivery rider</strong></td><td>Assigned jobs, GPS routes, 10% delivery share on order value</td></tr><tr><td><strong>Customer</strong></td><td>One app for instant + scheduled delivery, wallet, tracking, subscriptions</td></tr><tr><td><strong>Admin team</strong></td><td>Single dashboard for Pune operations — verify partners, zones, stock oversight, support</td></tr></tbody></table>
+<p>This document explains <strong>how to launch and manage</strong> H2O Online in Pune: workflows, stock/demand/supply management, admin roles, and risks.</p>
+<hr />
+<h2>2. Pune Market Context</h2>
+<h3>2.1 Why Pune</h3>
+<table><thead><tr><th>Factor</th><th>Pune relevance</th></tr></thead><tbody><tr><td>Population</td><td>~7M metro; large renter and young professional base</td></tr><tr><td>Housing</td><td>High-rise societies in Kothrud, Baner, Wakad, Hinjewadi, Magarpatta</td></tr><tr><td>Water need</td><td>Jar/can delivery standard; tanker demand in peripheral areas</td></tr><tr><td>Digital readiness</td><td>Strong smartphone penetration; UPI/wallet adoption</td></tr><tr><td>Competition</td><td>Local vendors dominate; no single city-wide digital leader</td></tr></tbody></table>
+<h3>2.2 Target Customer Segments (Phase 1–3)</h3>
+<table><thead><tr><th>Segment</th><th>Pune examples</th><th>Platform feature</th></tr></thead><tbody><tr><td><strong>Households</strong></td><td>Families in Kothrud, Aundh, Viman Nagar</td><td>Instant order, saved addresses, wallet</td></tr><tr><td><strong>Societies / RWAs</strong></td><td>Large complexes in Baner, Wakad</td><td>Society registration, bulk plans</td></tr><tr><td><strong>Offices / startups</strong></td><td>Hinjewadi IT parks, Kharadi</td><td>Scheduled orders, subscription billing</td></tr><tr><td><strong>PG / co-living</strong></td><td>Areas near colleges (VIT, MIT corridor)</td><td>Recurring subscription plans</td></tr></tbody></table>
+<h3>2.3 Suggested Pune Launch Zones (Phased)</h3>
+<table><thead><tr><th>Phase</th><th>Areas</th><th>Sample PIN codes</th><th>Rationale</th></tr></thead><tbody><tr><td><strong>Pilot (Month 1–2)</strong></td><td>Kothrud, Erandwane, Karve Nagar</td><td>411038, 411004, 411052</td><td>Dense residential, manageable radius</td></tr><tr><td><strong>Expand (Month 3–4)</strong></td><td>Baner, Balewadi, Aundh</td><td>411045, 411007</td><td>High purchasing power</td></tr><tr><td><strong>Scale (Month 5–6)</strong></td><td>Wakad, Hinjewadi, Tathawade</td><td>411057, 411033</td><td>IT workforce, high order frequency</td></tr><tr><td><strong>Later</strong></td><td>Hadapsar, Magarpatta, Kharadi</td><td>411028, 411014</td><td>Larger geography, more riders needed</td></tr></tbody></table>
+<p>Admin configures these via <strong>Serviceable Areas</strong> (<code class="inline">/api/admin/serviceable-areas</code>) — PIN + radius (default 10 km) per supplier.</p>
+<hr />
+<h2>3. Business Model</h2>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 1</div><pre class="mermaid">flowchart LR
+  subgraph Revenue[&quot;Platform Revenue (Pune Operator)&quot;]
+    R1[&quot;Supplier commission&lt;br/&gt;Default 20% of supplier gross&quot;]
+    R2[&quot;Delivery margin&lt;br/&gt;Platform retains balance after&lt;br/&gt;supplier + rider shares&quot;]
+    R3[&quot;Subscription plans&lt;br/&gt;Recurring monthly billing&quot;]
+    R4[&quot;Future: premium AI,&lt;br/&gt;corporate contracts&quot;]
+  end
+
+  subgraph Costs[&quot;Operating Costs&quot;]
+    C1[&quot;AWS hosting + MongoDB Atlas&quot;]
+    C2[&quot;Google Maps API calls&quot;]
+    C3[&quot;Groq AI (optional)&quot;]
+    C4[&quot;Razorpay fees&quot;]
+    C5[&quot;Pune ops team + marketing&quot;]
+    C6[&quot;Rider incentives / supplier onboarding&quot;]
+  end
+
+  Revenue --&gt; Profit[&quot;Net margin per city&quot;]
+  Costs --&gt; Profit</pre></div>
+<h3>3.1 Unit Economics (Per Order — Platform Defaults)</h3>
+<table><thead><tr><th>Party</th><th>Share</th><th>How platform calculates</th></tr></thead><tbody><tr><td><strong>Supplier</strong></td><td>~80% of supplier item gross (configurable per supplier)</td><td><code class="inline">commissionPercentage</code> on Supplier model; default 20% platform cut</td></tr><tr><td><strong>Rider</strong></td><td>10% of total order value (incl. tax)</td><td><code class="inline">DELIVERY_SHARE_PERCENT = 10</code> in <code class="inline">orderPayout.js</code></td></tr><tr><td><strong>Platform</strong></td><td>Remainder + commission</td><td>Credited on Razorpay/COD; debited from platform wallet on wallet-paid orders</td></tr></tbody></table>
+<p><strong>Example:</strong> Customer in Kothrud orders 2 × 20L jars @ ₹80 each = ₹160 subtotal + tax → total ₹188.  </p>
+<ul><li>Rider share: ~₹19 (10%)  </li><li>Supplier payout: ~₹128 (80% of ₹160)  </li><li>Platform: commission ₹32 + any delivery margin after rider share  </li></ul>
+<p>Settlements run automatically on <strong>delivery confirmation</strong> via <code class="inline">runPayoutOnDelivered()</code>.</p>
+<hr />
+<h2>4. Platform as Pune Operations Engine</h2>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 2</div><pre class="mermaid">flowchart TB
+  subgraph PuneOps[&quot;Pune City Operations Team&quot;]
+    Admin[&quot;Admin Portal&lt;br/&gt;:3000 on AWS&quot;]
+    OpsLead[&quot;Ops Lead / Sub-admin&quot;]
+    Support[&quot;Customer Support&quot;]
+  end
+
+  subgraph Field[&quot;Field Network — Pune&quot;]
+    S1[&quot;Supplier: AquaPure Kothrud&quot;]
+    S2[&quot;Supplier: Baner Water Hub&quot;]
+    R1[&quot;Riders: bike / van fleet&quot;]
+    ST1[&quot;Stores / warehouses&lt;br/&gt;with map pins&quot;]
+  end
+
+  subgraph Customers[&quot;Pune Customers&quot;]
+    App[&quot;H2O Mobile App&quot;]
+  end
+
+  subgraph Platform[&quot;H2O Backend API&quot;]
+    Orders[&quot;Orders + stock deduct&quot;]
+    Areas[&quot;Serviceable PIN zones&quot;]
+    Wallet[&quot;Wallet + Razorpay&quot;]
+    AI[&quot;Groq water insights&quot;]
+    Maps[&quot;Google Maps ETA&quot;]
+  end
+
+  App --&gt; Platform
+  Admin --&gt; Platform
+  S1 --&gt; Platform
+  S2 --&gt; Platform
+  R1 --&gt; Platform
+  OpsLead --&gt; Admin
+  Support --&gt; Admin
+  Platform --&gt; Atlas[(&quot;MongoDB Atlas&quot;)]</pre></div>
+<p><strong>What the admin portal manages for Pune:</strong></p>
+<table><thead><tr><th>Module</th><th>Business use in Pune</th></tr></thead><tbody><tr><td><strong>Suppliers</strong></td><td>Onboard local Pune vendors; verify GST, bank, documents</td></tr><tr><td><strong>Stores</strong></td><td>Approve depot locations (Kothrud shop, Wakad warehouse)</td></tr><tr><td><strong>Serviceable Areas</strong></td><td>Map PIN codes to suppliers — control where orders are allowed</td></tr><tr><td><strong>Products</strong></td><td>City-wide catalogue oversight; ensure pricing consistency</td></tr><tr><td><strong>Orders</strong></td><td>Monitor live Pune order queue; intervene on failures</td></tr><tr><td><strong>Delivery Partners</strong></td><td>Verify riders; filter by vehicle (bike for jars, van for bulk)</td></tr><tr><td><strong>Subscriptions &amp; Plans</strong></td><td>Family / office monthly plans for Pune societies</td></tr><tr><td><strong>Wallet &amp; Financials</strong></td><td>Reconcile platform, supplier, rider balances</td></tr><tr><td><strong>Tax Settings</strong></td><td>Maharashtra GST configuration</td></tr><tr><td><strong>Support</strong></td><td>Handle Pune customer/supplier/rider tickets</td></tr></tbody></table>
+<hr />
+<h2>5. Pune Launch Strategy</h2>
+<h3>5.1 Pre-Launch Checklist (Weeks −4 to 0)</h3>
+<table><thead><tr><th>#</th><th>Task</th><th>Owner</th><th>Platform action</th></tr></thead><tbody><tr><td>1</td><td>Sign 2–3 Pune water suppliers (pilot zone)</td><td>Business</td><td>Admin → Create/verify suppliers</td></tr><tr><td>2</td><td>Register supplier stores with GPS pins</td><td>Supplier + Admin</td><td><code class="inline">POST /api/stores</code> → Admin approve</td></tr><tr><td>3</td><td>Define serviceable PINs for pilot</td><td>Ops</td><td>Admin → Serviceable Areas for 411038, 411004</td></tr><tr><td>4</td><td>Load products with stock quantities</td><td>Supplier</td><td>Products with <code class="inline">stockQty</code>, <code class="inline">inStock</code></td></tr><tr><td>5</td><td>Recruit 5–10 riders (bike)</td><td>Ops</td><td>Register + admin verify delivery partners</td></tr><tr><td>6</td><td>Configure tax (GST) and Razorpay</td><td>Finance</td><td>Admin → Tax Settings; Razorpay live keys</td></tr><tr><td>7</td><td>Soft launch with 50 beta households</td><td>Marketing</td><td>Invite codes; monitor <code class="inline">/api/admin/orders</code></td></tr><tr><td>8</td><td>Train supplier on accept/assign flow</td><td>Ops</td><td>Supplier app: incoming orders → assign rider</td></tr></tbody></table>
+<h3>5.2 Phased Rollout Diagram</h3>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 3</div><pre class="mermaid">flowchart TD
+  Start([&quot;Pune Launch Decision&quot;]) --&gt; P1[&quot;Phase 1: Pilot&lt;br/&gt;Kothrud + Erandwane&lt;br/&gt;2 suppliers · 8 riders&quot;]
+  P1 --&gt; M1{Month 2 KPIs met?&lt;br/&gt;50+ orders/week&lt;br/&gt;85% delivery success}
+  M1 --&gt;|No| Fix[&quot;Fix ops: stock, riders,&lt;br/&gt;serviceability gaps&quot;]
+  Fix --&gt; P1
+  M1 --&gt;|Yes| P2[&quot;Phase 2: West Pune&lt;br/&gt;Baner · Aundh · Balewadi&lt;br/&gt;+3 suppliers&quot;]
+  P2 --&gt; M2{Month 4&lt;br/&gt;200+ orders/week}
+  M2 --&gt;|Yes| P3[&quot;Phase 3: IT Corridor&lt;br/&gt;Wakad · Hinjewadi&lt;br/&gt;Office subscriptions&quot;]
+  M2 --&gt;|No| Optimise[&quot;Optimise supply density&quot;]
+  Optimise --&gt; P2
+  P3 --&gt; P4[&quot;Phase 4: City-wide Pune&lt;br/&gt;Hadapsar · Kharadi · Magarpatta&quot;]
+  P4 --&gt; Scale([&quot;Managed city operation&quot;])</pre></div>
+<h3>5.3 Launch KPIs (Pune Pilot)</h3>
+<table><thead><tr><th>KPI</th><th>Target (Month 1)</th><th>Target (Month 6)</th><th>Where to measure</th></tr></thead><tbody><tr><td>Active customers</td><td>100</td><td>2,000</td><td>Admin → Users</td></tr><tr><td>Weekly orders</td><td>50</td><td>800</td><td>Admin → Orders</td></tr><tr><td>Verified suppliers</td><td>2</td><td>12</td><td>Admin → Suppliers</td></tr><tr><td>Active riders</td><td>8</td><td>60</td><td>Admin → Delivery Partners</td></tr><tr><td>Order fulfilment rate</td><td>85%</td><td>95%</td><td>Delivered / total orders</td></tr><tr><td>Avg delivery time</td><td>&lt; 45 min</td><td>&lt; 35 min</td><td>Order tracking + Maps ETA</td></tr><tr><td>Subscription conversion</td><td>5%</td><td>20%</td><td>Admin → Subscriptions</td></tr></tbody></table>
+<hr />
+<h2>6. Demand Management (Pune)</h2>
+<p><strong>Demand</strong> = customer orders + subscriptions + seasonal spikes (summer, festivals, office reopenings).</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 4</div><pre class="mermaid">flowchart TB
+  subgraph DemandSources[&quot;Demand Sources — Pune&quot;]
+    D1[&quot;Instant orders&lt;br/&gt;App → Checkout&quot;]
+    D2[&quot;Scheduled orders&lt;br/&gt;orderType: scheduled&quot;]
+    D3[&quot;Subscriptions&lt;br/&gt;Monthly plans + bills&quot;]
+    D4[&quot;Society bulk&lt;br/&gt;Corporate channel&quot;]
+  end
+
+  subgraph DemandSignals[&quot;Demand Signals (Admin monitors)&quot;]
+    S1[&quot;Orders by PIN / area&quot;]
+    S2[&quot;Peak hours 7–9 AM, 6–8 PM&quot;]
+    S3[&quot;Product capacityL mix&lt;br/&gt;20L jar vs bulk&quot;]
+    S4[&quot;Rejected orders&lt;br/&gt;supplier capacity&quot;]
+    S5[&quot;Unserviceable checkout blocks&quot;]
+  end
+
+  subgraph Actions[&quot;Ops Response&quot;]
+    A1[&quot;Add supplier in hot PIN&quot;]
+    A2[&quot;Expand serviceable radius&quot;]
+    A3[&quot;Increase rider online hours&quot;]
+    A4[&quot;Promote subscription plans&quot;]
+    A5[&quot;Pre-stock before summer&quot;]
+  end
+
+  DemandSources --&gt; DemandSignals
+  DemandSignals --&gt; Actions</pre></div>
+<h3>6.1 Managing Demand by Product Type</h3>
+<table><thead><tr><th>Product type</th><th>Pune use case</th><th>Demand pattern</th><th>Platform handling</th></tr></thead><tbody><tr><td>20L jar</td><td>Household daily</td><td>High morning/evening</td><td>Instant order; stock per store</td></tr><tr><td>5L / 10L bottles</td><td>Small families</td><td>Moderate</td><td>Product catalog filters</td></tr><tr><td>Bulk / tanker</td><td>Societies, events</td><td>Sporadic high volume</td><td><code class="inline">vehicleType: tanker</code> riders</td></tr><tr><td>Subscription plan</td><td>RWAs, offices</td><td>Predictable monthly</td><td>Plans → Subscriptions → Bills</td></tr></tbody></table>
+<h3>6.2 Seasonal Demand (Pune)</h3>
+<table><thead><tr><th>Season</th><th>Demand impact</th><th>Ops playbook</th></tr></thead><tbody><tr><td><strong>Summer (Mar–Jun)</strong></td><td>+40–60% jar orders</td><td>Pre-load <code class="inline">stockQty</code>; add riders; extend service hours</td></tr><tr><td><strong>Monsoon</strong></td><td>Delivery delays</td><td>Increase ETA buffer; rider safety SOP</td></tr><tr><td><strong>Festivals (Ganesh, Diwali)</strong></td><td>Spike + bulk</td><td>Temporary serviceable areas; society campaigns</td></tr><tr><td><strong>IT campus cycles</strong></td><td>Hinjewadi weekday peaks</td><td>Schedule rider shifts 11 AM–2 PM, 6–9 PM</td></tr></tbody></table>
+<hr />
+<h2>7. Supply Management (Pune)</h2>
+<p><strong>Supply</strong> = verified suppliers + approved stores + online riders + serviceable geography.</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 5</div><pre class="mermaid">flowchart LR
+  subgraph SupplySide[&quot;Supply Side — Pune&quot;]
+    Sup[&quot;Water Suppliers&lt;br/&gt;2–12 in city&quot;]
+    Store[&quot;Stores / Warehouses&lt;br/&gt;GPS-mapped depots&quot;]
+    Rider[&quot;Delivery Fleet&lt;br/&gt;bike · van · tanker&quot;]
+    Zone[&quot;Serviceable Areas&lt;br/&gt;PIN + 10km radius&quot;]
+  end
+
+  subgraph Matching[&quot;Platform Matching&quot;]
+    Check[&quot;POST /api/serviceability/check&quot;]
+    Travel[&quot;Google Maps travelInfoBatch&lt;br/&gt;Store → customer ETA&quot;]
+    Assign[&quot;Supplier assigns rider&lt;br/&gt;on order accept&quot;]
+  end
+
+  subgraph Customer[&quot;Customer in Pune&quot;]
+    Order[&quot;Order placed&quot;]
+  end
+
+  Sup --&gt; Store
+  Sup --&gt; Zone
+  Store --&gt; Matching
+  Zone --&gt; Check
+  Check --&gt; Order
+  Order --&gt; Travel
+  Order --&gt; Assign
+  Rider --&gt; Assign</pre></div>
+<h3>7.1 Supplier Onboarding (Pune Local Vendors)</h3>
+<table><thead><tr><th>Step</th><th>Business action</th><th>Platform workflow</th></tr></thead><tbody><tr><td>1</td><td>Identify Pune jar/tanker vendor</td><td>Field sales visit</td></tr><tr><td>2</td><td>Vendor registers on app</td><td><code class="inline">POST /api/auth/register-supplier</code></td></tr><tr><td>3</td><td>Submit GST, bank, license docs</td><td>Supplier onboarding screen</td></tr><tr><td>4</td><td>Admin verifies</td><td>Admin → Suppliers → Verify</td></tr><tr><td>5</td><td>Vendor adds store with map pin</td><td><code class="inline">POST /api/stores</code> → Admin approve</td></tr><tr><td>6</td><td>Admin maps serviceable PINs</td><td>Serviceable Areas for vendor</td></tr><tr><td>7</td><td>Vendor lists products + stock</td><td>Products with <code class="inline">stockQty</code></td></tr><tr><td>8</td><td>Go live in zone</td><td>Orders appear in supplier incoming queue</td></tr></tbody></table>
+<p><strong>Target supplier density:</strong> 1 supplier per 3–5 km² in pilot; avoid overlap conflicts unless intentional for competition.</p>
+<h3>7.2 Rider Fleet Management</h3>
+<table><thead><tr><th>Rider type</th><th>Pune deployment</th><th>Vehicle in platform</th></tr></thead><tbody><tr><td>Jar delivery</td><td>Kothrud, Baner lanes</td><td><code class="inline">bike</code>, <code class="inline">bicycle</code></td></tr><tr><td>Multi-jar / office</td><td>Aundh, Viman Nagar</td><td><code class="inline">van</code>, <code class="inline">miniTruck</code></td></tr><tr><td>Society tanker</td><td>Peripheral Pune</td><td><code class="inline">tanker</code></td></tr></tbody></table>
+<p><strong>Three rider onboarding paths:</strong></p>
+<ol><li><strong>Self-register</strong> → Admin verify (city-wide gig riders)  </li><li><strong>Supplier fleet</strong> → Supplier adds via <code class="inline">POST /api/supplier/delivery-partners</code> (instant, managed)  </li><li><strong>Supplier-as-rider</strong> → Single-owner vendors who deliver themselves  </li></ol>
+<p><strong>Availability rules:</strong> Rider must be approved, online, and not on another active delivery (<code class="inline">partnerAvailability.js</code>).</p>
+<hr />
+<h2>8. Stock &amp; Inventory Management</h2>
+<p>The platform tracks stock at <strong>product level per supplier/store</strong>. Stock is <strong>deducted at order creation</strong> (not at delivery) — critical for Pune ops planning.</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 6</div><pre class="mermaid">flowchart TD
+  A[&quot;Supplier updates stockQty&lt;br/&gt;via Products screen or Admin&quot;] --&gt; B[&quot;Product.inStock = stockQty &gt; 0&quot;]
+  C[&quot;Customer places order&quot;] --&gt; D[&quot;createCustomerOrder()&quot;]
+  D --&gt; E{&quot;stockQty &gt;= order qty?&quot;}
+  E --&gt;|No| F[&quot;400 Error:&lt;br/&gt;Insufficient stock&lt;br/&gt;Customer sees unavailable&quot;]
+  E --&gt;|Yes| G[&quot;Deduct stockQty immediately&quot;]
+  G --&gt; H[&quot;Order created&lt;br/&gt;supplierResponses: pending&quot;]
+  H --&gt; I[&quot;Supplier accepts + assigns rider&quot;]
+  I --&gt; J[&quot;Rider delivers&quot;]
+  J --&gt; K[&quot;Payout on delivered&quot;]
+
+  L[&quot;Supplier restocks depot&quot;] --&gt; A
+  F --&gt; L</pre></div>
+<h3>8.1 Stock Operations Playbook (Pune)</h3>
+<table><thead><tr><th>Activity</th><th>Frequency</th><th>Who</th><th>How</th></tr></thead><tbody><tr><td><strong>Set opening stock</strong></td><td>Daily 6 AM</td><td>Supplier</td><td>Update <code class="inline">stockQty</code> per product per store</td></tr><tr><td><strong>Monitor low stock</strong></td><td>Continuous</td><td>Admin / Supplier</td><td>Admin → Products; filter low stock</td></tr><tr><td><strong>Reorder from plant</strong></td><td>When stock &lt; 2 days cover</td><td>Supplier ops</td><td>Off-platform; reflect in app</td></tr><tr><td><strong>Multi-store allocation</strong></td><td>Per area</td><td>Supplier</td><td>Link products to <code class="inline">storeId</code> (Kothrud store vs Wakad warehouse)</td></tr><tr><td><strong>Prevent overselling</strong></td><td>Automatic</td><td>Platform</td><td>Server rejects order if insufficient stock</td></tr><tr><td><strong>Cancelled order stock</strong></td><td>On cancel</td><td>*Gap today*</td><td>Manual restock adjustment by supplier</td></tr></tbody></table>
+<h3>8.2 Stock Planning Formula (Pune Jar Business)</h3>
+<pre><code class="block">Daily stock needed (jars) = 
+  (Avg daily orders × avg jars per order × 1.15 safety factor)
+  + subscription scheduled deliveries</code></pre>
+<p><strong>Example — Kothrud depot:</strong></p>
+<table><thead><tr><th>Input</th><th>Value</th></tr></thead><tbody><tr><td>Avg daily orders</td><td>40</td></tr><tr><td>Avg jars per order</td><td>2</td></tr><tr><td>Safety factor</td><td>1.15</td></tr><tr><td><strong>Daily stock</strong></td><td>40 × 2 × 1.15 = <strong>92 jars</strong></td></tr><tr><td>Opening stock target</td><td>100 jars by 6 AM</td></tr></tbody></table>
+<h3>8.3 Demand–Supply Balance Workflow</h3>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 7</div><pre class="mermaid">flowchart TB
+  subgraph Monitor[&quot;Daily Monitoring (Admin Dashboard)&quot;]
+    M1[&quot;Orders per supplier&quot;]
+    M2[&quot;Stock-out errors in logs&quot;]
+    M3[&quot;Unserviceable PIN attempts&quot;]
+    M4[&quot;Supplier reject rate&quot;]
+    M5[&quot;Rider utilisation&quot;]
+  end
+
+  subgraph Imbalance[&quot;Imbalance Signals&quot;]
+    I1[&quot;🔴 Stock-out &gt; 5% orders&quot;]
+    I2[&quot;🔴 Reject rate &gt; 10%&quot;]
+    I3[&quot;🟡 ETA &gt; 60 min avg&quot;]
+    I4[&quot;🟡 Unserviceable in hot zone&quot;]
+  end
+
+  subgraph Correct[&quot;Corrective Actions&quot;]
+    C1[&quot;Supplier restock same day&quot;]
+    C2[&quot;Shift rider to hot zone&quot;]
+    C3[&quot;Add serviceable PIN&quot;]
+    C4[&quot;Onboard backup supplier&quot;]
+    C5[&quot;Cap orders via stock = 0&quot;]
+  end
+
+  Monitor --&gt; Imbalance
+  I1 --&gt; C1
+  I1 --&gt; C5
+  I2 --&gt; C4
+  I3 --&gt; C2
+  I4 --&gt; C3</pre></div>
+<hr />
+<h2>9. Order Fulfilment — Business Workflow</h2>
+<p>End-to-end business workflow connecting <strong>Customer → Platform → Supplier → Rider → Settlement</strong>.</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 8</div><pre class="mermaid">sequenceDiagram
+  autonumber
+  participant C as Pune Customer
+  participant P as H2O Platform
+  participant S as Pune Supplier
+  participant R as Rider
+  participant A as Admin Ops
+
+  Note over C,A: DEMAND CAPTURE
+  C-&gt;&gt;P: Browse products (PIN 411038 Kothrud)
+  P-&gt;&gt;P: Serviceability check — supplier covers PIN
+  C-&gt;&gt;P: Pay (Wallet / Razorpay / COD) + place order
+  P-&gt;&gt;P: Deduct stock · create order · compute ETA via Google Maps
+
+  Note over C,A: SUPPLY FULFILMENT
+  P-&gt;&gt;S: Incoming order notification
+  S-&gt;&gt;S: Accept order · assign Kothrud rider · set ETA
+  P-&gt;&gt;R: Assigned delivery job
+  R-&gt;&gt;R: Pick up jars from store · navigate to customer
+  R-&gt;&gt;P: Live GPS updates
+  C-&gt;&gt;P: Track order on app
+
+  Note over C,A: COMPLETION &amp; MONEY
+  R-&gt;&gt;P: Mark delivered
+  P-&gt;&gt;P: Auto payout: supplier wallet + rider wallet
+  C-&gt;&gt;C: Review · reorder · subscribe
+
+  Note over C,A: OVERSIGHT
+  A-&gt;&gt;P: Monitor orders · handle support ticket if failed</pre></div>
+<h3>9.1 Order States — Business Meaning</h3>
+<table><thead><tr><th>Platform state</th><th>Business meaning for Pune ops</th></tr></thead><tbody><tr><td><code class="inline">in_progress</code> + supplier <code class="inline">pending</code></td><td>Order waiting — supplier must accept within SLA (target: 5 min)</td></tr><tr><td><code class="inline">accepted</code> + rider assigned</td><td>Fulfillment in progress — track ETA</td></tr><tr><td><code class="inline">picked_up</code></td><td>Rider has stock — customer expects delivery soon</td></tr><tr><td><code class="inline">delivered</code></td><td>Complete — payout triggered</td></tr><tr><td><code class="inline">cancelled</code></td><td>Lost revenue — analyse reason (stock, rider, customer)</td></tr><tr><td><code class="inline">rejected</code> by supplier</td><td>Supply failure — reassign zone or supplier</td></tr></tbody></table>
+<h3>9.2 SLA Targets (Pune Operations)</h3>
+<table><thead><tr><th>Stage</th><th>Target SLA</th><th>Escalation</th></tr></thead><tbody><tr><td>Supplier accept</td><td>5 minutes</td><td>Admin calls supplier</td></tr><tr><td>Rider assignment</td><td>2 minutes after accept</td><td>Auto-suggest fleet rider</td></tr><tr><td>Pickup</td><td>15 minutes after assign</td><td>Rider support</td></tr><tr><td>Delivery (instant)</td><td>45 minutes total</td><td>Customer support ticket</td></tr><tr><td>Delivery (scheduled)</td><td>±15 min of slot</td><td>SMS/app notification</td></tr></tbody></table>
+<hr />
+<h2>10. Admin Roles — Pune City Management</h2>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 9</div><pre class="mermaid">flowchart TB
+  Master[&quot;Master Admin&lt;br/&gt;Platform owner&quot;] --&gt; Admin[&quot;City Admin&lt;br/&gt;Pune operations head&quot;]
+  Admin --&gt; Sub1[&quot;Sub-admin: Partner onboarding&quot;]
+  Admin --&gt; Sub2[&quot;Sub-admin: Customer support&quot;]
+  Admin --&gt; Sub3[&quot;Sub-admin: Orders monitoring&quot;]
+
+  Master --&gt; Fin[&quot;Financials · commission · wallet&quot;]
+  Admin --&gt; Fin
+  Sub1 --&gt; Verify[&quot;Verify suppliers · riders · stores&quot;]
+  Sub2 --&gt; Support[&quot;Customer / supplier / rider tickets&quot;]
+  Sub3 --&gt; Orders[&quot;Live order queue · escalations&quot;]
+
+  Admin --&gt; Areas[&quot;Serviceable Areas&lt;br/&gt;Pune PIN management&quot;]
+  Admin --&gt; Plans[&quot;Subscription plans&lt;br/&gt;Pune pricing&quot;]</pre></div>
+<h3>10.1 Daily Admin Routine (Pune Ops Center)</h3>
+<table><thead><tr><th>Time</th><th>Activity</th><th>Admin module</th></tr></thead><tbody><tr><td><strong>7:00 AM</strong></td><td>Check overnight orders; verify rider online count</td><td>Dashboard, Orders</td></tr><tr><td><strong>8:00 AM</strong></td><td>Review supplier stock levels</td><td>Products</td></tr><tr><td><strong>9:00 AM–6:00 PM</strong></td><td>Monitor live orders; resolve support tickets</td><td>Orders, Support</td></tr><tr><td><strong>12:00 PM</strong></td><td>Peak lunch check — rider availability</td><td>Delivery Partners</td></tr><tr><td><strong>6:00 PM</strong></td><td>Evening peak prep</td><td>Orders, Serviceable Areas</td></tr><tr><td><strong>9:00 PM</strong></td><td>Day close — financials snapshot</td><td>Financials</td></tr><tr><td><strong>Weekly</strong></td><td>Verify new supplier/rider applications</td><td>Suppliers, Delivery Partners</td></tr><tr><td><strong>Monthly</strong></td><td>Subscription bill review; commission adjustment</td><td>Subscriptions, Financials</td></tr></tbody></table>
+<h3>10.2 Sub-admin vs Admin (Pune team structure)</h3>
+<table><thead><tr><th>Role</th><th>Pune team example</th><th>Permissions</th></tr></thead><tbody><tr><td><strong>Master</strong></td><td>Founder / platform owner</td><td>Everything + master credentials</td></tr><tr><td><strong>Admin</strong></td><td>Pune city manager</td><td>Full ops including financials</td></tr><tr><td><strong>Sub-admin</strong></td><td>Support agent, onboarding exec</td><td>No financials, no delete user, no remove supplier</td></tr></tbody></table>
+<hr />
+<h2>11. Subscriptions &amp; Recurring Revenue (Pune)</h2>
+<p>Subscriptions stabilise demand — critical for <strong>society RWAs</strong> and <strong>office parks</strong> in Baner/Hinjewadi.</p>
+<table><thead><tr><th>Step</th><th>Business action</th><th>Platform</th></tr></thead><tbody><tr><td>1</td><td>Design Pune plans (Basic Family, Office 50L/day)</td><td>Admin → Plans</td></tr><tr><td>2</td><td>Customer selects plan on app</td><td><code class="inline">GET /api/plans</code></td></tr><tr><td>3</td><td>Customer subscribes</td><td><code class="inline">POST /api/subscriptions</code></td></tr><tr><td>4</td><td>Monthly bill generated</td><td>SubscriptionBill</td></tr><tr><td>5</td><td>Customer pays bill</td><td><code class="inline">POST /api/bills/:id/pay</code></td></tr><tr><td>6</td><td>Supplier/rider fulfil on schedule</td><td>Delivery partner subscription routes</td></tr></tbody></table>
+<p><strong>Business benefit:</strong> Predictable demand → suppliers pre-load stock → fewer stock-outs → higher retention.</p>
+<hr />
+<h2>12. Financial Management (Pune Operation)</h2>
+<table><thead><tr><th>Flow</th><th>Description</th></tr></thead><tbody><tr><td><strong>Customer pays</strong></td><td>Razorpay (online), Wallet (prepaid), COD (cash on delivery)</td></tr><tr><td><strong>Platform holds</strong></td><td>Razorpay settlement to platform bank account</td></tr><tr><td><strong>On delivery</strong></td><td>Auto-split to supplier wallet + rider wallet</td></tr><tr><td><strong>Supplier withdraws</strong></td><td>Off-platform bank transfer (manual today)</td></tr><tr><td><strong>Platform revenue</strong></td><td>Commission % + delivery margin; view in Admin → Financials</td></tr><tr><td><strong>GST</strong></td><td>Configured in Admin → Tax Settings (Maharashtra rates)</td></tr></tbody></table>
+<p><strong>Wallet note:</strong> For wallet-paid orders, platform wallet is debited for payouts — ops must maintain sufficient platform wallet float.</p>
+<hr />
+<h2>13. Risks &amp; Challenges (Pune Specific)</h2>
+<h3>13.1 Risk Register</h3>
+<table><thead><tr><th>ID</th><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Category</th></tr></thead><tbody><tr><td>R01</td><td><strong>Stock-out during peak</strong> (summer, morning rush)</td><td>High</td><td>High</td><td>Supply</td></tr><tr><td>R02</td><td><strong>Insufficient riders</strong> in new zone</td><td>High</td><td>High</td><td>Supply</td></tr><tr><td>R03</td><td><strong>Supplier rejects orders</strong> (capacity, offline)</td><td>Medium</td><td>High</td><td>Supply</td></tr><tr><td>R04</td><td><strong>Wrong serviceability config</strong> — customer can't order</td><td>Medium</td><td>Medium</td><td>Ops</td></tr><tr><td>R05</td><td><strong>Delivery delays</strong> — Pune traffic (Hinjewadi, JM Road)</td><td>High</td><td>Medium</td><td>Logistics</td></tr><tr><td>R06</td><td><strong>Monsoon</strong> — waterlogging, rider safety</td><td>High</td><td>Medium</td><td>Seasonal</td></tr><tr><td>R07</td><td><strong>Local vendor resistance</strong> — won't join platform</td><td>Medium</td><td>Medium</td><td>Business</td></tr><tr><td>R08</td><td><strong>Price undercutting</strong> by offline vendors</td><td>High</td><td>Medium</td><td>Competition</td></tr><tr><td>R09</td><td><strong>Quality complaints</strong> — water purity disputes</td><td>Medium</td><td>High</td><td>Trust</td></tr><tr><td>R10</td><td><strong>Payment failures</strong> — Razorpay downtime</td><td>Low</td><td>Medium</td><td>Tech</td></tr><tr><td>R11</td><td><strong>Google Maps API cost</strong> at scale</td><td>Medium</td><td>Low</td><td>Tech</td></tr><tr><td>R12</td><td><strong>Regulatory</strong> — FSSAI, local trade license</td><td>Medium</td><td>High</td><td>Compliance</td></tr><tr><td>R13</td><td><strong>Multi-supplier order complexity</strong></td><td>Low</td><td>Medium</td><td>Platform</td></tr><tr><td>R14</td><td><strong>Cancelled order stock not auto-restored</strong></td><td>Medium</td><td>Low</td><td>Platform gap</td></tr><tr><td>R15</td><td><strong>Data/connectivity</strong> — rider GPS gaps</td><td>Medium</td><td>Medium</td><td>Tech</td></tr></tbody></table>
+<h3>13.2 Challenge Deep-Dives</h3>
+<p><strong>Challenge 1 — Morning demand spike (7–9 AM)</strong>  </p>
+<p>Pune households order jars before work. If stock is updated late, first 50 customers may fail checkout.  </p>
+<p>*Mitigation:* Mandatory 6 AM stock update SOP; admin dashboard alert if any product <code class="inline">stockQty &lt; 20</code>.</p>
+<p><strong>Challenge 2 — Geographic expansion faster than supply</strong>  </p>
+<p>Launching Wakad before having a Wakad depot causes unserviceable errors and bad reviews.  </p>
+<p>*Mitigation:* Never enable PIN in Serviceable Areas until store is approved within radius.</p>
+<p><strong>Challenge 3 — Supplier commission negotiation</strong>  </p>
+<p>Pune vendors may resist 20% commission vs WhatsApp orders at 0%.  </p>
+<p>*Mitigation:* Phase 1 lower commission (10–15%); volume guarantee; subscription lead-sharing.</p>
+<p><strong>Challenge 4 — Rider attrition</strong>  </p>
+<p>Gig riders switch to food delivery apps.  </p>
+<p>*Mitigation:* Supplier-managed fleet in core zones; delivery share visibility in app; peak incentives.</p>
+<p><strong>Challenge 5 — Trust in new digital brand</strong>  </p>
+<p>Customers prefer existing &quot;Bhaiya&quot; vendor.  </p>
+<p>*Mitigation:* Verified badges; society RWA partnerships; first-order wallet credit.</p>
+<hr />
+<h2>14. Mitigation &amp; Controls</h2>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 10</div><pre class="mermaid">flowchart TD
+  subgraph Prevent[&quot;Preventive Controls&quot;]
+    P1[&quot;PIN-gated serviceability&quot;]
+    P2[&quot;Stock check at order create&quot;]
+    P3[&quot;Partner document verification&quot;]
+    P4[&quot;Store GPS approval&quot;]
+    P5[&quot;Subscription demand forecasting&quot;]
+  end
+
+  subgraph Detect[&quot;Detection&quot;]
+    D1[&quot;Admin order dashboard&quot;]
+    D2[&quot;Reject / cancel rate tracking&quot;]
+    D3[&quot;Support ticket trends&quot;]
+    D4[&quot;Financials reconciliation&quot;]
+  end
+
+  subgraph Respond[&quot;Response&quot;]
+    R1[&quot;Ops call supplier&quot;]
+    R2[&quot;Emergency rider redeployment&quot;]
+    R3[&quot;Temporary PIN disable&quot;]
+    R4[&quot;Customer wallet credit&quot;]
+    R5[&quot;Onboard backup vendor&quot;]
+  end
+
+  Prevent --&gt; Detect
+  Detect --&gt; Respond</pre></div>
+<table><thead><tr><th>Control</th><th>Platform feature</th><th>Pune ops action</th></tr></thead><tbody><tr><td>Prevent overselling</td><td><code class="inline">stockQty</code> deduct on order</td><td>Daily stock SOP</td></tr><tr><td>Zone control</td><td>Serviceable Areas</td><td>Don't expand PIN without supply</td></tr><tr><td>Partner quality</td><td>Admin verify suppliers/riders</td><td>Field audit before approve</td></tr><tr><td>Payment security</td><td>Razorpay HMAC verify</td><td>Use live keys in production</td></tr><tr><td>Customer recovery</td><td>Support tickets + wallet credit</td><td>Same-day resolution SLA</td></tr></tbody></table>
+<hr />
+<h2>15. 90-Day Pune Launch Roadmap</h2>
+<table><thead><tr><th>Period</th><th>Focus</th><th>Key deliverables</th></tr></thead><tbody><tr><td><strong>Days 1–30</strong></td><td>Pilot setup</td><td>2 suppliers, 8 riders, Kothrud PINs, 100 customers, 50 orders/week</td></tr><tr><td><strong>Days 31–60</strong></td><td>Optimise ops</td><td>Stock SOP, SLA monitoring, subscription plan launch, Baner expansion</td></tr><tr><td><strong>Days 61–90</strong></td><td>Scale</td><td>Wakad/Hinjewadi, 12 suppliers, 60 riders, 800 orders/week, society partnerships</td></tr></tbody></table>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 11</div><pre class="mermaid">gantt
+  title Pune Launch Roadmap (90 Days)
+  dateFormat YYYY-MM-DD
+  section Phase 1 Pilot
+  Supplier onboarding (Kothrud)     :a1, 2026-07-01, 14d
+  Rider recruitment               :a2, 2026-07-01, 21d
+  Serviceable PINs + products       :a3, 2026-07-08, 7d
+  Soft launch 100 customers       :a4, 2026-07-15, 30d
+  section Phase 2 Expand
+  Baner Aundh suppliers             :b1, 2026-08-15, 21d
+  Subscription plans live         :b2, 2026-08-01, 14d
+  Ops SLA dashboard               :b3, 2026-08-15, 14d
+  section Phase 3 Scale
+  IT corridor Wakad Hinjewadi     :c1, 2026-09-01, 30d
+  Society RWA partnerships      :c2, 2026-09-01, 30d
+  800 orders per week target      :c3, 2026-09-15, 15d</pre></div>
+<hr />
+<h2>16. Complete Business Use Case Workflow</h2>
+<p>Single diagram linking <strong>launch → daily ops → order → money → growth</strong>.</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 12</div><pre class="mermaid">flowchart TB
+  subgraph Launch[&quot;CITY LAUNCH — Pune&quot;]
+    L1[&quot;Sign suppliers &amp; riders&quot;]
+    L2[&quot;Configure PIN zones&quot;]
+    L3[&quot;Load products + stock&quot;]
+    L4[&quot;Marketing: societies, PG, offices&quot;]
+  end
+
+  subgraph DailyOps[&quot;DAILY OPERATIONS&quot;]
+    D1[&quot;6 AM: suppliers set stock&quot;]
+    D2[&quot;7 AM–9 PM: riders online&quot;]
+    D3[&quot;Admin monitors dashboard&quot;]
+  end
+
+  subgraph OrderFlow[&quot;ORDER FLOW&quot;]
+    O1[&quot;Customer orders in serviceable PIN&quot;]
+    O2[&quot;Stock deducted · ETA calculated&quot;]
+    O3[&quot;Supplier accepts · assigns rider&quot;]
+    O4[&quot;Delivered · payout split&quot;]
+  end
+
+  subgraph Growth[&quot;GROWTH LOOP&quot;]
+    G1[&quot;Reviews + subscriptions&quot;]
+    G2[&quot;Demand data → new zones&quot;]
+    G3[&quot;More suppliers + riders&quot;]
+    G4[&quot;Repeat orders&quot;]
+  end
+
+  Launch --&gt; DailyOps
+  DailyOps --&gt; OrderFlow
+  OrderFlow --&gt; Growth
+  Growth --&gt; DailyOps</pre></div>
+<hr />
+<h2>17. Success Criteria — Pune City Operation</h2>
+<table><thead><tr><th>Dimension</th><th>6-month success definition</th></tr></thead><tbody><tr><td><strong>Market</strong></td><td>Top-3 digital water app in pilot zones (Kothrud, Baner, Wakad)</td></tr><tr><td><strong>Volume</strong></td><td>800+ orders/week; 200+ active subscriptions</td></tr><tr><td><strong>Supply</strong></td><td>12 verified suppliers; 95% fulfilment rate</td></tr><tr><td><strong>Unit economics</strong></td><td>Positive contribution margin per order after variable costs</td></tr><tr><td><strong>Customer</strong></td><td>4.2+ avg rating; &lt; 5% support escalation rate</td></tr><tr><td><strong>Platform</strong></td><td>99% API uptime; stock-out rate &lt; 3%</td></tr></tbody></table>
+<hr />
+<h2>18. Related Platform Documentation</h2>
+<table><thead><tr><th>Document</th><th>Purpose</th></tr></thead><tbody><tr><td><code class="inline">docs/SYSTEM-ARCHITECTURE.md</code></td><td>Technical architecture &amp; data flows</td></tr><tr><td><code class="inline">docs/H2O-System-Architecture.pdf</code></td><td>Architecture PDF with diagrams</td></tr><tr><td><code class="inline">docs/DEPLOYMENT-GUIDE.md</code></td><td>AWS production deployment</td></tr><tr><td><code class="inline">docs/requirement-capture.md</code></td><td>Full functional requirements</td></tr><tr><td><code class="inline">config/aws-production.json</code></td><td>Production API URLs</td></tr></tbody></table>
+<hr />
+<p>*This business use case is aligned with H2O Online platform capabilities as implemented in the codebase: stock deduction on order, serviceable PIN areas, supplier/rider verification, commission-based payouts, subscriptions, and admin portal operations.*</p></div>
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "default",
+      securityLevel: "loose",
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: "basis" },
+      sequence: { useMaxWidth: true, wrap: true },
+      er: { useMaxWidth: true },
+    });
+    (async function () {
+      const nodes = document.querySelectorAll("pre.mermaid");
+      for (let i = 0; i < nodes.length; i++) {
+        const el = nodes[i];
+        const src = el.textContent;
+        try {
+          const id = "mmd-" + i;
+          const { svg } = await mermaid.render(id, src);
+          el.outerHTML = '<div class="mermaid-rendered">' + svg + "</div>";
+        } catch (err) {
+          el.outerHTML =
+            '<pre class="mermaid-error">Diagram render error: ' +
+            (err.message || err) +
+            "</pre>";
+        }
+      }
+      document.body.setAttribute("data-mermaid-ready", "true");
+    })();
+  </script>
+</body>
+</html>

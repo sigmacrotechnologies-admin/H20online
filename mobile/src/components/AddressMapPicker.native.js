@@ -15,6 +15,7 @@ import {
   shouldUseWebMapsFallback,
   isExpoGo,
 } from "@/src/utils/mapRuntime";
+import SafeMapBoundary from "@/src/components/SafeMapBoundary";
 
 export default function AddressMapPicker({
   latitude,
@@ -66,6 +67,9 @@ export default function AddressMapPicker({
   const useWebFallback = shouldUseWebMapsFallback();
 
   return (
+    <SafeMapBoundary
+      fallbackText="Map unavailable — enter address manually or use current location."
+    >
     <View style={styles.container}>
       {useWebFallback ? (
         <GoogleMapsWebViewPicker lat={lat} lng={lng} onPick={(la, lo) => updateLocation(la, lo)} />
@@ -102,8 +106,13 @@ export default function AddressMapPicker({
         onUseCurrentLocation={useCurrentLocation}
       />
       {useWebFallback ? (
-        <Text style={styles.expoGoHint}>Using Google Maps in Expo Go (tap map or drag pin).</Text>
+        <Text style={styles.expoGoHint}>
+          {isExpoGo()
+            ? "Using Google Maps in Expo Go (tap map or drag pin)."
+            : "Using Google Maps (tap map or drag pin)."}
+        </Text>
       ) : null}
     </View>
+    </SafeMapBoundary>
   );
 }

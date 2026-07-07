@@ -137,7 +137,7 @@ function AddressFormSheet({ visible, editingId, form, setForm, error, saving, on
               )}
             </View>
 
-            <FormSectionCard icon="location-outline" title="Pin on map" subtitle="Tap map, drag pin, or use current location">
+            <FormSectionCard icon="location-outline" title="Pin on map" subtitle="Optional — tap map or fill fields below manually">
               <AddressMapPicker
                 latitude={form.latitude}
                 longitude={form.longitude}
@@ -564,7 +564,7 @@ export default function SavedAddressesScreen() {
       return false;
     }
     if (!locality.trim() && !city.trim() && !state.trim()) {
-      setError("Please fill at least locality, city or state.");
+      setError("Fill at least one of: locality, city, or state (map pin is optional).");
       return false;
     }
     if (!String(phoneNumber || "").trim()) {

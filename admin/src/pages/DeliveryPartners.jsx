@@ -20,6 +20,10 @@ export default function DeliveryPartners() {
   const [verifyModal, setVerifyModal] = useState(null);
   const [verifyForm, setVerifyForm] = useState({});
   const [verifySaving, setVerifySaving] = useState(false);
+  const [shareModal, setShareModal] = useState(null);
+  const [sharePct, setSharePct] = useState("");
+  const [useDefaultShare, setUseDefaultShare] = useState(true);
+  const [shareSaving, setShareSaving] = useState(false);
   const limit = 20;
 
   const load = async () => {
@@ -69,6 +73,46 @@ export default function DeliveryPartners() {
     }
   };
 
+  const openShare = (d) => {
+    setShareModal(d);
+    const custom = d.deliverySharePercentage;
+    if (custom == null || custom === "") {
+      setUseDefaultShare(true);
+      setSharePct("");
+    } else {
+      setUseDefaultShare(false);
+      setSharePct(String(custom));
+    }
+  };
+
+  const handleShareSave = async () => {
+    if (!shareModal?.id) return;
+    if (!useDefaultShare) {
+      const pct = Number(sharePct);
+      if (isNaN(pct) || pct < 0 || pct > 100) {
+        alert("Enter a number between 0 and 100.");
+        return;
+      }
+    }
+    setShareSaving(true);
+    try {
+      await api.updateDeliveryPartner(shareModal.id, {
+        deliverySharePercentage: useDefaultShare ? null : Number(sharePct),
+      });
+      setShareModal(null);
+      load();
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setShareSaving(false);
+    }
+  };
+
+  const displayShare = (d) => {
+    if (d.deliverySharePercentage == null || d.deliverySharePercentage === "") return "Default";
+    return `${d.deliverySharePercentage}%`;
+  };
+
   return (
     <div className="admin-page">
       <PageHeader
@@ -105,6 +149,7 @@ export default function DeliveryPartners() {
                   <th>Phone</th>
                   <th>Vehicle type</th>
                   <th>Vehicle number</th>
+                  <th>Delivery share</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -117,10 +162,14 @@ export default function DeliveryPartners() {
                     <td>{d.phone}</td>
                     <td>{d.vehicleType || "—"}</td>
                     <td>{d.vehicleNumber || "—"}</td>
+                    <td>{displayShare(d)}</td>
                     <td>{d.onboardingStatus}</td>
                     <td>
+                      <button className="btn btn-secondary btn-sm" onClick={() => openShare(d)} title="Delivery share % of order total">
+                        Edit share
+                      </button>
                       {d.onboardingStatus === "pending" && (
-                        <button className="btn btn-primary" onClick={() => openVerify(d)}>Verify</button>
+                        <button className="btn btn-primary btn-sm" onClick={() => openVerify(d)}>Verify</button>
                       )}
                     </td>
                   </tr>
@@ -137,6 +186,43 @@ export default function DeliveryPartners() {
             </div>
           </div>
         </>
+      )}
+      {shareModal && (
+        <div className="modal-overlay" onClick={() => setShareModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="card-title">Delivery share: {shareModal.name}</h3>
+            <p className="card-subtitle">
+              Percentage of order total (incl. tax) paid to this rider on delivery. Leave as platform default or set a custom rate.
+            </p>
+            <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <input
+                type="checkbox"
+                checked={useDefaultShare}
+                onChange={(e) => setUseDefaultShare(e.target.checked)}
+              />
+              Use platform default (Tax &amp; payment settings)
+            </label>
+            {!useDefaultShare && (
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                className="input"
+                style={{ width: "100%", marginBottom: 16 }}
+                value={sharePct}
+                onChange={(e) => setSharePct(e.target.value)}
+                placeholder="e.g. 10"
+              />
+            )}
+            <div className="pagination-controls">
+              <button className="btn btn-primary" onClick={handleShareSave} disabled={shareSaving}>
+                {shareSaving ? "Saving..." : "Save"}
+              </button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShareModal(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
       )}
       {verifyModal && (
         <div className="modal-overlay" onClick={() => setVerifyModal(null)}>

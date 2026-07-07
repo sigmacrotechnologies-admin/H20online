@@ -119,6 +119,7 @@ const PaymentScreen = () => {
       scheduledAt: details?.scheduledAt || null,
       customerLatitude: details?.customerLatitude ?? null,
       customerLongitude: details?.customerLongitude ?? null,
+      orderPlatform: Platform.OS === "web" ? "web" : "mobile",
     };
     if (user?.role === "society") payload.orderChannel = "society";
     return payload;

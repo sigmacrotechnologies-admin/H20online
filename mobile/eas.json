@@ -17,7 +17,11 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://13.62.57.255:5000"
+        "EXPO_PUBLIC_API_URL": "http://13.62.57.255:5000",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyDkMhhDBXXnMreT-d1HRQlLa94thFeN2qc",
+        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_T59SOAWn6cSj7W",
+        "EXPO_PUBLIC_NATIVE_MAPS": "false",
+        "EXPO_PUBLIC_SKIP_SERVICEABILITY": "false"
       }
     },
     "production": {
@@ -27,7 +31,11 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://13.62.57.255:5000"
+        "EXPO_PUBLIC_API_URL": "http://13.62.57.255:5000",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyDkMhhDBXXnMreT-d1HRQlLa94thFeN2qc",
+        "EXPO_PUBLIC_RAZORPAY_KEY_ID": "rzp_test_T59SOAWn6cSj7W",
+        "EXPO_PUBLIC_NATIVE_MAPS": "false",
+        "EXPO_PUBLIC_SKIP_SERVICEABILITY": "false"
       }
     }
   },

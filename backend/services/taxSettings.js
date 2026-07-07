@@ -7,6 +7,8 @@ const DEFAULT_SETTINGS = {
   serviceTaxPercent: 0,
   additionalTaxes: [],
   razorpayEnabled: true,
+  defaultCommissionPercent: 20,
+  defaultDeliverySharePercent: 10,
 };
 
 function roundRupee(n) {
@@ -53,6 +55,8 @@ async function getTaxSettings() {
     serviceTaxPercent: doc.serviceTaxPercent ?? DEFAULT_SETTINGS.serviceTaxPercent,
     additionalTaxes: doc.additionalTaxes || [],
     razorpayEnabled: doc.razorpayEnabled ?? DEFAULT_SETTINGS.razorpayEnabled,
+    defaultCommissionPercent: doc.defaultCommissionPercent ?? DEFAULT_SETTINGS.defaultCommissionPercent,
+    defaultDeliverySharePercent: doc.defaultDeliverySharePercent ?? DEFAULT_SETTINGS.defaultDeliverySharePercent,
   };
 }
 
@@ -61,6 +65,12 @@ async function updateTaxSettings(body) {
   if (body.gstPercent != null) updates.gstPercent = Math.min(100, Math.max(0, Number(body.gstPercent) || 0));
   if (body.serviceTaxPercent != null) updates.serviceTaxPercent = Math.min(100, Math.max(0, Number(body.serviceTaxPercent) || 0));
   if (body.razorpayEnabled != null) updates.razorpayEnabled = Boolean(body.razorpayEnabled);
+  if (body.defaultCommissionPercent != null) {
+    updates.defaultCommissionPercent = Math.min(100, Math.max(0, Number(body.defaultCommissionPercent) || 0));
+  }
+  if (body.defaultDeliverySharePercent != null) {
+    updates.defaultDeliverySharePercent = Math.min(100, Math.max(0, Number(body.defaultDeliverySharePercent) || 0));
+  }
   if (Array.isArray(body.additionalTaxes)) {
     updates.additionalTaxes = body.additionalTaxes
       .map((t) => ({
@@ -85,6 +95,8 @@ function getTaxSettingsFromDoc(doc) {
     serviceTaxPercent: d.serviceTaxPercent ?? DEFAULT_SETTINGS.serviceTaxPercent,
     additionalTaxes: d.additionalTaxes || [],
     razorpayEnabled: d.razorpayEnabled ?? DEFAULT_SETTINGS.razorpayEnabled,
+    defaultCommissionPercent: d.defaultCommissionPercent ?? DEFAULT_SETTINGS.defaultCommissionPercent,
+    defaultDeliverySharePercent: d.defaultDeliverySharePercent ?? DEFAULT_SETTINGS.defaultDeliverySharePercent,
   };
 }
 

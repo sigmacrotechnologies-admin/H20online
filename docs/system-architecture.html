@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>H2O Online — System Architecture</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    @page { size: A4; margin: 12mm 10mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      color: #1e293b;
+      font-size: 8.5pt;
+      line-height: 1.4;
+      margin: 0;
+    }
+    .cover {
+      page-break-after: always;
+      min-height: 255mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 18mm 16mm;
+      background: linear-gradient(145deg, #e0f2fe 0%, #fff 40%, #ecfdf5 100%);
+    }
+    .cover-badge {
+      display: inline-block;
+      background: #0369a1;
+      color: #fff;
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 4px;
+      margin-bottom: 14px;
+      width: fit-content;
+    }
+    .cover h1 {
+      font-size: 22pt;
+      color: #0c4a6e;
+      margin: 0 0 10px;
+      line-height: 1.15;
+      max-width: 520px;
+    }
+    .cover .subtitle {
+      font-size: 10pt;
+      color: #475569;
+      margin: 0 0 20px;
+      max-width: 500px;
+      line-height: 1.5;
+    }
+    .cover-stats {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .stat-box {
+      background: #fff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-width: 88px;
+    }
+    .stat-box strong { display: block; font-size: 13pt; color: #0369a1; }
+    .stat-box span { font-size: 7pt; color: #64748b; }
+    .cover-toc {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      max-width: 520px;
+    }
+    .cover-toc h2 {
+      font-size: 10pt;
+      color: #0c4a6e;
+      margin: 0 0 8px;
+      border: none;
+      padding: 0;
+    }
+    .cover-toc ol {
+      margin: 0;
+      padding-left: 18pt;
+      font-size: 7.5pt;
+      color: #334155;
+      columns: 2;
+      column-gap: 16px;
+    }
+    .cover-toc li { margin-bottom: 2pt; break-inside: avoid; }
+    .cover-meta {
+      border-top: 2px solid #38bdf8;
+      padding-top: 12px;
+      margin-top: 14px;
+      font-size: 8pt;
+      color: #64748b;
+    }
+    .cover-meta div { margin-bottom: 3px; }
+    h1 {
+      font-size: 15pt;
+      color: #0c4a6e;
+      margin: 12pt 0 5pt;
+      page-break-after: avoid;
+    }
+    h2 {
+      font-size: 11pt;
+      color: #0f172a;
+      margin: 12pt 0 4pt;
+      border-bottom: 2px solid #7dd3fc;
+      padding-bottom: 2px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 9.5pt;
+      color: #1d4ed8;
+      margin: 9pt 0 3pt;
+      page-break-after: avoid;
+    }
+    h4 {
+      font-size: 8.5pt;
+      color: #334155;
+      margin: 7pt 0 2pt;
+      page-break-after: avoid;
+    }
+    p { margin: 0 0 6pt; color: #334155; }
+    hr { border: none; border-top: 1px solid #cbd5e1; margin: 10pt 0; }
+    ul, ol { margin: 0 0 7pt; padding-left: 15pt; }
+    li { margin-bottom: 2pt; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 8pt;
+      font-size: 7pt;
+      page-break-inside: auto;
+    }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    th {
+      background: #0369a1;
+      color: #fff;
+      font-weight: 600;
+      text-align: left;
+      padding: 4px 5px;
+      border: 1px solid #0284c7;
+    }
+    td {
+      padding: 3px 5px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code.inline {
+      background: #f1f5f9;
+      padding: 1px 3px;
+      border-radius: 3px;
+      font-size: 7.5pt;
+    }
+    pre {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin: 0 0 8pt;
+      page-break-inside: avoid;
+    }
+    pre code.block {
+      font-size: 6.8pt;
+      white-space: pre-wrap;
+      font-family: Consolas, monospace;
+    }
+    .diagram-wrap {
+      margin: 0 0 12pt;
+      page-break-inside: avoid;
+      background: #fafafa;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 6px 4px;
+      overflow: hidden;
+    }
+    .diagram-label {
+      font-size: 6.5pt;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 4px 4px;
+    }
+    pre.mermaid {
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      text-align: center;
+      overflow: visible;
+    }
+    pre.mermaid svg {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-badge">Technical Architecture</div>
+    <h1>H2O Online<br>System Architecture &amp; User Journey</h1>
+    <p class="subtitle">
+      End-to-end architecture documentation covering AWS deployment, MongoDB Atlas, backend API,
+      authentication, Groq AI, Google Maps, Razorpay, admin portal, address &amp; serviceability flows,
+      order lifecycle across customer · supplier · rider, and platform onboarding journeys.
+    </p>
+    <div class="cover-stats">
+      <div class="stat-box"><strong>17</strong><span>Sections</span></div>
+      <div class="stat-box"><strong>20</strong><span>Flow Diagrams</span></div>
+      <div class="stat-box"><strong>5</strong><span>User Roles</span></div>
+      <div class="stat-box"><strong>6</strong><span>Third-Party APIs</span></div>
+    </div>
+    <div class="cover-toc">
+      <h2>Contents</h2>
+      <ol>
+        <li>System Overview</li>
+        <li>End-to-End Architecture</li>
+        <li>AWS Deployment Architecture</li>
+        <li>Third-Party Integrations</li>
+        <li>Authentication &amp; Authorization</li>
+        <li>Address &amp; Serviceability Data Flow</li>
+        <li>Order Lifecycle — Cross-Actor Flow</li>
+        <li>Payment Data Flow (Razorpay)</li>
+        <li>AI (Groq) Data Flow</li>
+        <li>Supplier Onboarding Journey</li>
+        <li>Rider / Delivery Partner Journey</li>
+        <li>Store Management Journey</li>
+        <li>Admin Portal Roles</li>
+        <li>Sample Customer User Journey</li>
+        <li>Multi-Actor Order Fulfillment</li>
+        <li>Key API Reference by Actor</li>
+        <li>Data Models (Core Entities)</li>
+      </ol>
+    </div>
+    <div class="cover-meta">
+      <div><strong>Version:</strong> 1.0</div>
+      <div><strong>Production API:</strong> http://13.62.57.255:5000</div>
+      <div><strong>Admin Portal:</strong> http://13.62.57.255:3000</div>
+      <div><strong>Database:</strong> MongoDB Atlas (H20online)</div>
+      <div><strong>Generated:</strong> 29 June 2026</div>
+    </div>
+  </div>
+  <div class="content"><h1>H2O Online — System Architecture &amp; User Journey Documentation</h1>
+<p><strong>Version:</strong> 1.0  </p>
+<p><strong>Last updated:</strong> June 2026  </p>
+<p><strong>Production API:</strong> <code class="inline">http://13.62.57.255:5000</code>  </p>
+<p><strong>Production Admin:</strong> <code class="inline">http://13.62.57.255:3000</code>  </p>
+<p><strong>Database:</strong> MongoDB Atlas (<code class="inline">H20online</code>)</p>
+<p>This document describes the end-to-end architecture, third-party integrations, data flows (address, order, auth), and user journeys across all actors: <strong>Customer</strong>, <strong>Supplier</strong>, <strong>Delivery Partner (Rider)</strong>, <strong>Society</strong>, and <strong>Admin</strong>.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol><li>System Overview</li><li>End-to-End Architecture Diagram</li><li>Deployment Architecture (AWS)</li><li>Third-Party Integrations</li><li>Authentication &amp; Authorization</li><li>Address &amp; Serviceability Data Flow</li><li>Order Lifecycle — Cross-Actor Flow</li><li>Payment Data Flow (Razorpay)</li><li>AI (Groq) Data Flow</li><li>Supplier Onboarding Journey</li><li>Rider / Delivery Partner Journey</li><li>Store Management Journey</li><li>Admin Portal Roles &amp; Capabilities</li><li>Sample Customer User Journey</li><li>Multi-Actor Order Fulfillment Journey</li><li>Key API Reference by Actor</li><li>Data Models (Core Entities)</li></ol>
+<hr />
+<h2>1. System Overview</h2>
+<p>H2O Online is a water delivery platform with three client applications and one shared backend:</p>
+<table><thead><tr><th>Layer</th><th>Technology</th><th>Folder</th><th>Purpose</th></tr></thead><tbody><tr><td><strong>Mobile App</strong></td><td>Expo / React Native</td><td><code class="inline">mobile/</code></td><td>Customer ordering, supplier ops, rider delivery, society accounts</td></tr><tr><td><strong>Admin Portal</strong></td><td>Vite / React SPA</td><td><code class="inline">admin/</code></td><td>Platform management, approvals, financials, support</td></tr><tr><td><strong>Backend API</strong></td><td>Node.js / Express</td><td><code class="inline">backend/</code></td><td>REST API, business logic, third-party orchestration</td></tr><tr><td><strong>Database</strong></td><td>MongoDB Atlas</td><td>Cloud</td><td>Persistent storage for all entities</td></tr><tr><td><strong>Infrastructure</strong></td><td>AWS EC2 (Ubuntu)</td><td><code class="inline">config/aws-production.json</code></td><td>Hosts API (:5000) and Admin SPA (:3000) via PM2</td></tr></tbody></table>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 1</div><pre class="mermaid">flowchart TB
+  subgraph Clients[&quot;Client Applications&quot;]
+    Mobile[&quot;📱 Mobile App&lt;br/&gt;(Expo React Native)&quot;]
+    Admin[&quot;🖥️ Admin Portal&lt;br/&gt;(Vite React SPA)&quot;]
+  end
+
+  subgraph AWS[&quot;AWS EC2 — Ubuntu Server&quot;]
+    API[&quot;⚙️ Backend API&lt;br/&gt;Express :5000&lt;br/&gt;backend/server.js&quot;]
+    AdminStatic[&quot;📄 Admin Static&lt;br/&gt;PM2 serve :3000&lt;br/&gt;admin/dist&quot;]
+  end
+
+  subgraph External[&quot;External Services&quot;]
+    Atlas[&quot;🍃 MongoDB Atlas&lt;br/&gt;H20online DB&quot;]
+    Groq[&quot;🤖 Groq AI&lt;br/&gt;llama-3.3-70b-versatile&quot;]
+    GMaps[&quot;🗺️ Google Maps&lt;br/&gt;Distance Matrix + Geocoding&quot;]
+    Razorpay[&quot;💳 Razorpay&lt;br/&gt;Payment Gateway&quot;]
+  end
+
+  Mobile --&gt;|&quot;HTTPS Bearer JWT&lt;br/&gt;/api/*&quot;| API
+  Admin --&gt;|&quot;HTTPS Bearer JWT&lt;br/&gt;/api/admin/*&quot;| API
+  Admin -.-&gt;|&quot;Browser loads SPA&quot;| AdminStatic
+  AdminStatic -.-&gt;|&quot;VITE_API_URL&quot;| API
+
+  API --&gt; Atlas
+  API --&gt; Groq
+  API --&gt; GMaps
+  API --&gt; Razorpay</pre></div>
+<hr />
+<h2>2. End-to-End Architecture Diagram</h2>
+<h3>2.1 Logical Component Architecture</h3>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 2</div><pre class="mermaid">flowchart TB
+  subgraph MobileApp[&quot;Mobile App (mobile/src)&quot;]
+    MAuth[&quot;AuthContext&lt;br/&gt;Login / Register&quot;]
+    MOrder[&quot;Order / Cart / Checkout&quot;]
+    MAddr[&quot;SavedAddresses&lt;br/&gt;AddressMapPicker&quot;]
+    MSupplier[&quot;Supplier Dashboard&lt;br/&gt;Orders / Stores / Riders&quot;]
+    MRider[&quot;Rider App&lt;br/&gt;Pickup / Deliver / GPS&quot;]
+    MAi[&quot;Water AI Sense&lt;br/&gt;Intake / Reports&quot;]
+  end
+
+  subgraph AdminPortal[&quot;Admin Portal (admin/src)&quot;]
+    AAuth[&quot;Admin Login&lt;br/&gt;Master / Admin / Sub-admin&quot;]
+    ADash[&quot;Dashboard / Users / Orders&quot;]
+    AApprove[&quot;Supplier / Rider / Store&lt;br/&gt;Verification Queues&quot;]
+    AFinance[&quot;Financials / Wallet / Tax&quot;]
+    AAreas[&quot;Serviceable Areas&quot;]
+    ASupport[&quot;Customer / Supplier / Rider Support&quot;]
+  end
+
+  subgraph Backend[&quot;Backend API (backend/)&quot;]
+    direction TB
+    Routes[&quot;Routes Layer&lt;br/&gt;30+ route modules&quot;]
+    Middleware[&quot;Middleware&lt;br/&gt;auth.js · adminAuth.js&quot;]
+    Services[&quot;Services Layer&quot;]
+    Models[&quot;Mongoose Models&lt;br/&gt;User · Order · Supplier · Store...&quot;]
+  end
+
+  subgraph ServicesDetail[&quot;Key Services&quot;]
+    COS[&quot;customerOrderService.js&quot;]
+    SA[&quot;serviceableArea.js&quot;]
+    GM[&quot;googleMaps.js&quot;]
+    GR[&quot;groq.js&quot;]
+    RZ[&quot;razorpay.js&quot;]
+    OP[&quot;orderPayout.js&quot;]
+  end
+
+  MAuth --&gt; Routes
+  MOrder --&gt; Routes
+  MAddr --&gt; Routes
+  MSupplier --&gt; Routes
+  MRider --&gt; Routes
+  MAi --&gt; Routes
+
+  AAuth --&gt; Routes
+  ADash --&gt; Routes
+  AApprove --&gt; Routes
+  AFinance --&gt; Routes
+  AAreas --&gt; Routes
+  ASupport --&gt; Routes
+
+  Routes --&gt; Middleware
+  Middleware --&gt; Services
+  Services --&gt; ServicesDetail
+  Services --&gt; Models
+  Models --&gt; Atlas[(&quot;MongoDB Atlas&quot;)]
+  ServicesDetail --&gt; GroqExt[&quot;Groq API&quot;]
+  ServicesDetail --&gt; GMapsExt[&quot;Google Maps API&quot;]
+  ServicesDetail --&gt; RazorpayExt[&quot;Razorpay API&quot;]</pre></div>
+<h3>2.2 Request Flow (Generic)</h3>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 3</div><pre class="mermaid">sequenceDiagram
+  participant Client as Mobile / Admin
+  participant MW as Auth Middleware
+  participant Route as Route Handler
+  participant Svc as Service Layer
+  participant DB as MongoDB Atlas
+  participant Ext as External API
+
+  Client-&gt;&gt;Route: HTTP Request + Bearer JWT
+  Route-&gt;&gt;MW: Verify token
+  MW-&gt;&gt;DB: Load User (if app auth)
+  MW--&gt;&gt;Route: req.user attached
+  Route-&gt;&gt;Svc: Business logic
+  Svc-&gt;&gt;DB: Read / Write documents
+  opt Third-party needed
+    Svc-&gt;&gt;Ext: Groq / Maps / Razorpay
+    Ext--&gt;&gt;Svc: Response
+  end
+  Svc--&gt;&gt;Route: Result
+  Route--&gt;&gt;Client: JSON response</pre></div>
+<hr />
+<h2>3. Deployment Architecture (AWS)</h2>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 4</div><pre class="mermaid">flowchart LR
+  subgraph Dev[&quot;Developer Machine&quot;]
+    Git[&quot;Git Push&quot;]
+    Expo[&quot;Expo Go / APK Build&lt;br/&gt;EAS Build&quot;]
+  end
+
+  subgraph GitHub[&quot;GitHub Repository&quot;]
+    Repo[&quot;H20online&lt;br/&gt;backend/ admin/ mobile/&quot;]
+  end
+
+  subgraph EC2[&quot;AWS EC2 — Ubuntu&quot;]
+    PM2API[&quot;PM2: backend&lt;br/&gt;Node.js :5000&quot;]
+    PM2Admin[&quot;PM2: admin dist&lt;br/&gt;serve :3000&quot;]
+    Env[&quot;backend/.env&lt;br/&gt;JWT · MONGODB_URI · GROQ · Maps · Razorpay&quot;]
+  end
+
+  subgraph Atlas[&quot;MongoDB Atlas&quot;]
+    Cluster[&quot;H20online Cluster&lt;br/&gt;mongodb+srv://...&quot;]
+  end
+
+  subgraph Users[&quot;End Users&quot;]
+    Phone[&quot;📱 Customer / Supplier / Rider&quot;]
+    Browser[&quot;🌐 Admin Browser&quot;]
+  end
+
+  Git --&gt; Repo
+  Repo --&gt;|&quot;SSH git pull&lt;br/&gt;npm install · pm2 restart&quot;| EC2
+  Expo --&gt;|&quot;EXPO_PUBLIC_API_URL&quot;| PM2API
+  Phone --&gt; PM2API
+  Browser --&gt; PM2Admin
+  PM2Admin --&gt; PM2API
+  PM2API --&gt; Cluster
+  PM2API --&gt; GroqCloud[&quot;api.groq.com&quot;]
+  PM2API --&gt; GoogleCloud[&quot;maps.googleapis.com&quot;]
+  PM2API --&gt; RazorpayCloud[&quot;api.razorpay.com&quot;]</pre></div>
+<h3>Production Configuration</h3>
+<table><thead><tr><th>Component</th><th>Config File</th><th>Key Variables</th></tr></thead><tbody><tr><td>Backend</td><td><code class="inline">backend/.env</code></td><td><code class="inline">MONGODB_URI</code>, <code class="inline">JWT_SECRET</code>, <code class="inline">GROQ_API_KEY</code>, <code class="inline">GOOGLE_MAPS_API_KEY</code>, <code class="inline">RAZORPAY_KEY_ID/SECRET</code>, <code class="inline">CORS_ORIGINS</code></td></tr><tr><td>Admin</td><td><code class="inline">admin/.env</code></td><td><code class="inline">VITE_API_URL=http://13.62.57.255:5000</code></td></tr><tr><td>Mobile</td><td><code class="inline">mobile/.env</code> / <code class="inline">eas.json</code></td><td><code class="inline">EXPO_PUBLIC_API_URL</code>, <code class="inline">EXPO_PUBLIC_GOOGLE_MAPS_API_KEY</code>, <code class="inline">EXPO_PUBLIC_RAZORPAY_KEY_ID</code></td></tr><tr><td>AWS URLs</td><td><code class="inline">config/aws-production.json</code></td><td>Single source of truth for EC2 IP and ports</td></tr></tbody></table>
+<p><strong>Security Group ports:</strong> 22 (SSH), 5000 (API), 3000 (Admin), 80/443 (optional reverse proxy).</p>
+<hr />
+<h2>4. Third-Party Integrations</h2>
+<table><thead><tr><th>Integration</th><th>Provider</th><th>Config (Backend)</th><th>Config (Mobile)</th><th>Used For</th><th>Backend Files</th></tr></thead><tbody><tr><td><strong>Database</strong></td><td>MongoDB Atlas</td><td><code class="inline">MONGODB_URI</code></td><td>—</td><td>All persistence</td><td><code class="inline">config/db.js</code>, <code class="inline">config/mongo.js</code></td></tr><tr><td><strong>AI</strong></td><td>Groq</td><td><code class="inline">GROQ_API_KEY</code>, <code class="inline">GROQ_MODEL</code></td><td>—</td><td>Water insights, intake tips, reports, Q&amp;A</td><td><code class="inline">services/groq.js</code>, <code class="inline">routes/ai.js</code>, <code class="inline">services/waterAiContext.js</code></td></tr><tr><td><strong>Maps (server)</strong></td><td>Google Maps</td><td><code class="inline">GOOGLE_MAPS_API_KEY</code></td><td>—</td><td>Distance Matrix (ETA), Geocoding (PIN→coords)</td><td><code class="inline">services/googleMaps.js</code>, <code class="inline">services/serviceableArea.js</code>, <code class="inline">routes/maps.js</code></td></tr><tr><td><strong>Maps (client)</strong></td><td>Google Maps</td><td>—</td><td><code class="inline">EXPO_PUBLIC_GOOGLE_MAPS_API_KEY</code></td><td>Map picker, reverse geocode, device location</td><td><code class="inline">mobile/src/components/AddressMapPicker.native.js</code>, <code class="inline">utils/googleMaps.js</code></td></tr><tr><td><strong>Payments</strong></td><td>Razorpay</td><td><code class="inline">RAZORPAY_KEY_ID</code>, <code class="inline">RAZORPAY_KEY_SECRET</code></td><td><code class="inline">EXPO_PUBLIC_RAZORPAY_KEY_ID</code></td><td>Online payment → order creation</td><td><code class="inline">services/razorpay.js</code>, <code class="inline">routes/payments.js</code></td></tr><tr><td><strong>Hosting</strong></td><td>AWS EC2</td><td>Server <code class="inline">.env</code></td><td><code class="inline">EXPO_PUBLIC_API_URL</code></td><td>Production API + Admin hosting</td><td><code class="inline">docs/DEPLOYMENT-GUIDE.md</code>, PM2</td></tr></tbody></table>
+<h3>Groq AI Endpoints</h3>
+<table><thead><tr><th>Endpoint</th><th>Method</th><th>Purpose</th></tr></thead><tbody><tr><td><code class="inline">/api/ai/water-insight</code></td><td>GET</td><td>Personalized hydration insight on dashboard</td></tr><tr><td><code class="inline">/api/ai/intake-sense?date=</code></td><td>GET</td><td>Daily intake analysis</td></tr><tr><td><code class="inline">/api/ai/water-report</code></td><td>POST</td><td>Generate health/hydration report</td></tr><tr><td><code class="inline">/api/ai/ask</code></td><td>POST</td><td>Natural language Q&amp;A about water/health</td></tr></tbody></table>
+<p>Fallback responses are returned when <code class="inline">GROQ_API_KEY</code> is missing or the API fails (<code class="inline">services/groq.js</code>).</p>
+<h3>Google Maps Endpoints</h3>
+<table><thead><tr><th>Endpoint</th><th>Method</th><th>Purpose</th></tr></thead><tbody><tr><td><code class="inline">/api/maps/travel</code></td><td>POST</td><td>Batch distance/duration from store → customer</td></tr><tr><td><code class="inline">/api/serviceability/check</code></td><td>POST</td><td>PIN/radius serviceability (uses geocoding internally)</td></tr></tbody></table>
+<hr />
+<h2>5. Authentication &amp; Authorization</h2>
+<h3>5.1 Mobile App Authentication (JWT)</h3>
+<p>All mobile users authenticate via <code class="inline">POST /api/auth/*</code> and receive a <strong>7-day JWT</strong> (<code class="inline">{ userId }</code>).</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 5</div><pre class="mermaid">sequenceDiagram
+  participant App as Mobile App
+  participant Auth as /api/auth
+  participant DB as MongoDB
+  participant MW as auth middleware
+
+  alt Customer Registration
+    App-&gt;&gt;Auth: POST /register {name, email, phone, password}
+    Auth-&gt;&gt;DB: Create User (role: customer)
+  else Supplier Registration
+    App-&gt;&gt;Auth: POST /register-supplier {business details, documents}
+    Auth-&gt;&gt;DB: Create User + Supplier (onboardingStatus: pending)
+  else Rider Registration
+    App-&gt;&gt;Auth: POST /register-delivery {vehicle, phone}
+    Auth-&gt;&gt;DB: Create User + DeliveryPartner (onboardingStatus: pending)
+  else Society Registration
+    App-&gt;&gt;Auth: POST /register-society {society details}
+    Auth-&gt;&gt;DB: Create User + Society
+  end
+
+  Auth--&gt;&gt;App: { user, token }
+
+  Note over App: Token stored in AsyncStorage (h20_auth_token)
+
+  App-&gt;&gt;MW: Subsequent requests: Authorization: Bearer token
+  MW-&gt;&gt;DB: User.findById(decoded.userId)
+  MW--&gt;&gt;App: req.user attached → protected routes</pre></div>
+<h3>5.2 Mobile User Roles</h3>
+<table><thead><tr><th>Role</th><th>Registration</th><th>Default Status</th><th>Mobile Screens After Login</th></tr></thead><tbody><tr><td><strong>customer</strong></td><td><code class="inline">POST /api/auth/register</code></td><td>Active</td><td>Dashboard, Order, Checkout, Tracking</td></tr><tr><td><strong>supplier</strong></td><td><code class="inline">POST /api/auth/register-supplier</code></td><td>Pending until admin verify</td><td>Verification pending → Supplier dashboard</td></tr><tr><td><strong>deliveryPartner</strong></td><td><code class="inline">POST /api/auth/register-delivery</code></td><td>Pending until admin verify</td><td>Verification pending → Rider dashboard</td></tr><tr><td><strong>society</strong></td><td><code class="inline">POST /api/auth/register-society</code></td><td>Active</td><td>Society product catalog &amp; orders</td></tr></tbody></table>
+<p><strong>Session restore:</strong> App reads token from AsyncStorage → <code class="inline">GET /api/users/me</code> on startup (<code class="inline">mobile/src/context/AuthContext.js</code>).</p>
+<p><strong>Routing logic:</strong> <code class="inline">mobile/src/utils/authRouting.js</code> redirects suppliers/riders with <code class="inline">onboardingStatus !== &quot;approved&quot;</code> to verification-pending screens.</p>
+<h3>5.3 Admin Portal Authentication</h3>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 6</div><pre class="mermaid">sequenceDiagram
+  participant Browser as Admin Browser
+  participant Auth as /api/admin/auth
+  participant DB as MongoDB
+  participant MW as adminAuth middleware
+
+  alt Master Admin
+    Browser-&gt;&gt;Auth: POST /login {MASTER_ADMIN_EMAIL, MASTER_ADMIN_PASSWORD}
+    Auth--&gt;&gt;Browser: JWT { master: true }
+  else Admin / Sub-admin
+    Browser-&gt;&gt;Auth: POST /login {email, password}
+    Auth-&gt;&gt;DB: User.findOne (role: admin | sub-admin)
+    Auth--&gt;&gt;Browser: JWT { userId }
+  end
+
+  Note over Browser: Token in localStorage (h20_admin_token)
+
+  Browser-&gt;&gt;MW: Authorization: Bearer token
+  MW--&gt;&gt;Browser: req.user with role + RBAC guards</pre></div>
+<h3>5.4 Admin Role Permissions (RBAC)</h3>
+<table><thead><tr><th>Capability</th><th>Master</th><th>Admin</th><th>Sub-admin</th></tr></thead><tbody><tr><td>Dashboard, Users, Orders (view)</td><td>✅</td><td>✅</td><td>✅</td></tr><tr><td>Supplier / Rider / Store verify</td><td>✅</td><td>✅</td><td>✅</td></tr><tr><td>Products, Plans, Subscriptions</td><td>✅</td><td>✅</td><td>✅</td></tr><tr><td>Serviceable Areas</td><td>✅</td><td>✅</td><td>✅</td></tr><tr><td>Support tickets (all types)</td><td>✅</td><td>✅</td><td>✅</td></tr><tr><td>Surveys</td><td>✅</td><td>✅</td><td>✅</td></tr><tr><td><strong>Financials</strong></td><td>✅</td><td>✅</td><td>❌</td></tr><tr><td><strong>Delete user</strong></td><td>✅</td><td>✅</td><td>❌</td></tr><tr><td><strong>Remove supplier</strong></td><td>✅</td><td>✅</td><td>❌</td></tr><tr><td><strong>Create admin users</strong></td><td>✅</td><td>✅</td><td>❌</td></tr><tr><td>Change master credentials</td><td>✅</td><td>❌</td><td>❌</td></tr></tbody></table>
+<p>Guards implemented in <code class="inline">backend/middleware/adminAuth.js</code>: <code class="inline">requireCanSeeFinancials</code>, <code class="inline">requireCanDeleteUser</code>, <code class="inline">requireCanRemoveSupplier</code>, <code class="inline">requireCanCreateAdmin</code>.</p>
+<hr />
+<h2>6. Address &amp; Serviceability Data Flow</h2>
+<p>Addresses and serviceability are checked at <strong>three layers</strong>: map picker (client), checkout (client + API), and order creation (server — authoritative).</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 7</div><pre class="mermaid">flowchart TB
+  subgraph CustomerMobile[&quot;Customer Mobile&quot;]
+    MapPicker[&quot;AddressMapPicker&lt;br/&gt;react-native-maps + Google Geocoding&quot;]
+    SavedAddr[&quot;SavedAddressesScreen&lt;br/&gt;CRUD addresses&quot;]
+    Checkout[&quot;CheckoutScreen&lt;br/&gt;Select / enter address&quot;]
+  end
+
+  subgraph BackendAPI[&quot;Backend API&quot;]
+    AddrAPI[&quot;/api/addresses&lt;br/&gt;GET · POST · PUT · DELETE&quot;]
+    SvcAPI[&quot;/api/serviceability/check&lt;br/&gt;POST pinCode + lat/lng + supplierIds&quot;]
+    MapsAPI[&quot;/api/maps/travel&lt;br/&gt;POST store → customer distances&quot;]
+    OrderAPI[&quot;POST /api/orders&lt;br/&gt;Re-validates serviceability&quot;]
+  end
+
+  subgraph BackendLogic[&quot;Backend Logic&quot;]
+    SavedModel[(&quot;SavedAddress&lt;br/&gt;houseNumber, pinCode, lat, lng&quot;)]
+    SvcModel[(&quot;ServiceableArea&lt;br/&gt;pinCode, radiusKm, supplierId&quot;)]
+    SvcSvc[&quot;serviceableArea.js&lt;br/&gt;PIN match OR haversine radius&quot;]
+    GeoSvc[&quot;googleMaps.js&lt;br/&gt;Geocode PIN if no coords&quot;]
+  end
+
+  subgraph Google[&quot;Google Maps API&quot;]
+    Geocode[&quot;Geocoding API&quot;]
+    Matrix[&quot;Distance Matrix API&quot;]
+  end
+
+  MapPicker --&gt;|&quot;lat, lng, formatted address&quot;| SavedAddr
+  SavedAddr --&gt;|&quot;POST /api/addresses&quot;| AddrAPI
+  AddrAPI --&gt; SavedModel
+
+  Checkout --&gt;|&quot;Load saved addresses&quot;| AddrAPI
+  Checkout --&gt;|&quot;Check before pay&quot;| SvcAPI
+  SvcAPI --&gt; SvcSvc
+  SvcSvc --&gt; SvcModel
+  SvcSvc --&gt;|&quot;PIN has no coords&quot;| GeoSvc
+  GeoSvc --&gt; Geocode
+
+  Checkout --&gt;|&quot;Show store distances&quot;| MapsAPI
+  MapsAPI --&gt; Matrix
+
+  Checkout --&gt;|&quot;Place order with pinCode + coords&quot;| OrderAPI
+  OrderAPI --&gt; SvcSvc
+  OrderAPI --&gt;|&quot;Compute ETA per supplier/store&quot;| Matrix
+  OrderAPI --&gt;|&quot;Auto-save address if new&quot;| SavedModel</pre></div>
+<h3>Serviceability Rules</h3>
+<ol><li>Admin defines <strong>ServiceableArea</strong> per supplier: PIN code + optional lat/lng + radius (default 10 km).</li><li><code class="inline">checkServiceability()</code> matches if:</li></ol>
+<ul><li>   - Exact <strong>6-digit PIN</strong> matches, <strong>OR</strong></li><li>   - Customer coordinates fall within <strong>haversine radius</strong> of supplier area center.</li></ul>
+<ol><li>If PIN has no coordinates, backend <strong>geocodes</strong> via Google Maps.</li><li>Checkout calls <code class="inline">POST /api/serviceability/check</code> — blocks order if unserviceable.</li><li><code class="inline">createCustomerOrder()</code> <strong>re-checks server-side</strong> (client check is not trusted alone).</li></ol>
+<h3>Address Fields (SavedAddress model)</h3>
+<table><thead><tr><th>Field</th><th>Required</th><th>Used In</th></tr></thead><tbody><tr><td>houseNumber, locality, city, state</td><td>Yes</td><td>Display, order delivery</td></tr><tr><td>pinCode (6-digit)</td><td>Yes</td><td>Serviceability</td></tr><tr><td>phoneNumber</td><td>Yes</td><td>Delivery contact</td></tr><tr><td>latitude, longitude</td><td>Optional (from map picker)</td><td>Radius serviceability, travel ETA</td></tr><tr><td>isDefault</td><td>Optional</td><td>Checkout pre-selection</td></tr></tbody></table>
+<hr />
+<h2>7. Order Lifecycle — Cross-Actor Flow</h2>
+<h3>7.1 Order State Machine</h3>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 8</div><pre class="mermaid">stateDiagram-v2
+  [*] --&gt; OrderCreated: Customer places order
+
+  state OrderCreated {
+    [*] --&gt; in_progress
+    note right of in_progress: Order.status = in_progress
+  }
+
+  state SupplierResponses {
+    [*] --&gt; pending: One entry per supplier
+    pending --&gt; accepted: Supplier accepts
+    pending --&gt; rejected: Supplier rejects
+    accepted --&gt; picked_up: Rider picks up
+    picked_up --&gt; delivered: Rider delivers
+  }
+
+  OrderCreated --&gt; SupplierResponses
+
+  rejected --&gt; AllRejected: All suppliers reject
+  AllRejected --&gt; cancelled: Order.status = cancelled
+
+  accepted --&gt; RiderAssigned: deliveryPartnerId set
+  RiderAssigned --&gt; LiveTracking: Rider sends GPS updates
+  LiveTracking --&gt; OrderDelivered: PATCH /delivered
+
+  OrderDelivered --&gt; [*]: Order.status = delivered
+  cancelled --&gt; [*]
+
+  in_progress --&gt; cancelled: Customer or Supplier cancels</pre></div>
+<h3>7.2 Order Status Fields</h3>
+<table><thead><tr><th>Field</th><th>Values</th><th>Actor</th></tr></thead><tbody><tr><td><code class="inline">Order.status</code></td><td><code class="inline">in_progress</code> → <code class="inline">delivered</code> \</td><td><code class="inline">cancelled</code></td><td>System</td></tr><tr><td><code class="inline">supplierResponses[].status</code></td><td><code class="inline">pending</code> → <code class="inline">accepted</code> \</td><td><code class="inline">rejected</code></td><td>Supplier</td></tr><tr><td><code class="inline">supplierResponses[].deliveryStage</code></td><td><code class="inline">accepted</code> → <code class="inline">picked_up</code> → <code class="inline">delivered</code></td><td>Rider</td></tr><tr><td><code class="inline">paymentStatus</code></td><td><code class="inline">pending</code> \</td><td><code class="inline">paid</code> \</td><td><code class="inline">failed</code></td><td>Payment gateway</td></tr></tbody></table>
+<h3>7.3 End-to-End Order Sequence (All Actors)</h3>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 9</div><pre class="mermaid">sequenceDiagram
+  autonumber
+  participant C as 👤 Customer&lt;br/&gt;(Mobile)
+  participant API as ⚙️ Backend API
+  participant GMaps as 🗺️ Google Maps
+  participant DB as 🍃 MongoDB
+  participant S as 🏪 Supplier&lt;br/&gt;(Mobile)
+  participant R as 🛵 Rider&lt;br/&gt;(Mobile)
+  participant A as 🖥️ Admin&lt;br/&gt;(Portal)
+
+  Note over C,A: ─── ORDER CREATION ───
+
+  C-&gt;&gt;API: Browse GET /api/products
+  API-&gt;&gt;DB: Product catalog + supplier/store info
+  API--&gt;&gt;C: Products list
+
+  C-&gt;&gt;API: POST /api/serviceability/check {pinCode, supplierIds}
+  API-&gt;&gt;GMaps: Geocode PIN (if needed)
+  API-&gt;&gt;DB: ServiceableArea lookup
+  API--&gt;&gt;C: { serviceable: true/false }
+
+  C-&gt;&gt;API: POST /api/orders {items, address, paymentMethod}
+  API-&gt;&gt;API: Validate billing + tax
+  API-&gt;&gt;DB: Deduct product stock
+  API-&gt;&gt;DB: Wallet debit (if wallet payment)
+  API-&gt;&gt;GMaps: travelInfoBatch (store → customer ETA)
+  API-&gt;&gt;DB: Create Order (supplierResponses: all pending)
+  API--&gt;&gt;C: Order ID + ETA estimate
+
+  Note over C,A: ─── SUPPLIER FULFILLMENT ───
+
+  S-&gt;&gt;API: GET /api/supplier/orders/incoming
+  API--&gt;&gt;S: Pending orders for this supplier
+
+  S-&gt;&gt;API: PATCH /api/supplier/orders/:id/accept&lt;br/&gt;{deliveryPartnerId, eta}
+  API-&gt;&gt;DB: supplierResponse.status = accepted&lt;br/&gt;Assign rider
+  API--&gt;&gt;S: Updated order
+
+  Note over C,A: ─── RIDER DELIVERY ───
+
+  R-&gt;&gt;API: GET /api/delivery-partners/orders/incoming
+  API--&gt;&gt;R: Assigned orders
+
+  R-&gt;&gt;API: PATCH /api/delivery-partners/orders/:id/picked-up
+  API-&gt;&gt;DB: deliveryStage = picked_up
+  API--&gt;&gt;R: OK
+
+  loop Live tracking
+    R-&gt;&gt;API: PATCH .../location {lat, lng}
+    API-&gt;&gt;DB: Update partnerLatitude/Longitude + liveEta
+  end
+
+  C-&gt;&gt;API: GET /api/orders/:id/tracking
+  API--&gt;&gt;C: Live rider location + ETA
+
+  R-&gt;&gt;API: PATCH /api/delivery-partners/orders/:id/delivered
+  API-&gt;&gt;DB: deliveryStage = delivered, Order.status = delivered
+  API-&gt;&gt;API: orderPayout.js (supplier + rider commission)
+  API--&gt;&gt;R: Delivery complete
+
+  Note over C,A: ─── ADMIN OVERSIGHT ───
+
+  A-&gt;&gt;API: GET /api/admin/orders
+  API--&gt;&gt;A: All orders with full detail</pre></div>
+<h3>7.4 Order Creation Internals (<code class="inline">customerOrderService.js</code>)</h3>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 10</div><pre class="mermaid">flowchart TD
+  A[&quot;POST /api/orders&lt;br/&gt;or Razorpay verify-payment&quot;] --&gt; B[&quot;Validate items + tax billing&quot;]
+  B --&gt; C[&quot;Extract 6-digit PIN from body&quot;]
+  C --&gt; D[&quot;checkServiceability()&lt;br/&gt;per supplier&quot;]
+  D --&gt;|Not serviceable| E[&quot;400 Error — block order&quot;]
+  D --&gt;|Serviceable| F[&quot;Deduct product stock&quot;]
+  F --&gt; G{&quot;Payment method?&quot;}
+  G --&gt;|wallet| H[&quot;Debit customer wallet&quot;]
+  G --&gt;|razorpay| I[&quot;Already verified via payments route&quot;]
+  G --&gt;|cod/card| J[&quot;Record payment method&quot;]
+  H --&gt; K[&quot;Create Order document&quot;]
+  I --&gt; K
+  J --&gt; K
+  K --&gt; L[&quot;Build supplierResponses[]&lt;br/&gt;one pending per supplier&quot;]
+  L --&gt; M[&quot;travelInfoBatch via Google Maps&lt;br/&gt;store coords → customer coords&quot;]
+  M --&gt; N[&quot;Compute ETA band&quot;]
+  N --&gt; O[&quot;Optionally auto-save new address&quot;]
+  O --&gt; P[&quot;Return order to customer&quot;]</pre></div>
+<hr />
+<h2>8. Payment Data Flow (Razorpay)</h2>
+<p>Direct <code class="inline">POST /api/orders</code> with <code class="inline">paymentMethod: &quot;razorpay&quot;</code> is <strong>rejected</strong> — payment must go through the verify flow.</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 11</div><pre class="mermaid">sequenceDiagram
+  participant C as Customer Mobile
+  participant API as Backend API
+  participant RZ as Razorpay
+  participant DB as MongoDB
+
+  C-&gt;&gt;API: POST /api/payments/razorpay/create-order {subtotal}
+  API-&gt;&gt;API: Apply tax settings
+  API-&gt;&gt;RZ: Create Razorpay order
+  RZ--&gt;&gt;API: order_id + amount
+  API--&gt;&gt;C: { order_id, amount, key_id }
+
+  C-&gt;&gt;RZ: Razorpay SDK checkout (mobile)
+  RZ--&gt;&gt;C: payment_id + signature
+
+  C-&gt;&gt;API: POST /api/payments/razorpay/verify-payment&lt;br/&gt;{order_id, payment_id, signature, orderBody}
+  API-&gt;&gt;API: HMAC signature verification
+  API-&gt;&gt;API: createCustomerOrder(user, orderBody)
+  API-&gt;&gt;DB: Order created (paymentStatus: paid)
+  API--&gt;&gt;C: { order, token unchanged }</pre></div>
+<p><strong>Other payment methods:</strong> <code class="inline">wallet</code> (debit on create), <code class="inline">cod</code>, <code class="inline">card</code> (direct order create).</p>
+<hr />
+<h2>9. AI (Groq) Data Flow</h2>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 12</div><pre class="mermaid">sequenceDiagram
+  participant C as Customer Mobile
+  participant API as /api/ai/*
+  participant Ctx as waterAiContext.js
+  participant DB as MongoDB
+  participant Groq as Groq API&lt;br/&gt;(llama-3.3-70b)
+
+  C-&gt;&gt;API: GET /api/ai/water-insight
+  API-&gt;&gt;Ctx: Build hydration context
+  Ctx-&gt;&gt;DB: WaterIntake, User profile, goals
+  Ctx--&gt;&gt;API: Context object
+
+  alt GROQ_API_KEY set
+    API-&gt;&gt;Groq: chat/completions (structured prompt)
+    Groq--&gt;&gt;API: AI-generated insight
+  else No key or API failure
+    API-&gt;&gt;API: buildFallbackInsight()
+  end
+
+  API--&gt;&gt;C: { insight, cached: true/false }
+
+  Note over C,Groq: Same pattern for intake-sense, water-report, ask</pre></div>
+<p><strong>Caching:</strong> 15-minute in-memory cache per user per insight type (<code class="inline">services/groq.js</code>).</p>
+<hr />
+<h2>10. Supplier Onboarding Journey</h2>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 13</div><pre class="mermaid">flowchart TD
+  Start([&quot;Supplier opens Mobile App&quot;]) --&gt; Role[&quot;Select Partner role&quot;]
+  Role --&gt; Reg[&quot;POST /api/auth/register-supplier&lt;br/&gt;Business name, GST, bank, documents&quot;]
+  Reg --&gt; Pending[&quot;User.role = supplier&lt;br/&gt;Supplier.onboardingStatus = pending&quot;]
+  Pending --&gt; WaitScreen[&quot;SupplierVerificationPendingScreen&lt;br/&gt;Polls GET /api/suppliers/me&quot;]
+
+  WaitScreen --&gt; AdminQueue[&quot;Admin Portal: /suppliers&lt;br/&gt;Review pending applications&quot;]
+  AdminQueue --&gt; Review[&quot;Admin reviews documents&lt;br/&gt;GST, bank, business details&quot;]
+  Review --&gt; Decision{Approve?}
+
+  Decision --&gt;|Yes| Approve[&quot;PATCH /api/admin/suppliers/:id/verify&lt;br/&gt;approve: true&quot;]
+  Decision --&gt;|No| Reject[&quot;Reject with remarks&lt;br/&gt;Supplier notified&quot;]
+
+  Approve --&gt; Approved[&quot;onboardingStatus = approved&quot;]
+  Approved --&gt; Dashboard[&quot;Supplier Dashboard unlocked&quot;]
+  Dashboard --&gt; Products[&quot;Manage products&lt;br/&gt;GET/POST /api/products&quot;]
+  Dashboard --&gt; Stores[&quot;Add stores&lt;br/&gt;POST /api/stores&quot;]
+  Dashboard --&gt; Riders[&quot;Add fleet riders&lt;br/&gt;POST /api/supplier/delivery-partners&quot;]
+  Dashboard --&gt; Orders[&quot;Accept/reject orders&lt;br/&gt;PATCH /api/supplier/orders/:id/*&quot;]
+  Dashboard --&gt; Areas[&quot;Service areas managed by Admin&quot;]</pre></div>
+<h3>Supplier Registration Data</h3>
+<table><thead><tr><th>Field</th><th>Stored In</th><th>Verified By</th></tr></thead><tbody><tr><td>Business name, contact</td><td><code class="inline">Supplier</code></td><td>Admin</td></tr><tr><td>GST number</td><td><code class="inline">Supplier</code></td><td>Admin</td></tr><tr><td>Bank details</td><td><code class="inline">Supplier</code></td><td>Admin</td></tr><tr><td>Document URLs (license, etc.)</td><td><code class="inline">Supplier.documents</code></td><td>Admin</td></tr><tr><td>Business address + lat/lng</td><td><code class="inline">Supplier</code></td><td>Admin / self-update via PATCH /api/suppliers/me</td></tr></tbody></table>
+<hr />
+<h2>11. Rider / Delivery Partner Journey</h2>
+<p>Riders can join the platform through <strong>three paths</strong>:</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 14</div><pre class="mermaid">flowchart TB
+  subgraph Path1[&quot;Path 1: Self-Registration&quot;]
+    R1[&quot;Rider downloads app&quot;] --&gt; R2[&quot;POST /api/auth/register-delivery&quot;]
+    R2 --&gt; R3[&quot;DeliveryPartner created&lt;br/&gt;onboardingStatus: pending&quot;]
+    R3 --&gt; R4[&quot;Admin verifies&lt;br/&gt;PATCH /api/admin/delivery-partners/:id/verify&quot;]
+  end
+
+  subgraph Path2[&quot;Path 2: Supplier-as-Rider&quot;]
+    S1[&quot;Register as supplier with&lt;br/&gt;businessType: deliveryAgent&quot;] --&gt; S2[&quot;Auto-creates DeliveryPartner&quot;]
+    S2 --&gt; R4
+  end
+
+  subgraph Path3[&quot;Path 3: Supplier Fleet (instant)&quot;]
+    F1[&quot;Approved supplier adds rider&quot;] --&gt; F2[&quot;POST /api/supplier/delivery-partners&quot;]
+    F2 --&gt; F3[&quot;managedBySupplier: true&lt;br/&gt;Auto-approved&quot;]
+  end
+
+  R4 --&gt; Approved[&quot;onboardingStatus: approved&quot;]
+  F3 --&gt; Approved
+
+  Approved --&gt; Online[&quot;PATCH /api/delivery-partners/me/online&lt;br/&gt;Go online&quot;]
+  Online --&gt; Location[&quot;PATCH /api/delivery-partners/me/location&lt;br/&gt;Share GPS&quot;]
+  Location --&gt; Assign[&quot;Supplier assigns on order accept&lt;br/&gt;deliveryPartnerId&quot;]
+  Assign --&gt; Deliver[&quot;Pickup → Track → Deliver flow&quot;]</pre></div>
+<h3>Rider Vehicle Types</h3>
+<p><code class="inline">bike</code> · <code class="inline">van</code> · <code class="inline">bicycle</code> · <code class="inline">tanker</code> · <code class="inline">miniTruck</code></p>
+<h3>Rider Availability Rules (<code class="inline">partnerAvailability.js</code>)</h3>
+<ul><li>Must be <strong>admin-approved</strong> (<code class="inline">onboardingStatus: approved</code>)</li><li>Must be <strong>online</strong> to receive assignments</li><li>Cannot be on an <strong>in-flight delivery</strong> for another order</li></ul>
+<hr />
+<h2>12. Store Management Journey</h2>
+<p>Stores/warehouses are the physical fulfillment points used for travel ETA and order routing.</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 15</div><pre class="mermaid">sequenceDiagram
+  participant S as Supplier (Mobile)
+  participant API as Backend API
+  participant DB as MongoDB
+  participant A as Admin Portal
+  participant C as Customer Order Flow
+
+  S-&gt;&gt;API: POST /api/stores&lt;br/&gt;{name, type, address, lat, lng}
+  API-&gt;&gt;DB: Store created (status: pending)
+  API--&gt;&gt;S: Store ID
+
+  A-&gt;&gt;API: GET /api/admin/stores?status=pending
+  API--&gt;&gt;A: Pending store queue
+
+  A-&gt;&gt;API: PATCH /api/admin/stores/:id/approve
+  API-&gt;&gt;DB: Store.status = approved
+  API--&gt;&gt;A: OK
+
+  Note over S,C: Approved store coords used in orders
+
+  C-&gt;&gt;API: POST /api/orders (items linked to storeId)
+  API-&gt;&gt;DB: Load approved Store lat/lng
+  API-&gt;&gt;API: Google Maps travelInfoBatch
+  API-&gt;&gt;DB: Order.travelInfo populated</pre></div>
+<table><thead><tr><th>Store Field</th><th>Purpose</th></tr></thead><tbody><tr><td><code class="inline">type</code></td><td><code class="inline">store</code> or <code class="inline">warehouse</code></td></tr><tr><td><code class="inline">latitude</code>, <code class="inline">longitude</code></td><td>Required — map pin on creation</td></tr><tr><td><code class="inline">status</code></td><td><code class="inline">pending</code> → <code class="inline">approved</code> \</td><td><code class="inline">rejected</code></td></tr><tr><td><code class="inline">supplierId</code></td><td>Owner supplier</td></tr></tbody></table>
+<p><strong>Edit rule:</strong> If an approved store is edited by supplier, it may return to <strong>pending</strong> for re-approval.</p>
+<p><strong>Mobile screens:</strong> <code class="inline">SupplierStoresScreen.js</code>, <code class="inline">SupplierStoreLocationScreen.js</code>  </p>
+<p><strong>Admin screen:</strong> <code class="inline">admin/src/pages/Stores.jsx</code></p>
+<hr />
+<h2>13. Admin Portal Roles &amp; Capabilities</h2>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 16</div><pre class="mermaid">flowchart TB
+  Login[&quot;Admin Login&lt;br/&gt;POST /api/admin/auth/login&quot;] --&gt; RoleCheck{Role?}
+
+  RoleCheck --&gt;|master| Master[&quot;Full platform control&lt;br/&gt;+ change master credentials&quot;]
+  RoleCheck --&gt;|admin| AdminRole[&quot;Full management&lt;br/&gt;No master credential change&quot;]
+  RoleCheck --&gt;|sub-admin| SubAdmin[&quot;Operations only&lt;br/&gt;No financials / delete / admin create&quot;]
+
+  Master --&gt; Modules
+  AdminRole --&gt; Modules
+  SubAdmin --&gt; ModulesLimited
+
+  subgraph Modules[&quot;All Admin Modules&quot;]
+    M1[&quot;Dashboard — KPIs&quot;]
+    M2[&quot;Users — customer accounts&quot;]
+    M3[&quot;Orders — full order detail&quot;]
+    M4[&quot;Suppliers — verify / manage&quot;]
+    M5[&quot;Delivery Partners — verify / manage&quot;]
+    M6[&quot;Stores — approve / reject&quot;]
+    M7[&quot;Products — catalog management&quot;]
+    M8[&quot;Plans &amp; Subscriptions&quot;]
+    M9[&quot;Societies — corporate accounts&quot;]
+    M10[&quot;Serviceable Areas — PIN + radius&quot;]
+    M11[&quot;Wallet Management&quot;]
+    M12[&quot;Tax &amp; Payment Settings&quot;]
+    M13[&quot;Support — Customer / Supplier / Rider&quot;]
+    M14[&quot;Surveys — create &amp; results&quot;]
+    M15[&quot;Financials 💰&quot;]
+    M16[&quot;Admin Users 👤&quot;]
+  end
+
+  subgraph ModulesLimited[&quot;Sub-admin Access&quot;]
+    SL1[&quot;M1–M14 ✅&quot;]
+    SL2[&quot;M15 Financials ❌&quot;]
+    SL3[&quot;M16 Admin Users ❌&quot;]
+    SL4[&quot;Delete user ❌&quot;]
+    SL5[&quot;Remove supplier ❌&quot;]
+  end</pre></div>
+<h3>Admin ↔ Platform Operations Map</h3>
+<table><thead><tr><th>Admin Action</th><th>Affects</th><th>Mobile Impact</th></tr></thead><tbody><tr><td>Verify supplier</td><td>Supplier onboarding</td><td>Supplier dashboard unlocks</td></tr><tr><td>Verify rider</td><td>Rider onboarding</td><td>Rider can go online</td></tr><tr><td>Approve store</td><td>Store status</td><td>Store coords used in order ETA</td></tr><tr><td>Manage serviceable areas</td><td>ServiceableArea records</td><td>Checkout serviceability check</td></tr><tr><td>Tax settings</td><td>PlatformSettings</td><td>Order totals, Razorpay amounts</td></tr><tr><td>Wallet management</td><td>Wallet balances</td><td>Customer wallet checkout</td></tr><tr><td>Product management</td><td>Product catalog</td><td>Customer product browse</td></tr></tbody></table>
+<hr />
+<h2>14. Sample Customer User Journey</h2>
+<h3>14.1 Customer Journey Flow Diagram</h3>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 17</div><pre class="mermaid">flowchart TD
+  A([&quot;Open App&quot;]) --&gt; B[&quot;Welcome Screen&lt;br/&gt;Select Customer role&quot;]
+  B --&gt; C{Has account?}
+  C --&gt;|No| D[&quot;Create Profile&lt;br/&gt;POST /api/auth/register&quot;]
+  C --&gt;|Yes| E[&quot;Login&lt;br/&gt;POST /api/auth/login&quot;]
+  D --&gt; F[&quot;Dashboard&quot;]
+  E --&gt; F
+
+  F --&gt; G[&quot;Browse Products&lt;br/&gt;GET /api/products&quot;]
+  G --&gt; H[&quot;Add to Cart&quot;]
+  H --&gt; I[&quot;Checkout&quot;]
+
+  I --&gt; J{Address?}
+  J --&gt;|Saved| K[&quot;Select from GET /api/addresses&quot;]
+  J --&gt;|New| L[&quot;AddressMapPicker&lt;br/&gt;+ POST /api/addresses&quot;]
+  J --&gt;|Manual| M[&quot;Enter address + PIN&quot;]
+
+  K --&gt; N[&quot;Serviceability Check&lt;br/&gt;POST /api/serviceability/check&quot;]
+  L --&gt; N
+  M --&gt; N
+
+  N --&gt;|Not serviceable| O[&quot;Show error — change address&quot;]
+  O --&gt; J
+  N --&gt;|Serviceable| P{Payment?}
+
+  P --&gt;|Wallet| Q[&quot;POST /api/orders&lt;br/&gt;paymentMethod: wallet&quot;]
+  P --&gt;|Razorpay| R[&quot;Razorpay flow&lt;br/&gt;create-order → verify-payment&quot;]
+  P --&gt;|COD| S[&quot;POST /api/orders&lt;br/&gt;paymentMethod: cod&quot;]
+
+  Q --&gt; T[&quot;Order Created&quot;]
+  R --&gt; T
+  S --&gt; T
+
+  T --&gt; U[&quot;Track Delivery&lt;br/&gt;GET /api/orders/:id/tracking&quot;]
+  U --&gt; V[&quot;Order Delivered&quot;]
+  V --&gt; W[&quot;Submit Review&lt;br/&gt;POST /api/reviews&quot;]
+  W --&gt; X([&quot;Journey Complete&quot;])
+
+  F --&gt; Y[&quot;Water Intake Logging&lt;br/&gt;POST /api/water-intake&quot;]
+  Y --&gt; Z[&quot;AI Insights&lt;br/&gt;GET /api/ai/water-insight&quot;]
+  Z --&gt; F
+
+  F --&gt; AA[&quot;Manage Subscriptions&lt;br/&gt;GET /api/plans → POST /api/subscriptions&quot;]
+  AA --&gt; F</pre></div>
+<h3>14.2 Customer Journey Steps (Detailed)</h3>
+<table><thead><tr><th>Step</th><th>Screen</th><th>API / Integration</th><th>Outcome</th></tr></thead><tbody><tr><td>1</td><td>Welcome &amp; Role Selection</td><td>—</td><td>Choose Customer path</td></tr><tr><td>2</td><td>Create Profile / Login</td><td><code class="inline">POST /api/auth/register</code> or <code class="inline">/login</code></td><td>JWT token stored</td></tr><tr><td>3</td><td>Dashboard</td><td><code class="inline">GET /api/users/me</code>, <code class="inline">/api/wallet</code>, <code class="inline">/api/ai/water-insight</code></td><td>Personalized home + Groq insight</td></tr><tr><td>4</td><td>Browse Products</td><td><code class="inline">GET /api/products</code></td><td>Catalog with supplier info</td></tr><tr><td>5</td><td>Cart</td><td>Local state</td><td>Review items</td></tr><tr><td>6</td><td>Checkout — Address</td><td><code class="inline">GET /api/addresses</code>, Map picker + Google Maps</td><td>Delivery location set</td></tr><tr><td>7</td><td>Checkout — Serviceability</td><td><code class="inline">POST /api/serviceability/check</code> + Google Geocoding</td><td>Confirm deliverable</td></tr><tr><td>8</td><td>Checkout — Payment</td><td>Wallet / Razorpay / COD</td><td>Payment authorized</td></tr><tr><td>9</td><td>Order Placed</td><td><code class="inline">POST /api/orders</code> or Razorpay verify</td><td>Order <code class="inline">in_progress</code></td></tr><tr><td>10</td><td>Track Delivery</td><td><code class="inline">GET /api/orders/:id/tracking</code></td><td>Live rider GPS + ETA</td></tr><tr><td>11</td><td>Delivered</td><td>—</td><td>Status <code class="inline">delivered</code></td></tr><tr><td>12</td><td>Review</td><td><code class="inline">POST /api/reviews</code></td><td>Product rating</td></tr></tbody></table>
+<hr />
+<h2>15. Multi-Actor Order Fulfillment Journey</h2>
+<p>This diagram shows how <strong>one order</strong> connects all actors from placement to delivery.</p>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 18</div><pre class="mermaid">flowchart LR
+  subgraph Phase1[&quot;Phase 1 — Setup (Before Order)&quot;]
+    direction TB
+    A1[&quot;Admin approves Supplier&quot;]
+    A2[&quot;Admin approves Store&quot;]
+    A3[&quot;Admin sets Serviceable Areas&quot;]
+    A4[&quot;Supplier adds Products&quot;]
+    A5[&quot;Supplier adds Riders OR&lt;br/&gt;Admin approves self-registered Rider&quot;]
+    A1 --&gt; Ready
+    A2 --&gt; Ready
+    A3 --&gt; Ready
+    A4 --&gt; Ready
+    A5 --&gt; Ready
+    Ready[&quot;Platform Ready for Orders&quot;]
+  end
+
+  subgraph Phase2[&quot;Phase 2 — Order Placement&quot;]
+    direction TB
+    C1[&quot;Customer browses catalog&quot;]
+    C2[&quot;Selects address + PIN&quot;]
+    C3[&quot;Serviceability OK&quot;]
+    C4[&quot;Payment + Order created&quot;]
+    C1 --&gt; C2 --&gt; C3 --&gt; C4
+  end
+
+  subgraph Phase3[&quot;Phase 3 — Supplier Action&quot;]
+    direction TB
+    S1[&quot;Supplier sees incoming order&quot;]
+    S2[&quot;Accept + assign rider + ETA&quot;]
+    S3[&quot;Or reject order&quot;]
+    S1 --&gt; S2
+    S1 --&gt; S3
+  end
+
+  subgraph Phase4[&quot;Phase 4 — Delivery&quot;]
+    direction TB
+    R1[&quot;Rider sees assigned order&quot;]
+    R2[&quot;Mark picked up from store&quot;]
+    R3[&quot;GPS live tracking&quot;]
+    R4[&quot;Mark delivered&quot;]
+    R1 --&gt; R2 --&gt; R3 --&gt; R4
+  end
+
+  subgraph Phase5[&quot;Phase 5 — Completion&quot;]
+    direction TB
+    E1[&quot;Payout to supplier + rider&quot;]
+    E2[&quot;Customer reviews order&quot;]
+    E3[&quot;Admin sees completed order&quot;]
+    E1 --&gt; E2 --&gt; E3
+  end
+
+  Ready --&gt; Phase2
+  Phase2 --&gt; Phase3
+  Phase3 --&gt; Phase4
+  Phase4 --&gt; Phase5</pre></div>
+<h3>Swimlane Sequence (Customer · Supplier · Rider · Admin)</h3>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 19</div><pre class="mermaid">sequenceDiagram
+  box rgba(200,230,255,0.3) Customer
+    participant C as Customer
+  end
+  box rgba(200,255,200,0.3) Supplier
+    participant S as Supplier
+  end
+  box rgba(255,230,200,0.3) Rider
+    participant R as Rider
+  end
+  box rgba(255,200,255,0.3) Admin
+    participant A as Admin
+  end
+
+  Note over A: Pre-order: Admin approved supplier, store, service areas
+
+  C-&gt;&gt;C: Browse → Cart → Checkout
+  C-&gt;&gt;C: Address + serviceability check
+  C-&gt;&gt;C: Pay &amp; place order
+
+  S-&gt;&gt;S: Notification: incoming order
+  S-&gt;&gt;S: Accept order + pick rider from fleet
+  S-&gt;&gt;S: Set ETA
+
+  R-&gt;&gt;R: See assigned delivery
+  R-&gt;&gt;R: Navigate to store → Pick up
+  R-&gt;&gt;R: Navigate to customer → Live GPS
+
+  C-&gt;&gt;C: Track order on map
+
+  R-&gt;&gt;R: Mark delivered
+
+  C-&gt;&gt;C: Receive order + leave review
+
+  A-&gt;&gt;A: Monitor order in admin dashboard
+  A-&gt;&gt;A: Handle support ticket if issue raised</pre></div>
+<hr />
+<h2>16. Key API Reference by Actor</h2>
+<h3>Customer</h3>
+<table><thead><tr><th>Action</th><th>Method</th><th>Endpoint</th></tr></thead><tbody><tr><td>Register / Login</td><td>POST</td><td><code class="inline">/api/auth/register</code>, <code class="inline">/api/auth/login</code></td></tr><tr><td>Profile</td><td>GET/PUT</td><td><code class="inline">/api/users/me</code></td></tr><tr><td>Addresses</td><td>CRUD</td><td><code class="inline">/api/addresses</code></td></tr><tr><td>Serviceability</td><td>POST</td><td><code class="inline">/api/serviceability/check</code></td></tr><tr><td>Products</td><td>GET</td><td><code class="inline">/api/products</code></td></tr><tr><td>Create order</td><td>POST</td><td><code class="inline">/api/orders</code></td></tr><tr><td>Razorpay pay</td><td>POST</td><td><code class="inline">/api/payments/razorpay/create-order</code>, <code class="inline">/verify-payment</code></td></tr><tr><td>Track order</td><td>GET</td><td><code class="inline">/api/orders/:id/tracking</code></td></tr><tr><td>Cancel order</td><td>PATCH</td><td><code class="inline">/api/orders/:id/cancel</code></td></tr><tr><td>Wallet</td><td>GET/POST</td><td><code class="inline">/api/wallet</code>, <code class="inline">/api/wallet/credit</code></td></tr><tr><td>AI insights</td><td>GET/POST</td><td><code class="inline">/api/ai/water-insight</code>, <code class="inline">/api/ai/ask</code></td></tr><tr><td>Support</td><td>CRUD</td><td><code class="inline">/api/customer-support/tickets</code></td></tr></tbody></table>
+<h3>Supplier</h3>
+<table><thead><tr><th>Action</th><th>Method</th><th>Endpoint</th></tr></thead><tbody><tr><td>Register</td><td>POST</td><td><code class="inline">/api/auth/register-supplier</code></td></tr><tr><td>Profile</td><td>GET/PATCH</td><td><code class="inline">/api/suppliers/me</code></td></tr><tr><td>Stores</td><td>CRUD</td><td><code class="inline">/api/stores</code></td></tr><tr><td>Products</td><td>CRUD</td><td><code class="inline">/api/products</code></td></tr><tr><td>Add rider</td><td>POST</td><td><code class="inline">/api/supplier/delivery-partners</code></td></tr><tr><td>Incoming orders</td><td>GET</td><td><code class="inline">/api/supplier/orders/incoming</code></td></tr><tr><td>Accept / Reject</td><td>PATCH</td><td><code class="inline">/api/supplier/orders/:id/accept</code>, <code class="inline">/reject</code></td></tr><tr><td>Assign rider</td><td>PATCH</td><td><code class="inline">/api/supplier/orders/:id/assign-rider</code></td></tr><tr><td>Financials</td><td>GET</td><td><code class="inline">/api/supplier/financials</code></td></tr></tbody></table>
+<h3>Delivery Partner (Rider)</h3>
+<table><thead><tr><th>Action</th><th>Method</th><th>Endpoint</th></tr></thead><tbody><tr><td>Register</td><td>POST</td><td><code class="inline">/api/auth/register-delivery</code></td></tr><tr><td>Go online</td><td>PATCH</td><td><code class="inline">/api/delivery-partners/me/online</code></td></tr><tr><td>Share location</td><td>PATCH</td><td><code class="inline">/api/delivery-partners/me/location</code></td></tr><tr><td>Incoming orders</td><td>GET</td><td><code class="inline">/api/delivery-partners/orders/incoming</code></td></tr><tr><td>Pick up</td><td>PATCH</td><td><code class="inline">/api/delivery-partners/orders/:id/picked-up</code></td></tr><tr><td>Live GPS</td><td>PATCH</td><td><code class="inline">/api/delivery-partners/orders/:id/location</code></td></tr><tr><td>Deliver</td><td>PATCH</td><td><code class="inline">/api/delivery-partners/orders/:id/delivered</code></td></tr></tbody></table>
+<h3>Admin</h3>
+<table><thead><tr><th>Action</th><th>Method</th><th>Endpoint</th></tr></thead><tbody><tr><td>Login</td><td>POST</td><td><code class="inline">/api/admin/auth/login</code></td></tr><tr><td>Verify supplier</td><td>PATCH</td><td><code class="inline">/api/admin/suppliers/:id/verify</code></td></tr><tr><td>Verify rider</td><td>PATCH</td><td><code class="inline">/api/admin/delivery-partners/:id/verify</code></td></tr><tr><td>Approve store</td><td>PATCH</td><td><code class="inline">/api/admin/stores/:id/approve</code></td></tr><tr><td>Serviceable areas</td><td>CRUD</td><td><code class="inline">/api/admin/serviceable-areas</code></td></tr><tr><td>All orders</td><td>GET</td><td><code class="inline">/api/admin/orders</code></td></tr><tr><td>Financials</td><td>GET</td><td><code class="inline">/api/admin/financials</code></td></tr><tr><td>Admin users</td><td>CRUD</td><td><code class="inline">/api/admin/admins</code></td></tr></tbody></table>
+<hr />
+<h2>17. Data Models (Core Entities)</h2>
+<div class="diagram-wrap"><div class="diagram-label">Diagram 20</div><pre class="mermaid">erDiagram
+  User ||--o| Supplier : &quot;role=supplier&quot;
+  User ||--o| DeliveryPartner : &quot;role=deliveryPartner&quot;
+  User ||--o| Society : &quot;role=society&quot;
+  User ||--o{ SavedAddress : &quot;has&quot;
+  User ||--o{ Order : &quot;places&quot;
+  User ||--o| Wallet : &quot;has&quot;
+
+  Supplier ||--o{ Store : &quot;owns&quot;
+  Supplier ||--o{ Product : &quot;lists&quot;
+  Supplier ||--o{ ServiceableArea : &quot;covers&quot;
+  Supplier ||--o{ DeliveryPartner : &quot;manages fleet&quot;
+
+  Order ||--|{ OrderItem : &quot;contains&quot;
+  Order ||--|{ SupplierResponse : &quot;tracks per supplier&quot;
+  SupplierResponse }o--|| DeliveryPartner : &quot;assigned rider&quot;
+
+  Store ||--o{ Product : &quot; stocks at&quot;
+  Order }o--o{ Store : &quot;fulfilled from&quot;
+
+  Plan ||--o{ PlanProduct : &quot;includes&quot;
+  User ||--o{ Subscription : &quot;subscribes&quot;
+  Subscription ||--o{ SubscriptionBill : &quot;generates&quot;</pre></div>
+<h3>Entity Summary</h3>
+<table><thead><tr><th>Model</th><th>File</th><th>Key Relationships</th></tr></thead><tbody><tr><td>User</td><td><code class="inline">models/User.js</code></td><td>Central auth entity; roles: customer, supplier, deliveryPartner, society, admin, sub-admin</td></tr><tr><td>Supplier</td><td><code class="inline">models/Supplier.js</code></td><td>Linked to User; onboarding, commission, geo</td></tr><tr><td>DeliveryPartner</td><td><code class="inline">models/DeliveryPartner.js</code></td><td>Linked to User + optional Supplier fleet</td></tr><tr><td>Store</td><td><code class="inline">models/Store.js</code></td><td>Supplier location; approval workflow</td></tr><tr><td>Product</td><td><code class="inline">models/Product.js</code></td><td>Catalog item; supplier + store linkage</td></tr><tr><td>Order</td><td><code class="inline">models/Order.js</code></td><td>Full lifecycle; supplierResponses[], travelInfo[]</td></tr><tr><td>SavedAddress</td><td><code class="inline">models/SavedAddress.js</code></td><td>Customer delivery addresses</td></tr><tr><td>ServiceableArea</td><td><code class="inline">models/ServiceableArea.js</code></td><td>PIN + radius per supplier</td></tr><tr><td>Wallet</td><td><code class="inline">models/Wallet.js</code></td><td>Customer + platform balances</td></tr><tr><td>Subscription</td><td><code class="inline">models/Subscription.js</code></td><td>Recurring water plans</td></tr></tbody></table>
+<hr />
+<h2>Related Documentation</h2>
+<table><thead><tr><th>Document</th><th>Path</th><th>Contents</th></tr></thead><tbody><tr><td>Deployment Guide</td><td><code class="inline">docs/DEPLOYMENT-GUIDE.md</code></td><td>AWS EC2 setup, env vars, PM2</td></tr><tr><td>Admin Ubuntu Setup</td><td><code class="inline">admin/RUN-ON-UBUNTU.md</code></td><td>Admin portal deployment</td></tr><tr><td>Local Mobile Setup</td><td><code class="inline">mobile/LOCAL_SETUP.md</code></td><td>Expo + local backend</td></tr><tr><td>Customer Journey Catalog</td><td><code class="inline">docs/customer-journey-catalog.json</code></td><td>Screen-by-screen customer flow</td></tr><tr><td>AWS Production Config</td><td><code class="inline">config/aws-production.json</code></td><td>Production URLs</td></tr></tbody></table>
+<hr />
+<h2>Diagram Rendering</h2>
+<p>All diagrams use Mermaid syntax. They render automatically in:</p>
+<ul><li>GitHub / GitLab markdown preview</li><li>VS Code with a Mermaid extension</li><li>Mermaid Live Editor</li></ul>
+<p>For PDF export, use a Mermaid-capable markdown converter or paste diagrams into Mermaid Live Editor.</p></div>
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "default",
+      securityLevel: "loose",
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: "basis" },
+      sequence: { useMaxWidth: true, wrap: true },
+      er: { useMaxWidth: true },
+    });
+    (async function () {
+      const nodes = document.querySelectorAll("pre.mermaid");
+      for (let i = 0; i < nodes.length; i++) {
+        const el = nodes[i];
+        const src = el.textContent;
+        try {
+          const id = "mmd-" + i;
+          const { svg } = await mermaid.render(id, src);
+          el.outerHTML = '<div class="mermaid-rendered">' + svg + "</div>";
+        } catch (err) {
+          el.outerHTML =
+            '<pre class="mermaid-error">Diagram render error: ' +
+            (err.message || err) +
+            "</pre>";
+        }
+      }
+      document.body.setAttribute("data-mermaid-ready", "true");
+    })();
+  </script>
+</body>
+</html>

@@ -12,6 +12,11 @@ const {
   partnerAssignmentError,
 } = require("../utils/partnerAvailability");
 const { getSupplierFinancials } = require("../services/financials");
+const {
+  createRedeemRequest,
+  listRedeemRequestsForUser,
+  getRedeemPrefill,
+} = require("../services/walletRedeem");
 
 const router = express.Router();
 router.use(auth);
@@ -431,6 +436,36 @@ router.get("/financials", async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/wallet/redeem-prefill", async (req, res) => {
+  try {
+    if (req.user.role !== "supplier") return res.status(403).json({ error: "Supplier only" });
+    const data = await getRedeemPrefill(req.user._id);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get("/wallet/redeem-requests", async (req, res) => {
+  try {
+    if (req.user.role !== "supplier") return res.status(403).json({ error: "Supplier only" });
+    const requests = await listRedeemRequestsForUser(req.user._id);
+    res.json({ requests });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/wallet/redeem-requests", async (req, res) => {
+  try {
+    const result = await createRedeemRequest(req.user, req.body || {});
+    res.status(201).json(result);
+  } catch (err) {
+    const status = err.statusCode || 500;
+    res.status(status).json({ error: err.message });
   }
 });
 

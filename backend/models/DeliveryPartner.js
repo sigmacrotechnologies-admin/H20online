@@ -25,6 +25,8 @@ const deliveryPartnerSchema = new mongoose.Schema(
     documentIdentityVerified: { type: Boolean, default: false },
     documentVehicleIdentificationVerified: { type: Boolean, default: false },
     tentativeVerificationTime: { type: String, default: "24-48 hours" },
+    /** % of order total for this rider; null = platform defaultDeliverySharePercent */
+    deliverySharePercentage: { type: Number, default: null, min: 0, max: 100 },
   },
   { timestamps: true }
 );

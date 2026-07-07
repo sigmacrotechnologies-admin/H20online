@@ -10,6 +10,12 @@ export async function reverseGeocode(latitude, longitude) {
   const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${key}`;
   const res = await fetch(url);
   const data = await res.json();
+  if (data.status === "REQUEST_DENIED" || data.status === "INVALID_REQUEST") {
+    throw new Error(
+      data.error_message ||
+        "Google Geocoding API denied the request. Enable Geocoding API for your key in Google Cloud Console."
+    );
+  }
   if (data.status !== "OK" || !data.results?.length) {
     return null;
   }

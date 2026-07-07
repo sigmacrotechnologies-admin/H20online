@@ -43,7 +43,7 @@ function randomOrderIdSuffix(len = 8) {
 
 const orderSchema = new mongoose.Schema(
   {
-    orderId: { type: String, trim: true, unique: true, sparse: true }, // ORD_XXXXXXXX
+    orderId: { type: String, trim: true, unique: true, sparse: true }, // H2O-XXXXXXXX
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     items: [orderItemSchema],
     subtotal: { type: Number, default: 0 },
@@ -61,6 +61,18 @@ const orderSchema = new mongoose.Schema(
     razorpayOrderId: { type: String, default: null },
     razorpayPaymentId: { type: String, default: null },
     razorpayTestMode: { type: Boolean, default: false },
+    razorpayPaymentMethod: { type: String, default: "" },
+    razorpayPaymentMethodLabel: { type: String, default: "" },
+    razorpayPaymentMethodDetail: { type: String, default: "" },
+    razorpayBank: { type: String, default: "" },
+    razorpayVpa: { type: String, default: "" },
+    razorpayPaymentStatus: { type: String, default: "" },
+    razorpayEmail: { type: String, default: "" },
+    razorpayContact: { type: String, default: "" },
+    razorpayFee: { type: Number, default: null },
+    razorpayTax: { type: Number, default: null },
+    paidAt: { type: Date, default: null },
+    orderPlatform: { type: String, enum: ["mobile", "web"], default: "mobile" },
     status: { type: String, enum: ["in_progress", "delivered", "cancelled"], default: "in_progress" },
     address: { type: String, default: "" },
     orderType: { type: String, enum: ["instant", "scheduled"], default: "instant" },
@@ -99,7 +111,7 @@ orderSchema.statics.generateUniqueOrderId = async function () {
   let id;
   let exists = true;
   while (exists) {
-    id = "ORD_" + randomOrderIdSuffix(8);
+    id = "H2O-" + randomOrderIdSuffix(8);
     exists = await this.exists({ orderId: id });
   }
   return id;

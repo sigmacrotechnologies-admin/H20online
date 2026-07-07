@@ -10,15 +10,19 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useWallet } from "@/src/context/WalletContext";
+import { useAuth } from "@/src/context/AuthContext";
+import { api } from "@/src/api/client";
 import { theme } from "@/src/theme";
 
 const QUICK_AMOUNTS = [100, 200, 500, 1000];
+const RAZORPAY_KEY_ID = process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || "";
 
-function AmountField({ label, icon, value, onChangeText, placeholder, actionLabel, onAction, actionVariant = "primary", loading }) {
+function AmountField({ label, icon, value, onChangeText, placeholder, actionLabel, onAction, loading }) {
   return (
     <View style={styles.amountSection}>
       <Text style={styles.amountLabel}>{label}</Text>
@@ -36,15 +40,9 @@ function AmountField({ label, icon, value, onChangeText, placeholder, actionLabe
           />
         </View>
         <TouchableOpacity onPress={onAction} activeOpacity={0.9} disabled={loading} style={styles.amountActionWrap}>
-          {actionVariant === "primary" ? (
-            <LinearGradient colors={loading ? ["#EEF3F7", "#E8EEF2"] : [theme.medium, theme.accent]} style={styles.amountActionPrimary}>
-              {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.amountActionPrimaryText}>{actionLabel}</Text>}
-            </LinearGradient>
-          ) : (
-            <View style={styles.amountActionOutline}>
-              <Text style={styles.amountActionOutlineText}>{actionLabel}</Text>
-            </View>
-          )}
+          <LinearGradient colors={loading ? ["#EEF3F7", "#E8EEF2"] : [theme.medium, theme.accent]} style={styles.amountActionPrimary}>
+            {loading ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.amountActionPrimaryText}>{actionLabel}</Text>}
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </View>
@@ -52,18 +50,51 @@ function AmountField({ label, icon, value, onChangeText, placeholder, actionLabe
 }
 
 export default function WalletModal({ visible, onClose }) {
-  const { balance, addAmount, deductAmount } = useWallet();
+  const { balance, setBalance } = useWallet();
+  const { user } = useAuth();
   const [addValue, setAddValue] = useState("");
-  const [deductValue, setDeductValue] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const runAction = async (fn, value, clear) => {
-    const n = Number(value);
-    if (!value || isNaN(n) || n <= 0) return;
+  const handleTopUp = async () => {
+    const amount = Math.round(Number(addValue));
+    if (!addValue || !Number.isFinite(amount) || amount < 1) {
+      Alert.alert("Invalid amount", "Enter a valid amount to add.");
+      return;
+    }
+
     setBusy(true);
     try {
-      await fn(value);
-      clear("");
+      const createRes = await api.payments.razorpayWalletTopupCreate({ amount });
+      const keyId = RAZORPAY_KEY_ID || createRes.key_id;
+      const { openRazorpayCheckout } = await import("@/src/utils/razorpayCheckout");
+      const paymentResult = await openRazorpayCheckout({
+        keyId,
+        orderId: createRes.order_id,
+        amount: createRes.amount,
+        description: `H2O wallet top-up · ₹${amount}`,
+        prefill: {
+          contact: user?.phone || "",
+          name: user?.name || "",
+        },
+      });
+
+      const result = await api.payments.razorpayWalletTopupVerify({
+        razorpay_order_id: paymentResult.razorpay_order_id,
+        razorpay_payment_id: paymentResult.razorpay_payment_id,
+        razorpay_signature: paymentResult.razorpay_signature,
+        amount,
+      });
+
+      setBalance(result.balance ?? balance);
+      setAddValue("");
+      Alert.alert(
+        "Wallet updated",
+        result.alreadyCredited
+          ? "This payment was already credited to your wallet."
+          : `₹${amount} added to your wallet successfully.`
+      );
+    } catch (err) {
+      Alert.alert("Top-up failed", err.message || "Could not add money to wallet.");
     } finally {
       setBusy(false);
     }
@@ -75,7 +106,6 @@ export default function WalletModal({ visible, onClose }) {
 
   const handleClose = () => {
     setAddValue("");
-    setDeductValue("");
     onClose();
   };
 
@@ -93,7 +123,7 @@ export default function WalletModal({ visible, onClose }) {
                 </View>
                 <View>
                   <Text style={styles.sheetHeroTitle}>H2 Wallet</Text>
-                  <Text style={styles.sheetHeroSubtitle}>Add or manage your balance</Text>
+                  <Text style={styles.sheetHeroSubtitle}>Add money via Razorpay</Text>
                 </View>
               </View>
               <TouchableOpacity onPress={handleClose} style={styles.sheetHeroClose} activeOpacity={0.85}>
@@ -132,31 +162,21 @@ export default function WalletModal({ visible, onClose }) {
 
             <View style={styles.formCard}>
               <AmountField
-                label="Add money"
-                icon="add-circle-outline"
+                label="Add money (UPI / card via Razorpay)"
+                icon="card-outline"
                 value={addValue}
                 onChangeText={setAddValue}
                 placeholder="Enter amount"
-                actionLabel="Add"
-                onAction={() => runAction(addAmount, addValue, setAddValue)}
-                loading={busy}
-              />
-
-              <AmountField
-                label="Withdraw / remove"
-                icon="remove-circle-outline"
-                value={deductValue}
-                onChangeText={setDeductValue}
-                placeholder="Enter amount"
-                actionLabel="Remove"
-                actionVariant="outline"
-                onAction={() => runAction(deductAmount, deductValue, setDeductValue)}
+                actionLabel="Pay & add"
+                onAction={handleTopUp}
                 loading={busy}
               />
 
               <View style={styles.tipCard}>
                 <Ionicons name="information-circle-outline" size={18} color={theme.accent} />
-                <Text style={styles.tipText}>Wallet balance can be used at checkout and to pay subscription bills.</Text>
+                <Text style={styles.tipText}>
+                  Wallet balance increases only after a successful Razorpay payment. Admin can also adjust your wallet if needed.
+                </Text>
               </View>
             </View>
           </ScrollView>
@@ -267,19 +287,8 @@ const styles = StyleSheet.create({
   rupeePrefix: { fontSize: 16, fontWeight: "700", color: theme.textPrimary, marginRight: 4 },
   amountInput: { flex: 1, paddingVertical: 13, fontSize: 16, color: theme.textPrimary },
   amountActionWrap: { borderRadius: 12, overflow: "hidden" },
-  amountActionPrimary: { paddingHorizontal: 18, paddingVertical: 13, minWidth: 84, alignItems: "center" },
-  amountActionPrimaryText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
-  amountActionOutline: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    minWidth: 84,
-    alignItems: "center",
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: theme.accent,
-    backgroundColor: "#FFFFFF",
-  },
-  amountActionOutlineText: { fontSize: 14, fontWeight: "700", color: theme.accent },
+  amountActionPrimary: { paddingHorizontal: 14, paddingVertical: 13, minWidth: 96, alignItems: "center" },
+  amountActionPrimaryText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
 
   tipCard: {
     flexDirection: "row",

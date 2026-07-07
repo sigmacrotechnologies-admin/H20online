@@ -65,10 +65,28 @@ function isRazorpayTestMode() {
   return String(getPublicKeyId()).startsWith("rzp_test_");
 }
 
+async function fetchRazorpayPayment(paymentId) {
+  if (!paymentId) {
+    const err = new Error("Payment id required");
+    err.statusCode = 400;
+    throw err;
+  }
+  const rzp = getRazorpayInstance();
+  try {
+    return await rzp.payments.fetch(String(paymentId));
+  } catch (err) {
+    const status = err?.statusCode || err?.error?.statusCode;
+    const apiErr = new Error(err?.error?.description || err?.message || "Failed to fetch Razorpay payment");
+    apiErr.statusCode = status || 500;
+    throw apiErr;
+  }
+}
+
 module.exports = {
   isRazorpayConfigured,
   createRazorpayOrder,
   verifyRazorpaySignature,
+  fetchRazorpayPayment,
   getPublicKeyId,
   isRazorpayTestMode,
 };

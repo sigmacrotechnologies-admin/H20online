@@ -1,0 +1,501 @@
+import puppeteer from "puppeteer";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const mdPath = path.join(__dirname, "SYSTEM-ARCHITECTURE.md");
+const htmlPath = path.join(__dirname, "system-architecture.html");
+const pdfPath = path.join(__dirname, "H2O-System-Architecture.pdf");
+
+if (!fs.existsSync(mdPath)) {
+  console.error("SYSTEM-ARCHITECTURE.md not found.");
+  process.exit(1);
+}
+
+const md = fs.readFileSync(mdPath, "utf8");
+const today = new Date().toLocaleDateString("en-IN", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
+function escapeHtml(s) {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function inlineFormat(text) {
+  let s = escapeHtml(text);
+  s = s.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  s = s.replace(/`([^`]+)`/g, '<code class="inline">$1</code>');
+  s = s.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+  return s;
+}
+
+function parseTableRow(line) {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((c) => c.trim());
+}
+
+function isTableSep(line) {
+  return /^\|?[\s\-:|]+\|?$/.test(line.trim()) && line.includes("-");
+}
+
+let mermaidCount = 0;
+
+function markdownToHtml(source) {
+  const lines = source.replace(/\r\n/g, "\n").split("\n");
+  const out = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    if (line.trim() === "---") {
+      out.push("<hr />");
+      i++;
+      continue;
+    }
+
+    if (line.startsWith("```")) {
+      const lang = line.slice(3).trim().toLowerCase();
+      i++;
+      const codeLines = [];
+      while (i < lines.length && !lines[i].startsWith("```")) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      i++;
+      const code = codeLines.join("\n");
+
+      if (lang === "mermaid") {
+        mermaidCount++;
+        out.push(
+          `<div class="diagram-wrap"><div class="diagram-label">Diagram ${mermaidCount}</div><pre class="mermaid">${escapeHtml(code)}</pre></div>`
+        );
+      } else {
+        out.push(
+          `<pre><code class="block">${escapeHtml(code)}</code></pre>`
+        );
+      }
+      continue;
+    }
+
+    if (line.startsWith("# ")) {
+      out.push(`<h1>${inlineFormat(line.slice(2))}</h1>`);
+      i++;
+      continue;
+    }
+    if (line.startsWith("## ")) {
+      out.push(`<h2>${inlineFormat(line.slice(3))}</h2>`);
+      i++;
+      continue;
+    }
+    if (line.startsWith("### ")) {
+      out.push(`<h3>${inlineFormat(line.slice(4))}</h3>`);
+      i++;
+      continue;
+    }
+    if (line.startsWith("#### ")) {
+      out.push(`<h4>${inlineFormat(line.slice(5))}</h4>`);
+      i++;
+      continue;
+    }
+
+    if (line.trim().startsWith("|") && i + 1 < lines.length && isTableSep(lines[i + 1])) {
+      const headers = parseTableRow(line);
+      i += 2;
+      const rows = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        rows.push(parseTableRow(lines[i]));
+        i++;
+      }
+      let table = "<table><thead><tr>";
+      headers.forEach((h) => {
+        table += `<th>${inlineFormat(h)}</th>`;
+      });
+      table += "</tr></thead><tbody>";
+      rows.forEach((row) => {
+        table += "<tr>";
+        row.forEach((cell) => {
+          table += `<td>${inlineFormat(cell)}</td>`;
+        });
+        table += "</tr>";
+      });
+      table += "</tbody></table>";
+      out.push(table);
+      continue;
+    }
+
+    if (/^-\s+/.test(line.trim())) {
+      const items = [];
+      while (i < lines.length && /^-\s+/.test(lines[i].trim())) {
+        items.push(`<li>${inlineFormat(lines[i].replace(/^-\s+/, ""))}</li>`);
+        i++;
+      }
+      out.push(`<ul>${items.join("")}</ul>`);
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(line.trim())) {
+      const items = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i].trim())) {
+        items.push(`<li>${inlineFormat(lines[i].replace(/^\d+\.\s+/, ""))}</li>`);
+        i++;
+      }
+      out.push(`<ol>${items.join("")}</ol>`);
+      continue;
+    }
+
+    if (line.trim() === "") {
+      i++;
+      continue;
+    }
+
+    out.push(`<p>${inlineFormat(line)}</p>`);
+    i++;
+  }
+
+  return out.join("\n");
+}
+
+const bodyHtml = markdownToHtml(md);
+
+const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>H2O Online — System Architecture</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    @page { size: A4; margin: 12mm 10mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      color: #1e293b;
+      font-size: 8.5pt;
+      line-height: 1.4;
+      margin: 0;
+    }
+    .cover {
+      page-break-after: always;
+      min-height: 255mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 18mm 16mm;
+      background: linear-gradient(145deg, #e0f2fe 0%, #fff 40%, #ecfdf5 100%);
+    }
+    .cover-badge {
+      display: inline-block;
+      background: #0369a1;
+      color: #fff;
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 4px;
+      margin-bottom: 14px;
+      width: fit-content;
+    }
+    .cover h1 {
+      font-size: 22pt;
+      color: #0c4a6e;
+      margin: 0 0 10px;
+      line-height: 1.15;
+      max-width: 520px;
+    }
+    .cover .subtitle {
+      font-size: 10pt;
+      color: #475569;
+      margin: 0 0 20px;
+      max-width: 500px;
+      line-height: 1.5;
+    }
+    .cover-stats {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .stat-box {
+      background: #fff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 10px 14px;
+      min-width: 88px;
+    }
+    .stat-box strong { display: block; font-size: 13pt; color: #0369a1; }
+    .stat-box span { font-size: 7pt; color: #64748b; }
+    .cover-toc {
+      margin-top: 16px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      max-width: 520px;
+    }
+    .cover-toc h2 {
+      font-size: 10pt;
+      color: #0c4a6e;
+      margin: 0 0 8px;
+      border: none;
+      padding: 0;
+    }
+    .cover-toc ol {
+      margin: 0;
+      padding-left: 18pt;
+      font-size: 7.5pt;
+      color: #334155;
+      columns: 2;
+      column-gap: 16px;
+    }
+    .cover-toc li { margin-bottom: 2pt; break-inside: avoid; }
+    .cover-meta {
+      border-top: 2px solid #38bdf8;
+      padding-top: 12px;
+      margin-top: 14px;
+      font-size: 8pt;
+      color: #64748b;
+    }
+    .cover-meta div { margin-bottom: 3px; }
+    h1 {
+      font-size: 15pt;
+      color: #0c4a6e;
+      margin: 12pt 0 5pt;
+      page-break-after: avoid;
+    }
+    h2 {
+      font-size: 11pt;
+      color: #0f172a;
+      margin: 12pt 0 4pt;
+      border-bottom: 2px solid #7dd3fc;
+      padding-bottom: 2px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 9.5pt;
+      color: #1d4ed8;
+      margin: 9pt 0 3pt;
+      page-break-after: avoid;
+    }
+    h4 {
+      font-size: 8.5pt;
+      color: #334155;
+      margin: 7pt 0 2pt;
+      page-break-after: avoid;
+    }
+    p { margin: 0 0 6pt; color: #334155; }
+    hr { border: none; border-top: 1px solid #cbd5e1; margin: 10pt 0; }
+    ul, ol { margin: 0 0 7pt; padding-left: 15pt; }
+    li { margin-bottom: 2pt; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 8pt;
+      font-size: 7pt;
+      page-break-inside: auto;
+    }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    th {
+      background: #0369a1;
+      color: #fff;
+      font-weight: 600;
+      text-align: left;
+      padding: 4px 5px;
+      border: 1px solid #0284c7;
+    }
+    td {
+      padding: 3px 5px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code.inline {
+      background: #f1f5f9;
+      padding: 1px 3px;
+      border-radius: 3px;
+      font-size: 7.5pt;
+    }
+    pre {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin: 0 0 8pt;
+      page-break-inside: avoid;
+    }
+    pre code.block {
+      font-size: 6.8pt;
+      white-space: pre-wrap;
+      font-family: Consolas, monospace;
+    }
+    .diagram-wrap {
+      margin: 0 0 12pt;
+      page-break-inside: avoid;
+      background: #fafafa;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 6px 4px;
+      overflow: hidden;
+    }
+    .diagram-label {
+      font-size: 6.5pt;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 0 0 4px 4px;
+    }
+    pre.mermaid {
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      text-align: center;
+      overflow: visible;
+    }
+    pre.mermaid svg {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-badge">Technical Architecture</div>
+    <h1>H2O Online<br>System Architecture &amp; User Journey</h1>
+    <p class="subtitle">
+      End-to-end architecture documentation covering AWS deployment, MongoDB Atlas, backend API,
+      authentication, Groq AI, Google Maps, Razorpay, admin portal, address &amp; serviceability flows,
+      order lifecycle across customer · supplier · rider, and platform onboarding journeys.
+    </p>
+    <div class="cover-stats">
+      <div class="stat-box"><strong>17</strong><span>Sections</span></div>
+      <div class="stat-box"><strong>${mermaidCount}</strong><span>Flow Diagrams</span></div>
+      <div class="stat-box"><strong>5</strong><span>User Roles</span></div>
+      <div class="stat-box"><strong>6</strong><span>Third-Party APIs</span></div>
+    </div>
+    <div class="cover-toc">
+      <h2>Contents</h2>
+      <ol>
+        <li>System Overview</li>
+        <li>End-to-End Architecture</li>
+        <li>AWS Deployment Architecture</li>
+        <li>Third-Party Integrations</li>
+        <li>Authentication &amp; Authorization</li>
+        <li>Address &amp; Serviceability Data Flow</li>
+        <li>Order Lifecycle — Cross-Actor Flow</li>
+        <li>Payment Data Flow (Razorpay)</li>
+        <li>AI (Groq) Data Flow</li>
+        <li>Supplier Onboarding Journey</li>
+        <li>Rider / Delivery Partner Journey</li>
+        <li>Store Management Journey</li>
+        <li>Admin Portal Roles</li>
+        <li>Sample Customer User Journey</li>
+        <li>Multi-Actor Order Fulfillment</li>
+        <li>Key API Reference by Actor</li>
+        <li>Data Models (Core Entities)</li>
+      </ol>
+    </div>
+    <div class="cover-meta">
+      <div><strong>Version:</strong> 1.0</div>
+      <div><strong>Production API:</strong> http://13.62.57.255:5000</div>
+      <div><strong>Admin Portal:</strong> http://13.62.57.255:3000</div>
+      <div><strong>Database:</strong> MongoDB Atlas (H20online)</div>
+      <div><strong>Generated:</strong> ${today}</div>
+    </div>
+  </div>
+  <div class="content">${bodyHtml}</div>
+  <script>
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "default",
+      securityLevel: "loose",
+      flowchart: { useMaxWidth: true, htmlLabels: true, curve: "basis" },
+      sequence: { useMaxWidth: true, wrap: true },
+      er: { useMaxWidth: true },
+    });
+    (async function () {
+      const nodes = document.querySelectorAll("pre.mermaid");
+      for (let i = 0; i < nodes.length; i++) {
+        const el = nodes[i];
+        const src = el.textContent;
+        try {
+          const id = "mmd-" + i;
+          const { svg } = await mermaid.render(id, src);
+          el.outerHTML = '<div class="mermaid-rendered">' + svg + "</div>";
+        } catch (err) {
+          el.outerHTML =
+            '<pre class="mermaid-error">Diagram render error: ' +
+            (err.message || err) +
+            "</pre>";
+        }
+      }
+      document.body.setAttribute("data-mermaid-ready", "true");
+    })();
+  </script>
+</body>
+</html>`;
+
+fs.writeFileSync(htmlPath, html);
+
+const chromePaths = [
+  process.env.PUPPETEER_EXECUTABLE_PATH,
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+].filter(Boolean);
+
+let launchOptions = { headless: true };
+for (const p of chromePaths) {
+  if (fs.existsSync(p)) {
+    launchOptions.executablePath = p;
+    break;
+  }
+}
+
+console.log("Rendering HTML with Mermaid diagrams...");
+const browser = await puppeteer.launch(launchOptions);
+const page = await browser.newPage();
+await page.goto(`file:///${htmlPath.replace(/\\/g, "/")}`, {
+  waitUntil: "networkidle0",
+  timeout: 120000,
+});
+
+await page.waitForFunction(
+  () => document.body.getAttribute("data-mermaid-ready") === "true",
+  { timeout: 120000 }
+);
+
+await page.evaluate(async () => {
+  await new Promise((r) => setTimeout(r, 1500));
+});
+
+console.log(`Mermaid diagrams rendered: ${mermaidCount}`);
+console.log("Generating PDF...");
+
+await page.pdf({
+  path: pdfPath,
+  format: "A4",
+  printBackground: true,
+  margin: { top: "10mm", right: "8mm", bottom: "12mm", left: "8mm" },
+  displayHeaderFooter: true,
+  headerTemplate: "<span></span>",
+  footerTemplate:
+    '<div style="width:100%;font-size:6.5px;color:#94a3b8;text-align:center;font-family:Segoe UI,sans-serif;">H2O Online — System Architecture & User Journey v1.0 — <span class="pageNumber"></span> / <span class="totalPages"></span></div>',
+});
+
+await browser.close();
+
+console.log("HTML:", htmlPath);
+console.log("PDF:", pdfPath);

@@ -50,6 +50,7 @@ export const api = {
   walletManagementUser: (userId) => request("/api/admin/wallet-management/" + userId),
   walletManagementAdjust: (userId, body) => request("/api/admin/wallet-management/" + userId + "/adjust", { method: "POST", body: JSON.stringify(body) }),
   deliveryPartners: (params) => request("/api/admin/delivery-partners?" + new URLSearchParams(params || {})),
+  updateDeliveryPartner: (id, body) => request(`/api/admin/delivery-partners/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   verifyDeliveryPartner: (id, body) => request(`/api/admin/delivery-partners/${id}/verify`, { method: "PATCH", body: JSON.stringify(body) }),
   supplierSupport: () => request("/api/admin/supplier-support"),
   supplierSupportThread: (supplierId) => request("/api/admin/supplier-support/" + supplierId),
@@ -96,4 +97,10 @@ export const api = {
   createServiceableArea: (body) => request("/api/admin/serviceable-areas", { method: "POST", body: JSON.stringify(body) }),
   updateServiceableArea: (id, body) => request(`/api/admin/serviceable-areas/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   deleteServiceableArea: (id) => request(`/api/admin/serviceable-areas/${id}`, { method: "DELETE" }),
+  walletRedeemRequests: (params) =>
+    request("/api/admin/wallet-redeem-requests?" + new URLSearchParams(params || {}).toString()),
+  approveWalletRedeem: (id, body) =>
+    request(`/api/admin/wallet-redeem-requests/${id}/approve`, { method: "PATCH", body: JSON.stringify(body || {}) }),
+  rejectWalletRedeem: (id, body) =>
+    request(`/api/admin/wallet-redeem-requests/${id}/reject`, { method: "PATCH", body: JSON.stringify(body || {}) }),
 };

@@ -13,6 +13,10 @@
     "requirement-capture": "node generate-requirement-capture-pdf.mjs",
     "customer-dashboard-brd": "node generate-customer-dashboard-brd-pdf.mjs",
     "deployment-guide": "node generate-deployment-guide-pdf.mjs",
+    "system-architecture": "node generate-system-architecture-pdf.mjs",
+    "business-use-case": "node generate-business-use-case-pdf.mjs",
+    "ba-guide": "node generate-ba-guide-pdf.mjs",
+    "security-assessment": "node generate-security-assessment-pdf.mjs",
     "docs": "node capture-screenshots.mjs && node generate-screens-pdf.mjs"
   },
   "keywords": [],

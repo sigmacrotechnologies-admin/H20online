@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>H2O Online — Security Assessment &amp; Remediation Guide</title>
+  <style>
+    @page { size: A4; margin: 12mm 10mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      color: #1e293b;
+      font-size: 8.2pt;
+      line-height: 1.38;
+      margin: 0;
+    }
+    .cover {
+      page-break-after: always;
+      min-height: 255mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 16mm 14mm;
+      background: linear-gradient(145deg, #fef2f2 0%, #fff 35%, #eff6ff 100%);
+    }
+    .cover-badge {
+      display: inline-block;
+      background: #b91c1c;
+      color: #fff;
+      font-size: 7.5pt;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 4px;
+      margin-bottom: 14px;
+      width: fit-content;
+    }
+    .cover h1 {
+      font-size: 21pt;
+      color: #991b1b;
+      margin: 0 0 10px;
+      line-height: 1.15;
+      max-width: 540px;
+    }
+    .cover .subtitle {
+      font-size: 9.5pt;
+      color: #475569;
+      margin: 0 0 18px;
+      max-width: 520px;
+      line-height: 1.5;
+    }
+    .cover-highlights {
+      margin: 12px 0 16px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.92);
+      border-left: 4px solid #dc2626;
+      border-radius: 4px;
+      max-width: 540px;
+      font-size: 7.8pt;
+      color: #334155;
+    }
+    .cover-highlights ul { margin: 6px 0 0; padding-left: 16pt; }
+    .cover-highlights li { margin-bottom: 3pt; }
+    .cover-stats {
+      display: flex;
+      gap: 8px;
+      margin: 18px 0;
+      flex-wrap: wrap;
+    }
+    .stat-box {
+      background: #fff;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 10px 12px;
+      min-width: 82px;
+    }
+    .stat-box.critical { border-color: #fca5a5; background: #fef2f2; }
+    .stat-box strong { display: block; font-size: 13pt; color: #b91c1c; }
+    .stat-box span { font-size: 6.8pt; color: #64748b; }
+    .cover-toc {
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.88);
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      max-width: 540px;
+    }
+    .cover-toc h2 {
+      font-size: 9.5pt;
+      color: #991b1b;
+      margin: 0 0 8px;
+      border: none;
+      padding: 0;
+    }
+    .cover-toc ol {
+      margin: 0;
+      padding-left: 18pt;
+      font-size: 7.2pt;
+      color: #334155;
+      columns: 2;
+      column-gap: 14px;
+    }
+    .cover-toc li { margin-bottom: 2pt; break-inside: avoid; }
+    .cover-meta {
+      border-top: 2px solid #f87171;
+      padding-top: 12px;
+      margin-top: 14px;
+      font-size: 7.8pt;
+      color: #64748b;
+    }
+    .cover-meta div { margin-bottom: 3px; }
+    .confidential {
+      margin-top: 10px;
+      font-size: 7pt;
+      color: #b91c1c;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    h1 {
+      font-size: 14pt;
+      color: #991b1b;
+      margin: 11pt 0 5pt;
+      page-break-after: avoid;
+    }
+    h2 {
+      font-size: 10.5pt;
+      color: #0f172a;
+      margin: 11pt 0 4pt;
+      border-bottom: 2px solid #fca5a5;
+      padding-bottom: 2px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 9pt;
+      color: #1d4ed8;
+      margin: 8pt 0 3pt;
+      page-break-after: avoid;
+    }
+    h4 {
+      font-size: 8.2pt;
+      color: #334155;
+      margin: 6pt 0 2pt;
+      page-break-after: avoid;
+    }
+    p { margin: 0 0 5pt; color: #334155; }
+    hr { border: none; border-top: 1px solid #cbd5e1; margin: 9pt 0; }
+    ul, ol { margin: 0 0 6pt; padding-left: 14pt; }
+    li { margin-bottom: 2pt; }
+    ul.checklist { list-style: none; padding-left: 4pt; }
+    .checklist-item { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 3pt; }
+    .checkbox { font-size: 9pt; color: #64748b; flex-shrink: 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0 0 7pt;
+      font-size: 6.8pt;
+      page-break-inside: auto;
+    }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    th {
+      background: #991b1b;
+      color: #fff;
+      font-weight: 600;
+      text-align: left;
+      padding: 3px 4px;
+      border: 1px solid #b91c1c;
+    }
+    td {
+      padding: 2px 4px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    td.sev-critical { background: #fef2f2 !important; color: #991b1b; font-weight: 600; }
+    td.sev-high { background: #fff7ed !important; color: #c2410c; font-weight: 600; }
+    td.sev-medium { background: #fffbeb !important; color: #b45309; }
+    td.sev-good { background: #ecfdf5 !important; color: #047857; }
+    td.sev-low { background: #f1f5f9 !important; color: #475569; }
+    code.inline {
+      background: #f1f5f9;
+      padding: 1px 3px;
+      border-radius: 3px;
+      font-size: 7pt;
+      word-break: break-all;
+    }
+    pre {
+      background: #0f172a;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin: 0 0 7pt;
+      page-break-inside: avoid;
+    }
+    pre code.block {
+      font-size: 6.5pt;
+      white-space: pre-wrap;
+      font-family: Consolas, "Courier New", monospace;
+      color: #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="cover-badge">Security &amp; Vulnerability Assessment</div>
+    <h1>H2O Online<br>Security Assessment &amp; Remediation Guide</h1>
+    <p class="subtitle">
+      Comprehensive end-to-end security review of the H2O Online platform — backend API, admin portal,
+      mobile application, payment flows, and AWS deployment. Includes live test results, detailed findings
+      (authentication, authorization, API, mobile, payments, network), OWASP Top 10 mapping, required fixes,
+      full remediation catalog (80+ options), verification checklist, and PCI-DSS notes.
+    </p>
+    <div class="cover-highlights">
+      <strong>Assessment covered:</strong>
+      <ul>
+        <li>Authentication, RBAC, session/token management, API security</li>
+        <li>Input validation, injection, business logic &amp; payment bypass testing</li>
+        <li>Mobile &amp; admin portal security, network/TLS, data security</li>
+        <li>Dependency scanning, OWASP Top 10, URL/page access control</li>
+        <li>Live probes on production API (July 2026)</li>
+      </ul>
+    </div>
+    <div class="cover-stats">
+      <div class="stat-box critical"><strong>5</strong><span>Critical Issues</span></div>
+      <div class="stat-box"><strong>10</strong><span>High Severity</span></div>
+      <div class="stat-box"><strong>8</strong><span>Medium</span></div>
+      <div class="stat-box"><strong>80+</strong><span>Remediation Options</span></div>
+      <div class="stat-box"><strong>11</strong><span>Document Sections</span></div>
+    </div>
+    <div class="cover-toc">
+      <h2>Contents</h2>
+      <ol>
+        <li>Executive Summary</li>
+        <li>Scope &amp; Methodology</li>
+        <li>Architecture &amp; Trust Boundaries</li>
+        <li>Live Test Results</li>
+        <li>Detailed Findings (12 categories)</li>
+        <li>URL &amp; Page Access Control</li>
+        <li>Required Fixes (Priority 0–2)</li>
+        <li>Possible Fixes Catalog</li>
+        <li>Verification Checklist</li>
+        <li>PCI-DSS &amp; Privacy</li>
+        <li>Appendix: Key Files</li>
+      </ol>
+    </div>
+    <div class="cover-meta">
+      <div><strong>Version:</strong> 1.0</div>
+      <div><strong>Assessment date:</strong> July 2026</div>
+      <div><strong>Production API:</strong> http://13.62.57.255:5000</div>
+      <div><strong>Production Admin:</strong> http://13.62.57.255:3000</div>
+      <div><strong>Generated:</strong> 6 July 2026</div>
+      <div class="confidential">Confidential — Internal use only</div>
+    </div>
+  </div>
+  <div class="content"><h1>H2O Online — Security Assessment &amp; Remediation Guide</h1>
+<p><strong>Version:</strong> 1.0  </p>
+<p><strong>Assessment date:</strong> July 2026  </p>
+<p><strong>Scope:</strong> Backend API, Admin SPA, Mobile app (Expo), payment flows, deployment  </p>
+<p><strong>Production targets tested:</strong> <code class="inline">http://13.62.57.255:5000</code> (API), <code class="inline">http://13.62.57.255:3000</code> (Admin)</p>
+<p>This document records the end-to-end security and vulnerability review performed on the H2O Online application. It explains what was tested, what was found, <strong>fixes that are required before production use with real payments</strong>, and a <strong>catalog of all possible remediations</strong> you can implement over time.</p>
+<hr />
+<h2>Table of Contents</h2>
+<ol><li>Executive Summary</li><li>Assessment Scope &amp; Methodology</li><li>Architecture &amp; Trust Boundaries</li><li>Live Test Results</li><li>Detailed Findings by Category</li></ol>
+<ul><li>   - 5.1 Authentication</li><li>   - 5.2 Authorization &amp; RBAC</li><li>   - 5.3 Session &amp; Token Management</li><li>   - 5.4 API Security</li><li>   - 5.5 Input Validation &amp; Injection</li><li>   - 5.6 Business Logic &amp; Payment Security</li><li>   - 5.7 Mobile Application Security</li><li>   - 5.8 Admin Portal Security</li><li>   - 5.9 Network &amp; Transport Security</li><li>   - 5.10 Data Security</li><li>   - 5.11 Dependency Vulnerabilities</li><li>   - 5.12 OWASP Top 10 Mapping</li></ul>
+<ol><li>URL &amp; Page Access Control</li><li>Required Fixes (Must Do Before Production)</li><li>Possible Fixes Catalog (Full Remediation Options)</li><li>Verification &amp; Re-Test Checklist</li><li>Compliance Notes (PCI-DSS &amp; Privacy)</li><li>Appendix: Key Files Reference</li></ol>
+<hr />
+<h2>1. Executive Summary</h2>
+<h3>Overall posture</h3>
+<p>The H2O platform has a <strong>reasonable baseline</strong> for a startup MVP: JWT authentication, bcrypt password hashing, Mongoose ODM, Razorpay signature verification, and admin/customer API separation in many areas.</p>
+<p>However, <strong>several critical business-logic and configuration flaws</strong> were confirmed on the live production API. These allow:</p>
+<ul><li>Unlimited wallet self-funding (payment bypass)</li><li>Default master admin login on production</li><li>Client-controlled order pricing</li><li>Non-Razorpay orders marked as “paid”</li><li>Sensitive tokens transmitted over <strong>HTTP</strong></li></ul>
+<h3>Risk summary</h3>
+<table><thead><tr><th>Severity</th><th>Count</th><th>Examples</th></tr></thead><tbody><tr><td class="sev-critical"><strong>Critical</strong></td><td>5</td><td>Wallet self-credit, default admin creds, price manipulation, payment bypass, HTTP in production</td></tr><tr><td class="sev-high"><strong>High</strong></td><td>10</td><td>No rate limiting, no MFA, JWT in insecure storage, secrets in <code class="inline">eas.json</code>, Razorpay amount not verified</td></tr><tr><td class="sev-medium"><strong>Medium</strong></td><td>8</td><td class="sev-good">Sub-admin over-permission, public tax settings, ReDoS in search, no webhooks</td></tr><tr><td class="sev-low"><strong>Low / Informational</strong></td><td>6</td><td>No Helmet, mock OTP UI, client-only logout</td></tr></tbody></table>
+<h3>Recommendation</h3>
+<p><strong>Do not go live with real customer payments</strong> until all <strong>Section 7 (Required Fixes)</strong> items are completed and re-tested using <strong>Section 9</strong>.</p>
+<hr />
+<h2>2. Assessment Scope &amp; Methodology</h2>
+<h3>In scope</h3>
+<table><thead><tr><th>Area</th><th>What was reviewed</th></tr></thead><tbody><tr><td><strong>Authentication</strong></td><td>Login, register, admin login, password handling, MFA/OTP screens</td></tr><tr><td><strong>Authorization</strong></td><td>RBAC (customer, supplier, rider, admin, sub-admin), API route guards</td></tr><tr><td><strong>Session management</strong></td><td>JWT expiry, storage, logout, refresh</td></tr><tr><td><strong>API security</strong></td><td>Unauthenticated access, IDOR samples, wallet/payment endpoints</td></tr><tr><td><strong>Input validation</strong></td><td>Order body, search filters, Mongoose usage</td></tr><tr><td><strong>Business logic</strong></td><td class="sev-low">Wallet credit, order pricing, Razorpay verify flow</td></tr><tr><td><strong>Mobile</strong></td><td class="sev-good">Token storage, route guards, hardcoded secrets, HTTP API URL</td></tr><tr><td><strong>Admin SPA</strong></td><td class="sev-good">Route guards, token storage, backend enforcement</td></tr><tr><td><strong>Network</strong></td><td>HTTP vs HTTPS, CORS configuration</td></tr><tr><td><strong>Dependencies</strong></td><td><code class="inline">npm audit</code> on backend, admin, mobile</td></tr></tbody></table>
+<h3>Methods used</h3>
+<ol><li><strong>Static code review</strong> — middleware, routes, services, models, client API clients  </li><li><strong>Live API probing</strong> — production backend with test credentials (read-only where possible; wallet credit test documented)  </li><li><strong>Dependency scanning</strong> — <code class="inline">npm audit</code>  </li><li><strong>Architecture review</strong> — auth flows, payment flows, role boundaries  </li></ol>
+<h3>Out of scope (not performed in this pass)</h3>
+<ul><li>Full manual penetration test (Burp/ZAP on all endpoints)</li><li>Mobile APK reverse engineering (MobSF, jadx)</li><li>MITM lab testing with proxy on physical devices</li><li>Load/stress testing</li><li>Formal PCI-DSS audit</li><li>Social engineering / phishing tests</li></ul>
+<p>These are listed as <strong>possible fixes / follow-up activities</strong> in Section 8.</p>
+<hr />
+<h2>3. Architecture &amp; Trust Boundaries</h2>
+<pre><code class="block">┌─────────────────┐     HTTP (⚠)      ┌─────────────────┐
+│  Mobile (Expo)  │ ────────────────► │  Backend API    │
+│  AsyncStorage   │   Bearer JWT      │  Express + JWT  │
+└─────────────────┘                   │  MongoDB Atlas  │
+                                      └────────▲────────┘
+┌─────────────────┐     HTTP (⚠)              │
+│  Admin SPA      │ ──────────────────────────┘
+│  localStorage   │   Admin Bearer JWT
+└─────────────────┘
+
+External: Razorpay (payments), Google Maps, Groq AI</code></pre>
+<h3>Trust assumptions (current)</h3>
+<table><thead><tr><th>Component</th><th>Trusts</th><th>Risk if violated</th></tr></thead><tbody><tr><td>Backend</td><td>Client sends correct <code class="inline">price</code>, <code class="inline">total</code>, <code class="inline">paymentMethod</code></td><td>Price/payment bypass</td></tr><tr><td>Backend</td><td>Any authenticated user on <code class="inline">/api/wallet/credit</code></td><td>Unlimited wallet balance</td></tr><tr><td>Mobile</td><td>AsyncStorage is private</td><td class="sev-good">Token theft on rooted device</td></tr><tr><td>Admin</td><td>localStorage + no XSS</td><td class="sev-good">Admin token theft</td></tr><tr><td>Network</td><td>HTTP is acceptable</td><td class="sev-good">MITM, token interception</td></tr></tbody></table>
+<h3>What should be trusted (target state)</h3>
+<ul><li><strong>Only the backend</strong> determines prices, payment status, and wallet balances.</li><li><strong>Only Razorpay webhooks + verified client callback</strong> confirm online payment.</li><li><strong>HTTPS everywhere</strong> for API and admin.</li><li><strong>Short-lived tokens</strong> with refresh or server-side revocation.</li></ul>
+<hr />
+<h2>4. Live Test Results</h2>
+<p>Tests run against <code class="inline">http://13.62.57.255:5000</code> in July 2026.</p>
+<h3>4.1 Unauthenticated access (expected: 401)</h3>
+<table><thead><tr><th>Endpoint</th><th>Method</th><th>Result</th><th>Verdict</th></tr></thead><tbody><tr><td><code class="inline">/api/health</code></td><td>GET</td><td>200</td><td class="sev-good">OK — intentionally public</td></tr><tr><td><code class="inline">/api/orders</code></td><td>GET</td><td class="sev-good">401 <code class="inline">No token</code></td><td class="sev-good">OK</td></tr><tr><td><code class="inline">/api/admin/orders</code></td><td>GET</td><td class="sev-good">401 <code class="inline">No token</code></td><td class="sev-good">OK</td></tr><tr><td><code class="inline">/api/admin/financials</code></td><td>GET</td><td class="sev-good">401 <code class="inline">No token</code></td><td class="sev-good">OK</td></tr><tr><td><code class="inline">/api/wallet/credit</code></td><td>POST</td><td class="sev-good">401 <code class="inline">No token</code></td><td class="sev-good">OK</td></tr><tr><td><code class="inline">/api/settings/tax</code></td><td>GET</td><td>200 (full tax config)</td><td>Over-exposed</td></tr><tr><td><code class="inline">/api/settings/payment</code></td><td>GET</td><td>200 (Razorpay key id)</td><td>Acceptable for checkout</td></tr></tbody></table>
+<h3>4.2 Authenticated authorization (customer token)</h3>
+<table><thead><tr><th>Test</th><th>Result</th><th>Verdict</th></tr></thead><tbody><tr><td><code class="inline">POST /api/wallet/credit</code> <code class="inline">{ amount: 5000 }</code></td><td><strong>200</strong> — balance increased</td><td class="sev-critical"><strong>CRITICAL FAIL</strong></td></tr><tr><td><code class="inline">GET /api/supplier/orders/incoming</code></td><td>403 <code class="inline">Supplier profile required</code></td><td class="sev-good">OK</td></tr><tr><td><code class="inline">GET /api/admin/orders</code></td><td>403 <code class="inline">Access denied: admin portal only</code></td><td class="sev-good">OK</td></tr><tr><td><code class="inline">GET /api/orders/{randomId}</code></td><td>404 <code class="inline">Order not found</code></td><td class="sev-good">OK (no IDOR in sample)</td></tr></tbody></table>
+<h3>4.3 Admin authentication</h3>
+<table><thead><tr><th>Test</th><th>Result</th><th>Verdict</th></tr></thead><tbody><tr><td><code class="inline">POST /api/admin/auth/login</code> with <code class="inline">H2O admin</code> / <code class="inline">admin@H2O</code></td><td><strong>200</strong> + JWT</td><td class="sev-critical"><strong>CRITICAL FAIL</strong></td></tr></tbody></table>
+<h3>4.4 Payment bypass (partial)</h3>
+<table><thead><tr><th>Test</th><th>Result</th><th>Verdict</th></tr></thead><tbody><tr><td><code class="inline">POST /api/orders</code> with <code class="inline">paymentMethod: &quot;card&quot;</code>, <code class="inline">price: 1</code></td><td>400 (serviceability)</td><td>Blocked by address check, not by payment logic</td></tr></tbody></table>
+<p><strong>Note:</strong> Code review confirms that if serviceability passes, <code class="inline">paymentMethod: &quot;card&quot;</code> sets <code class="inline">paymentStatus: &quot;paid&quot;</code> without gateway verification.</p>
+<h3>4.5 Test side effect</h3>
+<p>A wallet credit probe added <strong>₹5,000</strong> to the test customer account (<code class="inline">rohit@gmail.com</code>). Reverse via <strong>Admin → Wallet management</strong> if unintended.</p>
+<hr />
+<h2>5. Detailed Findings by Category</h2>
+<h3>5.1 Authentication</h3>
+<table><thead><tr><th>ID</th><th>Finding</th><th>Severity</th><th>Details</th></tr></thead><tbody><tr><td>AUTH-01</td><td>Default master admin credentials</td><td class="sev-critical"><strong>Critical</strong></td><td><code class="inline">backend/middleware/adminAuth.js</code> defaults to <code class="inline">H2O admin</code> / <code class="inline">admin@H2O</code> if env vars missing. <strong>Confirmed working on production.</strong></td></tr><tr><td>AUTH-02</td><td>Weak password policy</td><td class="sev-high">High</td><td>Minimum 6 characters only (<code class="inline">backend/models/User.js</code>). No complexity, history, or breach check.</td></tr><tr><td>AUTH-03</td><td>No MFA / 2FA</td><td class="sev-high">High</td><td><code class="inline">mobile/src/screens/LoginOTPScreen.js</code> is mock UI — no backend OTP verification.</td></tr><tr><td>AUTH-04</td><td>No password reset</td><td class="sev-high">High</td><td><code class="inline">ForgotPasswordScreen.js</code> shows “Coming soon”; no reset API.</td></tr><tr><td>AUTH-05</td><td>No rate limiting on login</td><td class="sev-high">High</td><td>Unlimited login attempts on <code class="inline">/api/auth/login</code> and <code class="inline">/api/admin/auth/login</code>.</td></tr><tr><td>AUTH-06</td><td>Generic login errors</td><td class="sev-good">Good</td><td>Returns <code class="inline">&quot;Invalid email or password&quot;</code> — no user enumeration via message.</td></tr><tr><td>AUTH-07</td><td>bcrypt password hashing</td><td class="sev-good">Good</td><td>10 rounds, <code class="inline">select: false</code> on password field.</td></tr></tbody></table>
+<p><strong>Files:</strong> <code class="inline">backend/routes/auth.js</code>, <code class="inline">backend/routes/adminAuth.js</code>, <code class="inline">backend/models/User.js</code></p>
+<hr />
+<h3>5.2 Authorization &amp; RBAC</h3>
+<table><thead><tr><th>ID</th><th>Finding</th><th>Severity</th><th>Details</th></tr></thead><tbody><tr><td>AUTHZ-01</td><td>Wallet self-credit for any user</td><td class="sev-critical"><strong>Critical</strong></td><td class="sev-low"><code class="inline">POST /api/wallet/credit</code> adds arbitrary balance. Used by mobile wallet top-up flow.</td></tr><tr><td>AUTHZ-02</td><td>No centralized <code class="inline">requireRole()</code> middleware</td><td class="sev-medium">Medium</td><td>Most routes use <code class="inline">auth</code> then per-handler checks; inconsistent.</td></tr><tr><td>AUTHZ-03</td><td>Sub-admin broad write access</td><td class="sev-high">High</td><td>Can adjust wallets, change tax settings, verify suppliers — only 4 actions restricted.</td></tr><tr><td>AUTHZ-04</td><td>Admin JWT vs mobile JWT same secret</td><td class="sev-medium">Medium</td><td class="sev-good">Admin user token could theoretically be used on mobile API (role not blocked in <code class="inline">auth.js</code>).</td></tr><tr><td>AUTHZ-05</td><td>Supplier routes check profile</td><td class="sev-good">Good</td><td>Returns 403 if no supplier profile.</td></tr><tr><td>AUTHZ-06</td><td>Admin routes use <code class="inline">adminAuth</code></td><td class="sev-good">Good</td><td>Non-admin roles get 403 on admin API.</td></tr><tr><td>AUTHZ-07</td><td>Financials restricted to master/admin</td><td class="sev-good">Good</td><td><code class="inline">requireCanSeeFinancials</code> on <code class="inline">/api/admin/financials</code>.</td></tr><tr><td>AUTHZ-08</td><td>Delivery partner list visible to all auth users</td><td class="sev-low">Low</td><td><code class="inline">GET /api/delivery-partners/</code> exposes names/phones to any logged-in user.</td></tr></tbody></table>
+<p><strong>Files:</strong> <code class="inline">backend/routes/wallet.js</code>, <code class="inline">backend/middleware/auth.js</code>, <code class="inline">backend/middleware/adminAuth.js</code>, <code class="inline">backend/routes/admin.js</code></p>
+<hr />
+<h3>5.3 Session &amp; Token Management</h3>
+<table><thead><tr><th>ID</th><th>Finding</th><th>Severity</th><th>Details</th></tr></thead><tbody><tr><td>SESS-01</td><td>JWT expiry 7 days, no refresh</td><td class="sev-high">High</td><td class="sev-good">Long-lived stolen token window.</td></tr><tr><td>SESS-02</td><td>No server-side logout / revocation</td><td class="sev-high">High</td><td class="sev-good">Logout clears client storage only; token valid until expiry.</td></tr><tr><td>SESS-03</td><td class="sev-good">No token denylist / rotation</td><td class="sev-medium">Medium</td><td class="sev-good">Cannot invalidate compromised tokens.</td></tr><tr><td>SESS-04</td><td class="sev-good">Mobile token in AsyncStorage</td><td class="sev-high">High</td><td class="sev-good">Key: <code class="inline">h20_auth_token</code> — not encrypted.</td></tr><tr><td>SESS-05</td><td class="sev-good">Admin token in localStorage</td><td class="sev-high">High</td><td class="sev-good">Key: <code class="inline">h20_admin_token</code> — XSS-vulnerable.</td></tr></tbody></table>
+<p><strong>Files:</strong> <code class="inline">mobile/src/context/AuthContext.js</code>, <code class="inline">admin/src/context/AuthContext.jsx</code>, <code class="inline">admin/src/api/client.js</code></p>
+<hr />
+<h3>5.4 API Security</h3>
+<table><thead><tr><th>ID</th><th>Finding</th><th>Severity</th><th>Details</th></tr></thead><tbody><tr><td>API-01</td><td>No rate limiting</td><td class="sev-high">High</td><td>No <code class="inline">express-rate-limit</code> or similar.</td></tr><tr><td>API-02</td><td>No Helmet security headers</td><td class="sev-medium">Medium</td><td>Missing <code class="inline">X-Content-Type-Options</code>, <code class="inline">X-Frame-Options</code>, etc.</td></tr><tr><td>API-03</td><td class="sev-low">CORS allows all origins in development</td><td class="sev-medium">Medium</td><td class="sev-low"><code class="inline">backend/server.js</code> — ensure production uses <code class="inline">ALLOWED_ORIGINS</code>.</td></tr><tr><td>API-04</td><td>Body size limit 2MB</td><td class="sev-good">Good</td><td>Limits oversized payloads.</td></tr><tr><td>API-05</td><td class="sev-good">Bearer token auth (not cookies)</td><td class="sev-good">Good</td><td class="sev-low">CSRF low priority for current design.</td></tr><tr><td>API-06</td><td>Public tax settings endpoint</td><td class="sev-medium">Medium</td><td><code class="inline">GET /api/settings/tax</code> exposes commission/GST without auth.</td></tr></tbody></table>
+<p><strong>Files:</strong> <code class="inline">backend/server.js</code>, <code class="inline">backend/routes/settings.js</code></p>
+<hr />
+<h3>5.5 Input Validation &amp; Injection</h3>
+<table><thead><tr><th>ID</th><th>Finding</th><th>Severity</th><th>Details</th></tr></thead><tbody><tr><td>INJ-01</td><td>Mongoose ODM used throughout</td><td class="sev-good">Good</td><td>Reduces classic NoSQL injection.</td></tr><tr><td>INJ-02</td><td>ReDoS via unescaped RegExp search</td><td class="sev-medium">Medium</td><td><code class="inline">new RegExp(search, &quot;i&quot;)</code> in admin/products/supplier search.</td></tr><tr><td>INJ-03</td><td>No validation library (zod/joi)</td><td class="sev-medium">Medium</td><td>Ad-hoc checks per route; easy to miss fields.</td></tr><tr><td>INJ-04</td><td>Mass assignment on user profile</td><td class="sev-low">Low</td><td>Email change via <code class="inline">PUT /api/users/me</code> without re-auth.</td></tr><tr><td>INJ-05</td><td>XSS in mobile WebView (Razorpay)</td><td class="sev-low">Low</td><td>Use trusted Razorpay checkout URLs only; validate WebView source.</td></tr></tbody></table>
+<p><strong>Files:</strong> <code class="inline">backend/routes/admin.js</code>, <code class="inline">backend/routes/products.js</code>, <code class="inline">backend/routes/users.js</code></p>
+<hr />
+<h3>5.6 Business Logic &amp; Payment Security</h3>
+<table><thead><tr><th>ID</th><th>Finding</th><th>Severity</th><th>Details</th></tr></thead><tbody><tr><td>PAY-01</td><td>Client-controlled item prices</td><td class="sev-critical"><strong>Critical</strong></td><td>Order uses <code class="inline">i.price</code> from request; not verified against <code class="inline">Product.price</code> in DB.</td></tr><tr><td>PAY-02</td><td>Fake “paid” orders via <code class="inline">paymentMethod: &quot;card&quot;</code></td><td class="sev-critical"><strong>Critical</strong></td><td>Default payment method marks order paid without gateway.</td></tr><tr><td>PAY-03</td><td>Wallet self-credit → free orders</td><td class="sev-critical"><strong>Critical</strong></td><td>Credit wallet, pay with wallet — no real money.</td></tr><tr><td>PAY-04</td><td>Razorpay signature verified</td><td class="sev-good">Good</td><td>HMAC-SHA256 in <code class="inline">backend/services/razorpay.js</code>.</td></tr><tr><td>PAY-05</td><td>Duplicate payment ID check</td><td class="sev-good">Good</td><td>In-memory check before order create.</td></tr><tr><td>PAY-06</td><td>Razorpay amount not verified</td><td class="sev-high">High</td><td>Fetched payment amount not compared to order total.</td></tr><tr><td>PAY-07</td><td>No Razorpay order linkage at verify</td><td class="sev-high">High</td><td><code class="inline">razorpay_order_id</code> from create-order not stored/checked.</td></tr><tr><td>PAY-08</td><td>No unique DB index on <code class="inline">razorpayPaymentId</code></td><td class="sev-medium">Medium</td><td>Race could create duplicate orders.</td></tr><tr><td>PAY-09</td><td class="sev-good">No Razorpay webhook handler</td><td class="sev-medium">Medium</td><td>Relies on client callback only.</td></tr><tr><td>PAY-10</td><td>Signature compare not timing-safe</td><td class="sev-low">Low</td><td>Use <code class="inline">crypto.timingSafeEqual</code>.</td></tr><tr><td>PAY-11</td><td class="sev-critical">Payment fetch failure still creates order</td><td class="sev-medium">Medium</td><td class="sev-critical">Falls back to <code class="inline">{ paidAt: new Date() }</code> if Razorpay fetch fails.</td></tr><tr><td>PAY-12</td><td>Direct Razorpay blocked on POST /orders</td><td class="sev-good">Good</td><td>Must use verify-payment endpoint.</td></tr><tr><td>PAY-13</td><td>Billing totals cross-checked</td><td class="sev-good">Good</td><td><code class="inline">validateOrderBilling</code> checks subtotal/tax/total consistency.</td></tr></tbody></table>
+<p><strong>Files:</strong> <code class="inline">backend/routes/payments.js</code>, <code class="inline">backend/services/customerOrderService.js</code>, <code class="inline">backend/routes/wallet.js</code>, <code class="inline">backend/routes/orders.js</code></p>
+<hr />
+<h3>5.7 Mobile Application Security</h3>
+<table><thead><tr><th>ID</th><th>Finding</th><th>Severity</th><th>Details</th></tr></thead><tbody><tr><td>MOB-01</td><td>No global route guard</td><td class="sev-medium">Medium</td><td>Expo routes in <code class="inline">_layout.tsx</code> — screens can open without login; API enforces data.</td></tr><tr><td>MOB-02</td><td>JWT in AsyncStorage</td><td class="sev-high">High</td><td>Not using <code class="inline">expo-secure-store</code>.</td></tr><tr><td>MOB-03</td><td>Hardcoded secrets in <code class="inline">eas.json</code></td><td class="sev-high">High</td><td>Google Maps key, Razorpay test key, HTTP API URL in build config.</td></tr><tr><td>MOB-04</td><td>Production API over HTTP</td><td class="sev-critical"><strong>Critical</strong></td><td class="sev-good">Tokens and payment data visible on network.</td></tr><tr><td>MOB-05</td><td>No certificate pinning</td><td class="sev-medium">Medium</td><td>Standard TLS trust store only (when HTTPS enabled).</td></tr><tr><td>MOB-06</td><td>No root/jailbreak detection</td><td class="sev-low">Low</td><td class="sev-high">Optional for high-security apps.</td></tr><tr><td>MOB-07</td><td>Mock OTP screen</td><td class="sev-low">Informational</td><td>Could mislead users into thinking MFA exists.</td></tr></tbody></table>
+<p><strong>Files:</strong> <code class="inline">mobile/eas.json</code>, <code class="inline">mobile/app/_layout.tsx</code>, <code class="inline">mobile/src/context/AuthContext.js</code>, <code class="inline">mobile/config/apiUrl.json</code></p>
+<hr />
+<h3>5.8 Admin Portal Security</h3>
+<table><thead><tr><th>ID</th><th>Finding</th><th>Severity</th><th>Details</th></tr></thead><tbody><tr><td>ADM-01</td><td>SPA route guards via React</td><td class="sev-good">Good</td><td><code class="inline">PrivateRoute</code> redirects unauthenticated users to <code class="inline">/login</code>.</td></tr><tr><td>ADM-02</td><td>Financials/Admin users UI-only guard</td><td class="sev-medium">Medium</td><td class="sev-medium">Backend must enforce (partially done).</td></tr><tr><td>ADM-03</td><td>Static files served without auth</td><td>Expected</td><td>API is the real security boundary.</td></tr><tr><td>ADM-04</td><td class="sev-good">Token in localStorage</td><td class="sev-high">High</td><td>Vulnerable if XSS introduced in admin bundle.</td></tr></tbody></table>
+<p><strong>Files:</strong> <code class="inline">admin/src/App.jsx</code>, <code class="inline">admin/src/context/AuthContext.jsx</code></p>
+<hr />
+<h3>5.9 Network &amp; Transport Security</h3>
+<table><thead><tr><th>ID</th><th>Finding</th><th>Severity</th><th>Details</th></tr></thead><tbody><tr><td>NET-01</td><td>HTTP API in production builds</td><td class="sev-critical"><strong>Critical</strong></td><td>No TLS on <code class="inline">13.62.57.255:5000</code>.</td></tr><tr><td>NET-02</td><td>HTTP admin portal</td><td class="sev-high">High</td><td>Same MITM risk for admin JWT.</td></tr><tr><td>NET-03</td><td>CORS credentials enabled</td><td class="sev-low">Low</td><td class="sev-good">OK with Bearer tokens; review if cookies added later.</td></tr></tbody></table>
+<hr />
+<h3>5.10 Data Security</h3>
+<table><thead><tr><th>ID</th><th>Finding</th><th>Severity</th><th>Details</th></tr></thead><tbody><tr><td>DATA-01</td><td>Passwords hashed at rest</td><td class="sev-good">Good</td><td>bcrypt in MongoDB.</td></tr><tr><td>DATA-02</td><td>JWT secret in env</td><td class="sev-good">Good</td><td>If strong and not default.</td></tr><tr><td>DATA-03</td><td>Default JWT secret fallback</td><td class="sev-high">High</td><td><code class="inline">&quot;h20-secret&quot;</code> if <code class="inline">JWT_SECRET</code> not set.</td></tr><tr><td>DATA-04</td><td>Razorpay secret server-only</td><td class="sev-good">Good</td><td>Not in mobile/admin clients.</td></tr><tr><td>DATA-05</td><td>PII in orders/addresses</td><td class="sev-low">Informational</td><td>Ensure MongoDB Atlas encryption at rest (Atlas default).</td></tr></tbody></table>
+<hr />
+<h3>5.11 Dependency Vulnerabilities</h3>
+<p><code class="inline">npm audit</code> summary (July 2026):</p>
+<table><thead><tr><th>Package</th><th>Critical</th><th>High</th><th>Moderate</th><th>Low</th></tr></thead><tbody><tr><td><strong>backend</strong></td><td>0</td><td>3</td><td>2</td><td>0</td></tr><tr><td><strong>admin</strong></td><td>0</td><td>1</td><td>4</td><td>1</td></tr><tr><td><strong>mobile</strong></td><td>0</td><td>1</td><td>15</td><td>0</td></tr></tbody></table>
+<p>Notable backend highs: <code class="inline">minimatch</code>, <code class="inline">path-to-regexp</code>, <code class="inline">picomatch</code> (ReDoS / glob issues — mostly dev/transitive).</p>
+<p><strong>Action:</strong> Run <code class="inline">npm audit fix</code> where safe; upgrade major deps in a controlled branch.</p>
+<hr />
+<h3>5.12 OWASP Top 10 Mapping</h3>
+<table><thead><tr><th>OWASP 2021</th><th>H2O status</th><th>Primary findings</th></tr></thead><tbody><tr><td class="sev-good">A01 Broken Access Control</td><td class="sev-critical"><strong>Fail</strong></td><td>Wallet credit, sub-admin scope, price control</td></tr><tr><td class="sev-critical">A02 Cryptographic Failures</td><td class="sev-critical"><strong>Fail</strong></td><td class="sev-good">HTTP in production, insecure token storage</td></tr><tr><td>A03 Injection</td><td class="sev-medium"><strong>Partial</strong></td><td class="sev-good">Mongoose OK; ReDoS in search</td></tr><tr><td>A04 Insecure Design</td><td class="sev-critical"><strong>Fail</strong></td><td>Client-trusted prices and payment status</td></tr><tr><td>A05 Security Misconfiguration</td><td class="sev-critical"><strong>Fail</strong></td><td>Default admin creds, secrets in eas.json</td></tr><tr><td>A06 Vulnerable Components</td><td class="sev-medium"><strong>Partial</strong></td><td>npm audit findings</td></tr><tr><td class="sev-critical">A07 Auth Failures</td><td class="sev-critical"><strong>Fail</strong></td><td>No MFA, no rate limit, weak passwords</td></tr><tr><td>A08 Software/Data Integrity</td><td class="sev-medium"><strong>Partial</strong></td><td class="sev-good">No webhook verification for Razorpay</td></tr><tr><td>A09 Logging &amp; Monitoring</td><td class="sev-medium"><strong>Partial</strong></td><td>Basic console logs; no SIEM/alerting</td></tr><tr><td>A10 SSRF</td><td class="sev-low"><strong>Low risk</strong></td><td>Limited outbound URL fetching</td></tr></tbody></table>
+<hr />
+<h2>6. URL &amp; Page Access Control</h2>
+<p>Understanding what users can <strong>see in the browser/app</strong> vs what the <strong>API allows</strong> is essential.</p>
+<h3>6.1 Admin portal</h3>
+<table><thead><tr><th>URL path</th><th>Without login</th><th>With login (sub-admin)</th><th>With login (master/admin)</th></tr></thead><tbody><tr><td><code class="inline">/login</code></td><td>Visible</td><td>Redirects to dashboard</td><td>Redirects to dashboard</td></tr><tr><td><code class="inline">/</code>, <code class="inline">/orders</code>, <code class="inline">/suppliers</code></td><td>Redirect to <code class="inline">/login</code></td><td>Visible</td><td>Visible</td></tr><tr><td><code class="inline">/financials</code></td><td>Redirect to <code class="inline">/login</code></td><td><strong>UI redirect to /</strong></td><td>Visible</td></tr><tr><td><code class="inline">/admin-users</code></td><td>Redirect to <code class="inline">/login</code></td><td><strong>UI redirect to /</strong></td><td>Visible</td></tr></tbody></table>
+<p><strong>Important:</strong> The admin app is a SPA. Static HTML/JS loads for any URL; <strong>React Router</strong> redirects unauthenticated users. The <strong>real enforcement is the API</strong> — always verify with curl/Postman, not only by clicking URLs.</p>
+<h3>6.2 Mobile app (Expo Router)</h3>
+<table><thead><tr><th>Route example</th><th>Without login</th><th>With customer login</th><th>With supplier login</th></tr></thead><tbody><tr><td><code class="inline">/login</code></td><td>Visible</td><td>Can navigate</td><td>Can navigate</td></tr><tr><td><code class="inline">/dashboard</code></td><td class="sev-critical">May open; API calls fail or empty</td><td>Works</td><td>Wrong role UX</td></tr><tr><td><code class="inline">/supplier-dashboard</code></td><td><strong>May open</strong></td><td>API 403</td><td>Works</td></tr><tr><td><code class="inline">/payment</code>, <code class="inline">/checkout</code></td><td>May open</td><td>Works if cart filled</td><td>N/A</td></tr></tbody></table>
+<p><strong>Gap:</strong> No global auth wrapper in <code class="inline">mobile/app/_layout.tsx</code>. Individual screens check <code class="inline">isAuthenticated</code> inconsistently. <strong>Backend must remain the authority.</strong></p>
+<h3>6.3 How to verify page access (QA steps)</h3>
+<p><strong>Admin — unauthenticated</strong></p>
+<ol><li>Open incognito window.</li><li>Visit <code class="inline">http://13.62.57.255:3000/orders</code>.</li><li><strong>Expected:</strong> Redirect to <code class="inline">/login</code>; API calls return 401.</li></ol>
+<p><strong>Admin — sub-admin escalation</strong></p>
+<ol><li>Log in as sub-admin.</li><li>Open DevTools → Network.</li><li>Call <code class="inline">GET /api/admin/financials</code> manually.</li><li><strong>Expected:</strong> 403 Permission denied.</li></ol>
+<p><strong>Mobile — deep link</strong></p>
+<ol><li>Log out.</li><li>Navigate to <code class="inline">/supplier-wallet</code> (or deep link).</li><li><strong>Expected:</strong> UI may render; wallet API returns 401 or 403.</li></ol>
+<p><strong>API — always test separately from UI</strong></p>
+<pre><code class="block"># No token — expect 401
+curl -s http://13.62.57.255:5000/api/orders
+
+# Customer token — expect 403
+curl -s http://13.62.57.255:5000/api/admin/orders \
+  -H &quot;Authorization: Bearer &lt;customer_jwt&gt;&quot;</code></pre>
+<hr />
+<h2>7. Required Fixes (Must Do Before Production)</h2>
+<p>These fixes are <strong>mandatory</strong> before accepting real payments or public launch.</p>
+<h3>Priority 0 — Immediate (same day)</h3>
+<table><thead><tr><th>#</th><th>Fix</th><th>Why</th><th>Where to change</th></tr></thead><tbody><tr><td>R0-1</td><td><strong>Remove or restrict <code class="inline">POST /api/wallet/credit</code></strong></td><td>Confirmed exploit: any user adds unlimited balance</td><td><code class="inline">backend/routes/wallet.js</code> — remove route or restrict to admin-only with audit log</td></tr><tr><td>R0-2</td><td><strong>Change master admin credentials</strong></td><td>Default <code class="inline">H2O admin</code> / <code class="inline">admin@H2O</code> works on production</td><td><code class="inline">backend/.env</code> on server: <code class="inline">MASTER_ADMIN_EMAIL</code>, <code class="inline">MASTER_ADMIN_PASSWORD</code></td></tr><tr><td>R0-3</td><td><strong>Set strong <code class="inline">JWT_SECRET</code></strong></td><td class="sev-good">Prevent token forgery</td><td><code class="inline">backend/.env</code>: <code class="inline">JWT_SECRET=&lt;32+ random bytes&gt;</code></td></tr><tr><td>R0-4</td><td><strong>Reverse test wallet credit</strong></td><td>₹5,000 added during security test</td><td>Admin → Wallet management → adjust customer wallet</td></tr></tbody></table>
+<h3>Priority 1 — Before real payments (1–2 weeks)</h3>
+<table><thead><tr><th>#</th><th>Fix</th><th>Why</th><th>Where to change</th></tr></thead><tbody><tr><td>R1-1</td><td><strong>Server-side product pricing</strong></td><td>Load <code class="inline">Product.price</code> from DB; reject client price mismatch</td><td><code class="inline">backend/services/customerOrderService.js</code></td></tr><tr><td>R1-2</td><td><strong>Block fake paid orders</strong></td><td>Only <code class="inline">cod</code> → pending; <code class="inline">razorpay</code> → via verify only; <code class="inline">wallet</code> → debit balance</td><td><code class="inline">customerOrderService.js</code>, <code class="inline">orders.js</code></td></tr><tr><td>R1-3</td><td><strong>Verify Razorpay payment amount</strong></td><td>Compare fetched payment amount (paise) to order total</td><td><code class="inline">backend/routes/payments.js</code></td></tr><tr><td>R1-4</td><td><strong>Link Razorpay order ID</strong></td><td>Store <code class="inline">razorpay_order_id</code> at create; verify same ID at payment</td><td><code class="inline">payments.js</code>, <code class="inline">Order</code> model</td></tr><tr><td>R1-5</td><td><strong>Enable HTTPS</strong></td><td>Stop MITM on JWT and payment data</td><td>Nginx/Caddy + Let's Encrypt on EC2; update mobile/admin URLs</td></tr><tr><td>R1-6</td><td><strong>Remove secrets from <code class="inline">eas.json</code></strong></td><td>Keys in git history</td><td>EAS Secrets; env at build time only</td></tr><tr><td>R1-7</td><td><strong>Add rate limiting on auth</strong></td><td>Stop brute force</td><td><code class="inline">express-rate-limit</code> on <code class="inline">/api/auth/login</code>, register, admin login</td></tr></tbody></table>
+<h3>Priority 2 — Hardening (2–4 weeks)</h3>
+<table><thead><tr><th>#</th><th>Fix</th><th>Why</th></tr></thead><tbody><tr><td>R2-1</td><td class="sev-good">Move mobile tokens to <strong>expo-secure-store</strong></td><td>Protect JWT on device</td></tr><tr><td>R2-2</td><td class="sev-good">Add <strong>Razorpay webhooks</strong></td><td>Reconcile payments server-side</td></tr><tr><td>R2-3</td><td>Unique index on <strong><code class="inline">razorpayPaymentId</code></strong></td><td>Prevent duplicate orders</td></tr><tr><td>R2-4</td><td>Tighten <strong>sub-admin RBAC</strong></td><td>Restrict wallet adjust, tax settings</td></tr><tr><td>R2-5</td><td>Stronger <strong>password policy</strong></td><td>Min 8–12 chars, complexity rules</td></tr><tr><td>R2-6</td><td><strong>Helmet</strong> + security headers on API</td><td>Standard HTTP hardening</td></tr><tr><td>R2-7</td><td>Escape user input in <strong>RegExp search</strong></td><td>Prevent ReDoS</td></tr></tbody></table>
+<hr />
+<h2>8. Possible Fixes Catalog (Full Remediation Options)</h2>
+<p>This section lists <strong>all possible security improvements</strong> — including items beyond Section 7. Use it as a roadmap; not everything is required for MVP, but each improves posture.</p>
+<h3>8.1 Authentication &amp; identity</h3>
+<table><thead><tr><th>Fix</th><th>Description</th><th>Effort</th><th>Impact</th></tr></thead><tbody><tr><td>MFA / TOTP</td><td>Authenticator app or SMS OTP after password</td><td class="sev-high">High</td><td class="sev-high">High</td></tr><tr><td>Email OTP login</td><td>Implement backend for <code class="inline">LoginOTPScreen.js</code></td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td class="sev-low">Password reset flow</td><td>Forgot password → email link → reset API</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>Account lockout</td><td class="sev-critical">Lock after N failed logins (e.g. 5 in 15 min)</td><td class="sev-low">Low</td><td class="sev-high">High</td></tr><tr><td>CAPTCHA on register/login</td><td>reCAPTCHA / hCaptcha</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Password complexity</td><td class="sev-low">Upper, lower, digit, symbol; min 10 chars</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Password breach check</td><td>HaveIBeenPwned API k-anonymity</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Email verification</td><td>Verify email before first order</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>OAuth / social login</td><td>Google/Apple sign-in</td><td class="sev-high">High</td><td class="sev-medium">Medium</td></tr><tr><td>Separate JWT secrets</td><td>Different secrets for admin vs mobile</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td class="sev-good">Short-lived access tokens</td><td class="sev-good">15–60 min access + refresh token</td><td class="sev-high">High</td><td class="sev-high">High</td></tr><tr><td class="sev-good">Refresh token rotation</td><td class="sev-good">One-time use refresh tokens</td><td class="sev-high">High</td><td class="sev-high">High</td></tr><tr><td>Server-side session store</td><td class="sev-good">Redis denylist for revoked JWTs</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>Logout API</td><td class="sev-good">Invalidate token server-side</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>Device binding</td><td>Track devices; alert on new login</td><td class="sev-high">High</td><td class="sev-medium">Medium</td></tr></tbody></table>
+<h3>8.2 Authorization &amp; RBAC</h3>
+<table><thead><tr><th>Fix</th><th>Description</th><th>Effort</th><th>Impact</th></tr></thead><tbody><tr><td><code class="inline">requireRole('supplier')</code> middleware</td><td>Central role enforcement</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>Permission matrix document</td><td>Table of role × endpoint</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Sub-admin granular permissions</td><td>e.g. <code class="inline">canAdjustWallet</code>, <code class="inline">canEditTax</code> flags</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>Resource-level ACL</td><td>Order/supplier scoped by ownership</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>Admin action audit log</td><td>Who changed tax, wallet, verified supplier</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>Principle of least privilege</td><td>Review all admin routes</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td class="sev-good">API scope tokens</td><td>Fine-grained scopes per client</td><td class="sev-high">High</td><td class="sev-medium">Medium</td></tr><tr><td>Hide delivery partner PII</td><td>Mask phone until order assigned</td><td class="sev-low">Low</td><td class="sev-low">Low</td></tr></tbody></table>
+<h3>8.3 API security</h3>
+<table><thead><tr><th>Fix</th><th>Description</th><th>Effort</th><th>Impact</th></tr></thead><tbody><tr><td><code class="inline">express-rate-limit</code></td><td>Global + stricter on auth</td><td class="sev-low">Low</td><td class="sev-high">High</td></tr><tr><td class="sev-low"><code class="inline">express-slow-down</code></td><td>Progressive delay on abuse</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Helmet</td><td>Security HTTP headers</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Request ID / correlation ID</td><td>Trace requests in logs</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>JSON schema validation</td><td>zod/joi on all POST/PATCH bodies</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>API versioning</td><td><code class="inline">/api/v1/</code> prefix</td><td class="sev-medium">Medium</td><td class="sev-low">Low</td></tr><tr><td class="sev-low">IP allowlist for admin</td><td>Optional office IP restriction</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>WAF (Cloudflare / AWS WAF)</td><td>Edge protection</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>Request signing for mobile</td><td>HMAC on sensitive requests</td><td class="sev-high">High</td><td class="sev-medium">Medium</td></tr><tr><td>OpenAPI + security schemes</td><td>Document auth requirements</td><td class="sev-low">Low</td><td class="sev-low">Low</td></tr></tbody></table>
+<h3>8.4 Input validation &amp; injection prevention</h3>
+<table><thead><tr><th>Fix</th><th>Description</th><th>Effort</th><th>Impact</th></tr></thead><tbody><tr><td>Escape RegExp special chars in search</td><td>`search.replace(/[.*+?^${}()</td><td>[\]\\]/g, '\\$&amp;')`</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Parameterized queries only</td><td>Already using Mongoose — maintain discipline</td><td>Ongoing</td><td class="sev-high">High</td></tr><tr><td>Sanitize HTML in user content</td><td>Reviews, support messages</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>File upload validation</td><td>MIME, size, virus scan for supplier docs</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>Content Security Policy (admin)</td><td>CSP headers on admin static host</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td class="sev-good">CSRF tokens</td><td class="sev-good">If cookie auth added later</td><td class="sev-medium">Medium</td><td>N/A today</td></tr></tbody></table>
+<h3>8.5 Payment &amp; wallet business logic</h3>
+<table><thead><tr><th>Fix</th><th>Description</th><th>Effort</th><th>Impact</th></tr></thead><tbody><tr><td>Remove public wallet credit</td><td><strong>Required</strong> — see R0-1</td><td class="sev-low">Low</td><td class="sev-critical">Critical</td></tr><tr><td>Admin-only wallet top-up</td><td class="sev-good">Payment gateway → webhook → credit</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>Server-side price from DB</td><td><strong>Required</strong> — see R1-1</td><td class="sev-medium">Medium</td><td class="sev-critical">Critical</td></tr><tr><td>Idempotent order creation</td><td>Idempotency-Key header</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td class="sev-good">Razorpay webhook handler</td><td><code class="inline">payment.captured</code> event</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>Amount + currency verify</td><td>Match order total in paise</td><td class="sev-low">Low</td><td class="sev-high">High</td></tr><tr><td>Store Razorpay order at create</td><td>Link create-order to verify</td><td class="sev-low">Low</td><td class="sev-high">High</td></tr><tr><td>Unique index <code class="inline">razorpayPaymentId</code></td><td>MongoDB unique sparse index</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Timing-safe signature compare</td><td><code class="inline">crypto.timingSafeEqual</code></td><td class="sev-low">Low</td><td class="sev-low">Low</td></tr><tr><td class="sev-critical">Fail closed on payment fetch error</td><td class="sev-critical">Do not create order if fetch fails</td><td class="sev-low">Low</td><td class="sev-high">High</td></tr><tr><td>Refund API integration</td><td>Razorpay refunds on cancel</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>Wallet ledger immutability</td><td>Append-only transactions</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>Daily reconciliation job</td><td>Compare Razorpay dashboard vs orders</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>PCI scope reduction</td><td>Never touch raw card data (Razorpay checkout only)</td><td>Ongoing</td><td class="sev-high">High</td></tr></tbody></table>
+<h3>8.6 Mobile application security</h3>
+<table><thead><tr><th>Fix</th><th>Description</th><th>Effort</th><th>Impact</th></tr></thead><tbody><tr><td>expo-secure-store for JWT</td><td>Encrypted storage</td><td class="sev-low">Low</td><td class="sev-high">High</td></tr><tr><td>Global auth guard in <code class="inline">_layout.tsx</code></td><td>Redirect unauthenticated users</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>Certificate pinning</td><td>Pin API cert/public key</td><td class="sev-high">High</td><td class="sev-high">High</td></tr><tr><td>Root/jailbreak detection</td><td>Block or warn on compromised devices</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>ProGuard / R8 obfuscation</td><td>Android release builds</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Remove debug logs in production</td><td>Strip sensitive logs</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Deep link validation</td><td>Validate orderId format before API</td><td class="sev-low">Low</td><td class="sev-low">Low</td></tr><tr><td>Biometric unlock</td><td>Optional Face/Touch ID for app open</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>Auto-logout on background</td><td>Clear session after timeout</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Obfuscate API keys</td><td>Still extractable — rely on backend restrictions</td><td class="sev-low">Low</td><td class="sev-low">Low</td></tr></tbody></table>
+<h3>8.7 Admin portal security</h3>
+<table><thead><tr><th>Fix</th><th>Description</th><th>Effort</th><th>Impact</th></tr></thead><tbody><tr><td class="sev-good">httpOnly secure cookies</td><td>Alternative to localStorage (with CSRF care)</td><td class="sev-high">High</td><td class="sev-high">High</td></tr><tr><td>CSP + Subresource Integrity</td><td>Harden static assets</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>Sub-admin API restrictions</td><td>Mirror UI guards on all routes</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>Admin session timeout</td><td>Auto logout after inactivity</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>2FA for admin users</td><td>TOTP mandatory for master/admin</td><td class="sev-high">High</td><td class="sev-high">High</td></tr><tr><td>IP logging for admin actions</td><td>Audit trail</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr></tbody></table>
+<h3>8.8 Network &amp; infrastructure</h3>
+<table><thead><tr><th>Fix</th><th>Description</th><th>Effort</th><th>Impact</th></tr></thead><tbody><tr><td>HTTPS with Let's Encrypt</td><td>Nginx reverse proxy</td><td class="sev-medium">Medium</td><td class="sev-critical">Critical</td></tr><tr><td>HSTS header</td><td>Force HTTPS</td><td class="sev-low">Low</td><td class="sev-high">High</td></tr><tr><td>TLS 1.2+ only</td><td>Disable old protocols</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td class="sev-low">Close MongoDB to VPC/IP allowlist</td><td>Atlas network access</td><td class="sev-low">Low</td><td class="sev-high">High</td></tr><tr><td>AWS Security Group least privilege</td><td>Only 443, 22 from known IPs</td><td class="sev-low">Low</td><td class="sev-high">High</td></tr><tr><td>Secrets Manager / Parameter Store</td><td>Not plain .env on disk</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>Separate staging environment</td><td>Never test exploits on prod</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td>DDoS protection</td><td>Cloudflare or AWS Shield</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr></tbody></table>
+<h3>8.9 Data security &amp; privacy</h3>
+<table><thead><tr><th>Fix</th><th>Description</th><th>Effort</th><th>Impact</th></tr></thead><tbody><tr><td>Field-level encryption</td><td>Phone, address at rest</td><td class="sev-high">High</td><td class="sev-medium">Medium</td></tr><tr><td>PII retention policy</td><td>Auto-delete old addresses/logs</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>GDPR-style export/delete</td><td>User data export API</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>Log redaction</td><td class="sev-good">Never log passwords, tokens, PAN</td><td class="sev-low">Low</td><td class="sev-high">High</td></tr><tr><td>MongoDB backup encryption</td><td>Atlas backups</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Anonymize analytics</td><td>No PII in crash reports</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr></tbody></table>
+<h3>8.10 Monitoring, logging &amp; incident response</h3>
+<table><thead><tr><th>Fix</th><th>Description</th><th>Effort</th><th>Impact</th></tr></thead><tbody><tr><td>Centralized logging</td><td>CloudWatch, Datadog, ELK</td><td class="sev-medium">Medium</td><td class="sev-high">High</td></tr><tr><td class="sev-critical">Alert on failed admin logins</td><td>Spike detection</td><td class="sev-low">Low</td><td class="sev-high">High</td></tr><tr><td>Alert on wallet credit anomalies</td><td>Large credits</td><td class="sev-low">Low</td><td class="sev-high">High</td></tr><tr><td class="sev-good">Security incident runbook</td><td>Document response steps</td><td class="sev-low">Low</td><td class="sev-medium">Medium</td></tr><tr><td>Regular dependency updates</td><td>Monthly npm audit</td><td>Ongoing</td><td class="sev-medium">Medium</td></tr><tr><td>SAST in CI</td><td>Semgrep, CodeQL</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>DAST in CI</td><td>OWASP ZAP baseline scan</td><td class="sev-medium">Medium</td><td class="sev-medium">Medium</td></tr><tr><td>Bug bounty / external pen test</td><td>Before major launch</td><td class="sev-high">High</td><td class="sev-high">High</td></tr></tbody></table>
+<h3>8.11 Compliance &amp; governance</h3>
+<table><thead><tr><th>Fix</th><th>Description</th><th>Effort</th><th>Impact</th></tr></thead><tbody><tr><td>PCI-DSS SAQ A</td><td>Razorpay hosted checkout — minimal scope</td><td class="sev-low">Low</td><td>Required for cards</td></tr><tr><td>Privacy policy alignment</td><td>Match actual data collected</td><td class="sev-low">Low</td><td>Legal</td></tr><tr><td>Terms of service</td><td>Payment, refunds, liability</td><td class="sev-low">Low</td><td>Legal</td></tr><tr><td>Security policy document</td><td>Internal team guidelines</td><td class="sev-low">Low</td><td>Governance</td></tr><tr><td>Vendor review</td><td>Razorpay, Atlas, AWS DPAs</td><td class="sev-low">Low</td><td>Compliance</td></tr></tbody></table>
+<hr />
+<h2>9. Verification &amp; Re-Test Checklist</h2>
+<p>After implementing fixes, re-run these checks.</p>
+<h3>9.1 Critical regression tests</h3>
+<ul class="checklist"><li class="checklist-item"><span class="checkbox">☐</span> <code class="inline">POST /api/wallet/credit</code> returns <strong>403 or 404</strong> for normal users</li><li class="checklist-item"><span class="checkbox">☐</span> Default master admin credentials <strong>do not work</strong></li><li class="checklist-item"><span class="checkbox">☐</span> Order with tampered <code class="inline">price: 1</code> is <strong>rejected</strong> (server uses DB price)</li><li class="checklist-item"><span class="checkbox">☐</span> <code class="inline">POST /api/orders</code> with <code class="inline">paymentMethod: &quot;card&quot;</code> returns <strong>400</strong> (must use Razorpay)</li><li class="checklist-item"><span class="checkbox">☐</span> API only accessible via <strong>HTTPS</strong>; HTTP redirects or blocked</li><li class="checklist-item"><span class="checkbox">☐</span> Razorpay verify rejects amount mismatch</li></ul>
+<h3>9.2 Authentication tests</h3>
+<ul class="checklist"><li class="checklist-item"><span class="checkbox">☐</span> 20 failed logins trigger lockout or CAPTCHA</li><li class="checklist-item"><span class="checkbox">☐</span> Password under minimum length rejected at register</li><li class="checklist-item"><span class="checkbox">☐</span> Logout invalidates token (if server denylist implemented)</li><li class="checklist-item"><span class="checkbox">☐</span> Expired JWT returns 401</li></ul>
+<h3>9.3 Authorization tests</h3>
+<ul class="checklist"><li class="checklist-item"><span class="checkbox">☐</span> Customer cannot access <code class="inline">/api/admin/*</code></li><li class="checklist-item"><span class="checkbox">☐</span> Customer cannot access <code class="inline">/api/supplier/*</code></li><li class="checklist-item"><span class="checkbox">☐</span> Sub-admin cannot access <code class="inline">/api/admin/financials</code></li><li class="checklist-item"><span class="checkbox">☐</span> User A cannot fetch User B's order by ID</li></ul>
+<h3>9.4 Admin UI tests</h3>
+<ul class="checklist"><li class="checklist-item"><span class="checkbox">☐</span> Incognito <code class="inline">/orders</code> → login page</li><li class="checklist-item"><span class="checkbox">☐</span> Sub-admin <code class="inline">/financials</code> → blocked in UI and API</li></ul>
+<h3>9.5 Mobile tests</h3>
+<ul class="checklist"><li class="checklist-item"><span class="checkbox">☐</span> Logged-out user cannot complete checkout (API 401)</li><li class="checklist-item"><span class="checkbox">☐</span> Token stored in SecureStore (if implemented)</li><li class="checklist-item"><span class="checkbox">☐</span> Production build uses <code class="inline">https://</code> API URL</li></ul>
+<h3>9.6 Dependency tests</h3>
+<pre><code class="block">cd backend &amp;&amp; npm audit
+cd admin &amp;&amp; npm audit
+cd mobile &amp;&amp; npm audit</code></pre>
+<hr />
+<h2>10. Compliance Notes (PCI-DSS &amp; Privacy)</h2>
+<h3>PCI-DSS</h3>
+<p>H2O uses <strong>Razorpay Checkout</strong> — card data is entered on Razorpay's UI, not stored in H2O MongoDB. This typically qualifies for <strong>SAQ A</strong> (card-not-present, outsourced).</p>
+<p><strong>Still required for PCI alignment:</strong></p>
+<ul><li>Use <strong>HTTPS</strong> for all payment-related pages and API calls</li><li>Never log full card numbers or CVV</li><li>Fix wallet/payment bypass flaws (Section 7) — integrity of payment flow</li><li>Maintain secure admin access to payment reconciliation data</li></ul>
+<h3>Data privacy (India / general)</h3>
+<ul><li>Store minimum PII (name, phone, address for delivery)</li><li>Document retention in privacy policy</li><li>Secure API keys and JWT secrets</li><li>Allow users to request account deletion (future enhancement)</li></ul>
+<hr />
+<h2>11. Appendix: Key Files Reference</h2>
+<table><thead><tr><th>Area</th><th>Path</th></tr></thead><tbody><tr><td>API entry, CORS</td><td><code class="inline">backend/server.js</code></td></tr><tr><td>Mobile JWT auth</td><td><code class="inline">backend/middleware/auth.js</code></td></tr><tr><td>Admin JWT auth</td><td><code class="inline">backend/middleware/adminAuth.js</code></td></tr><tr><td>Login / register</td><td><code class="inline">backend/routes/auth.js</code></td></tr><tr><td>Admin login</td><td><code class="inline">backend/routes/adminAuth.js</code></td></tr><tr><td class="sev-critical"><strong>Wallet credit (critical)</strong></td><td><code class="inline">backend/routes/wallet.js</code></td></tr><tr><td>Orders create</td><td><code class="inline">backend/routes/orders.js</code></td></tr><tr><td>Order business logic</td><td><code class="inline">backend/services/customerOrderService.js</code></td></tr><tr><td>Razorpay</td><td><code class="inline">backend/routes/payments.js</code>, <code class="inline">backend/services/razorpay.js</code></td></tr><tr><td>User model / passwords</td><td><code class="inline">backend/models/User.js</code></td></tr><tr><td>Env validation</td><td><code class="inline">backend/config/env.js</code></td></tr><tr><td class="sev-good">Mobile token storage</td><td><code class="inline">mobile/src/context/AuthContext.js</code></td></tr><tr><td>Mobile API client</td><td><code class="inline">mobile/src/api/client.js</code></td></tr><tr><td>Build secrets</td><td><code class="inline">mobile/eas.json</code></td></tr><tr><td>Admin route guards</td><td><code class="inline">admin/src/App.jsx</code></td></tr><tr><td class="sev-good">Admin token</td><td><code class="inline">admin/src/api/client.js</code></td></tr><tr><td>Production env template</td><td><code class="inline">backend/.env.production.example</code></td></tr></tbody></table>
+<hr />
+<h2>Document history</h2>
+<table><thead><tr><th>Version</th><th>Date</th><th>Author</th><th>Changes</th></tr></thead><tbody><tr><td>1.0</td><td>July 2026</td><td>Security review (automated + manual)</td><td>Initial assessment and remediation guide</td></tr></tbody></table>
+<hr />
+<p><strong>Next steps:</strong> Implement Section 7 fixes in priority order, then re-test with Section 9. For PDF export, add a generator script under <code class="inline">docs/</code> (similar to <code class="inline">generate-ba-guide-pdf.mjs</code>) if needed.</p></div>
+</body>
+</html>

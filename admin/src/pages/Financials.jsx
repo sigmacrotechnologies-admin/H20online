@@ -60,10 +60,10 @@ export default function Financials() {
       <div className="card" style={{ marginBottom: "1.25rem" }}>
         <h3 className="card-title">Settlement rules</h3>
         <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "0.9rem", lineHeight: 1.5 }}>
-          Supplier fee: each supplier&apos;s commission % (default {rates.defaultCommissionPercent || 20}% on their item subtotal).
-          Rider share: {rates.deliverySharePercent || 10}% of order total (incl. tax).
+          Supplier fee: each supplier&apos;s commission % (platform default {rates.defaultCommissionPercent ?? 20}% on their item subtotal).
+          Rider share: each assigned rider&apos;s delivery share % (platform default {rates.defaultDeliverySharePercent ?? rates.deliverySharePercent ?? 10}% of order total incl. tax).
+          Override per supplier on Suppliers page; per rider on Delivery partners page; defaults in Tax &amp; payment settings.
           Platform retention = order total − supplier payouts − rider share.
-          Wallet orders credit the platform wallet; Razorpay goes to Razorpay. Payouts credit supplier/rider wallets on delivery.
         </p>
       </div>
 
@@ -122,7 +122,7 @@ export default function Financials() {
       <div className="card">
         <h3 className="card-title">Order settlements (delivered)</h3>
         <p style={{ margin: "0 0 1rem", color: "var(--text-muted)", fontSize: "0.85rem" }}>
-          Per-order breakdown using supplier commission % and {rates.deliverySharePercent || 10}% rider share.
+          Per-order breakdown using each supplier&apos;s commission % and assigned rider&apos;s delivery share %.
         </p>
         {settlements.length === 0 ? (
           <div className="empty-state" style={{ padding: "1.5rem 0" }}>No delivered orders yet.</div>
@@ -138,6 +138,7 @@ export default function Financials() {
                   <th>Platform fee</th>
                   <th>Supplier</th>
                   <th>Rider</th>
+                  <th>Rider %</th>
                   <th>Platform keeps</th>
                 </tr>
               </thead>
@@ -145,15 +146,17 @@ export default function Financials() {
                 {settlements.map((row) => (
                   <tr key={row.id || row.orderId}>
                     <td>{formatDate(row.createdAt)}</td>
-                    <td>{row.orderId}</td>
+                    <td style={{ fontFamily: "monospace", fontWeight: 600 }}>{row.orderId}</td>
                     <td>
                       {row.paymentMethod}
+                      {row.razorpayPaymentMethodLabel ? ` · ${row.razorpayPaymentMethodLabel}` : ""}
                       {row.isRazorpayTest && <span className="badge badge-open" style={{ marginLeft: 6 }}>Test</span>}
                     </td>
                     <td>{money(row.orderTotal)}</td>
                     <td>{money(row.platformCutFromSuppliers)}</td>
                     <td>{money(row.supplierPayoutTotal)}</td>
                     <td>{money(row.deliveryShare)}</td>
+                    <td>{row.deliverySharePercent ?? "—"}%</td>
                     <td>{money(row.platformRetention)}</td>
                   </tr>
                 ))}
@@ -232,23 +235,41 @@ export default function Financials() {
                   <th>Date</th>
                   <th>Order</th>
                   <th>Customer</th>
+                  <th>Source</th>
                   <th>Amount</th>
+                  <th>Razorpay order</th>
                   <th>Payment ID</th>
                   <th>Mode</th>
-                  <th>Status</th>
+                  <th>Paid status</th>
+                  <th>Order status</th>
                 </tr>
               </thead>
               <tbody>
                 {razorpayPayments.map((row) => (
                   <tr key={row.id || row.orderId}>
                     <td>{formatDate(row.date)}</td>
-                    <td>{row.orderId}</td>
+                    <td style={{ fontFamily: "monospace", fontWeight: 600 }}>{row.orderId}</td>
                     <td>{row.customerName || row.customerEmail || "—"}</td>
+                    <td>{row.orderSource || "—"}</td>
                     <td>{money(row.total)}</td>
+                    <td style={{ fontFamily: "monospace", fontSize: "0.85rem" }}>{row.razorpayOrderId || "—"}</td>
                     <td style={{ fontFamily: "monospace", fontSize: "0.85rem" }}>{row.razorpayPaymentId || "—"}</td>
                     <td>
-                      {row.isTest ? <span className="badge badge-open">Test</span> : <span className="badge badge-success">Live</span>}
+                      {row.paymentMethodLabel || "—"}
+                      {row.paymentMethodDetail ? (
+                        <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{row.paymentMethodDetail}</div>
+                      ) : null}
+                      {row.isTest ? (
+                        <span className="badge badge-open" style={{ marginLeft: 6 }}>
+                          Test
+                        </span>
+                      ) : (
+                        <span className="badge badge-success" style={{ marginLeft: 6 }}>
+                          Live
+                        </span>
+                      )}
                     </td>
+                    <td>{row.paymentStatus || "—"}</td>
                     <td>{row.status || "—"}</td>
                   </tr>
                 ))}
